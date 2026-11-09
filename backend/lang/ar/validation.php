@@ -1,0 +1,51 @@
+<?php
+
+// Arabic validation messages (subset used by the app). Falls back to English for anything missing.
+return [
+    'accepted' => 'يجب قبول :attribute.',
+    'array' => ':attribute يجب أن يكون قائمة.',
+    'boolean' => ':attribute يجب أن يكون نعم أو لا.',
+    'date' => ':attribute ليس تاريخاً صحيحاً.',
+    'different' => ':attribute و :other يجب أن يكونا مختلفين.',
+    'digits' => ':attribute يجب أن يكون :digits أرقام.',
+    'email' => ':attribute يجب أن يكون بريداً إلكترونياً صحيحاً.',
+    'enum' => 'قيمة :attribute غير صحيحة.',
+    'exists' => 'قيمة :attribute غير موجودة أو غير مفعّلة.',
+    'file' => ':attribute يجب أن يكون ملفاً.',
+    'image' => ':attribute يجب أن يكون صورة.',
+    'in' => 'قيمة :attribute غير صحيحة.',
+    'integer' => ':attribute يجب أن يكون رقماً صحيحاً.',
+    'max' => [
+        'numeric' => ':attribute يجب ألا يزيد عن :max.',
+        'file' => 'حجم :attribute يجب ألا يزيد عن :max كيلوبايت.',
+        'string' => ':attribute يجب ألا يزيد عن :max حرف.',
+        'array' => ':attribute يجب ألا يحتوي على أكثر من :max عناصر.',
+    ],
+    'mimes' => ':attribute يجب أن يكون من نوع: :values.',
+    'min' => [
+        'numeric' => ':attribute يجب ألا يقل عن :min.',
+        'file' => 'حجم :attribute يجب ألا يقل عن :min كيلوبايت.',
+        'string' => ':attribute يجب ألا يقل عن :min حروف.',
+        'array' => ':attribute يجب أن يحتوي على :min عناصر على الأقل.',
+    ],
+    'numeric' => ':attribute يجب أن يكون رقماً.',
+    'regex' => 'صيغة :attribute غير صحيحة.',
+    'required' => ':attribute مطلوب.',
+    'string' => ':attribute يجب أن يكون نصاً.',
+    'unique' => ':attribute مستخدم من قبل.',
+    'uploaded' => 'فشل رفع :attribute.',
+
+    'attributes' => [
+        'phone' => 'رقم الهاتف',
+        'code' => 'الرمز',
+        'name' => 'الاسم',
+        'gender' => 'الجنس',
+        'city_id' => 'المدينة',
+        'email' => 'البريد الإلكتروني',
+        'whatsapp_phone' => 'رقم الواتساب',
+        'photo' => 'الصورة',
+        'token' => 'رمز الجهاز',
+        'platform' => 'نظام التشغيل',
+        'accept_terms' => 'الشروط',
+    ],
+];
