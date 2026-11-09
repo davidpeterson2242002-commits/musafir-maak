@@ -28,6 +28,12 @@ php artisan serve
   `php artisan db:seed --class=DemoSeeder`
 - With `APP_ENV=local` and `OTP_EXPOSE_IN_RESPONSE=true`, `POST /api/v1/auth/otp` also returns `debug_code`.
 
+## Scheduler
+
+Booking expiry, driver reminders, trip reminders, no-show confirmation and auto-complete run every minute via
+`php artisan musafir:tick`. In production add one cron entry: `* * * * * php artisan schedule:run`.
+Locally: `php artisan schedule:work`.
+
 ## Tests
 
 Tests run against a separate PostgreSQL database `musafir_test` (see `phpunit.xml`).
@@ -61,6 +67,24 @@ php artisan test
 | PUT / DELETE | `/api/v1/driver/vehicles/{id}` | token | Edit / delete (draft or rejected only) |
 | POST | `/api/v1/driver/vehicles/{id}/documents` | token | Multipart `kind` (vehicle_front/back/side/interior, vehicle_registration) + `file` |
 | POST | `/api/v1/driver/vehicles/{id}/submit` | token | Submit a vehicle added after approval |
+
+| GET | `/api/v1/trips/search` | token | `origin_city_id, destination_city_id, date (Y-m-d), seats?, kind? (trip\|parcel), time_of_day[]? (night, morning, afternoon, evening), max_price?, vehicle_types[]?, women_only?, min_rating?, sort? (earliest\|cheapest\|rating)` → trips + `closed`, `closure_message`, `nearby_dates` |
+| GET | `/api/v1/trips/{id}` | token | Trip details (points, luggage, vehicle photos without plate) + `bookable`, `my_booking_id` |
+| POST | `/api/v1/trips/{id}/bookings` | token | `{seats, pickup_point_id?, extra_bags?, includes_family?, message?}` |
+| GET | `/api/v1/bookings?tab=upcoming\|past\|cancelled` | token | My bookings |
+| GET | `/api/v1/bookings/{id}` | token | Booking; contacts + `share_text` after acceptance; `alternatives` when rejected/expired |
+| POST | `/api/v1/bookings/{id}/cancel` | token | `{reason?}` → may return `warning` / `restricted_until` |
+| POST | `/api/v1/bookings/{id}/dispute-no-show` | token | `{details}` |
+| GET / POST / DELETE | `/api/v1/route-alerts` | token | `{origin_city_id, destination_city_id, date?}` |
+| GET / POST | `/api/v1/driver/trips` | token | My trips (`tab=upcoming\|ongoing\|past\|cancelled`) / post a trip |
+| GET / PUT | `/api/v1/driver/trips/{id}` | token | Trip with passengers / edit (limited once booked) |
+| POST | `/api/v1/driver/trips/{id}/cancel\|depart\|complete` | token | Lifecycle (`cancel` needs `{reason}`) |
+| GET | `/api/v1/driver/requests` | token | Pending booking requests, soonest deadline first |
+| POST | `/api/v1/driver/bookings/{id}/accept\|reject\|no-show` | token | Respond to a request / mark no-show |
+
+Times are returned in Sudan time with offset (`2026-11-12T07:30:00+02:00`); `departs_at` may be sent as
+`"2026-11-12 07:30"` (Sudan time). Rule violations return HTTP 422 `{message, code}` — e.g. `code: id_verification_required`
+tells the app to open the ID step.
 
 Document URLs in responses are signed and expire (`SIGNED_URL_MINUTES`, default 30).
 

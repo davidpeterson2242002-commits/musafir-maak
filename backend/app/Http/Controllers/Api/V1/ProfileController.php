@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\BookingStatus;
+use App\Enums\TripStatus;
+use App\Exceptions\BusinessRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\RegisterDeviceRequest;
 use App\Http\Requests\Api\V1\UpdateProfileRequest;
@@ -59,7 +62,15 @@ class ProfileController extends Controller
     public function destroy(Request $request): JsonResponse
     {
         $user = $request->user();
-        // TODO(M3/M4): block deletion while the user has active bookings or the driver owes a balance.
+
+        if ($user->bookings()->whereIn('status', BookingStatus::active())->exists()) {
+            throw new BusinessRuleException('ألغِ حجوزاتك القائمة قبل حذف الحساب.', 'has_active_bookings');
+        }
+        if ($user->driverProfile()->first()?->trips()->whereIn('status', [TripStatus::Scheduled, TripStatus::Departed])->exists()) {
+            throw new BusinessRuleException('ألغِ رحلاتك القادمة قبل حذف الحساب.', 'has_active_trips');
+        }
+        // TODO(M4): block deletion while the driver owes a balance.
+
         $user->tokens()->delete();
         $user->deviceTokens()->delete();
         $user->delete();

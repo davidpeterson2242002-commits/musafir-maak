@@ -1,11 +1,15 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\ConfigController;
 use App\Http\Controllers\Api\V1\DriverController;
+use App\Http\Controllers\Api\V1\DriverTripController;
 use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\IdentityController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\RouteAlertController;
+use App\Http\Controllers\Api\V1\TripController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Middleware\EnsureUserNotBanned;
 use Illuminate\Support\Facades\Route;
@@ -47,5 +51,32 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('driver/vehicles/{vehicle}', [VehicleController::class, 'destroy']);
         Route::post('driver/vehicles/{vehicle}/documents', [VehicleController::class, 'upload']);
         Route::post('driver/vehicles/{vehicle}/submit', [VehicleController::class, 'submit']);
+
+        // Driver trips and requests
+        Route::get('driver/trips', [DriverTripController::class, 'index']);
+        Route::post('driver/trips', [DriverTripController::class, 'store']);
+        Route::get('driver/trips/{trip}', [DriverTripController::class, 'show']);
+        Route::put('driver/trips/{trip}', [DriverTripController::class, 'update']);
+        Route::post('driver/trips/{trip}/cancel', [DriverTripController::class, 'cancel']);
+        Route::post('driver/trips/{trip}/depart', [DriverTripController::class, 'depart']);
+        Route::post('driver/trips/{trip}/complete', [DriverTripController::class, 'complete']);
+        Route::get('driver/requests', [DriverTripController::class, 'requests']);
+        Route::post('driver/bookings/{booking}/accept', [DriverTripController::class, 'accept']);
+        Route::post('driver/bookings/{booking}/reject', [DriverTripController::class, 'reject']);
+        Route::post('driver/bookings/{booking}/no-show', [DriverTripController::class, 'noShow']);
+
+        // Passenger: search, trips, bookings
+        Route::get('trips/search', [TripController::class, 'search']);
+        Route::get('trips/{trip}', [TripController::class, 'show']);
+        Route::post('trips/{trip}/bookings', [BookingController::class, 'store']);
+        Route::get('bookings', [BookingController::class, 'index']);
+        Route::get('bookings/{booking}', [BookingController::class, 'show']);
+        Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel']);
+        Route::post('bookings/{booking}/dispute-no-show', [BookingController::class, 'disputeNoShow']);
+
+        // Route alerts
+        Route::get('route-alerts', [RouteAlertController::class, 'index']);
+        Route::post('route-alerts', [RouteAlertController::class, 'store']);
+        Route::delete('route-alerts/{alert}', [RouteAlertController::class, 'destroy']);
     });
 });

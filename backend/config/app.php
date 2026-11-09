@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Times are stored in UTC; shown to users (API, admin) in Sudan time.
+    'display_timezone' => 'Africa/Khartoum',
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

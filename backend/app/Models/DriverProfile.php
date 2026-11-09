@@ -46,6 +46,11 @@ class DriverProfile extends Model
         return $this->vehicles()->where('status', VehicleStatus::Approved);
     }
 
+    public function trips(): HasMany
+    {
+        return $this->hasMany(Trip::class);
+    }
+
     public function isActive(): bool
     {
         return $this->status === DriverStatus::Active;

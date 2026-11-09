@@ -11,11 +11,13 @@ use App\Gateways\LogPushGateway;
 use App\Gateways\LogWhatsAppGateway;
 use App\Gateways\WhatsAppOtpSender;
 use App\Models\Admin;
+use App\Models\Booking;
 use App\Models\City;
 use App\Models\DriverProfile;
 use App\Models\Setting;
 use App\Models\State;
 use App\Models\TravelRoute;
+use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VerificationReview;
@@ -64,6 +66,8 @@ class AppServiceProvider extends ServiceProvider
             'city' => City::class,
             'route' => TravelRoute::class,
             'verification_review' => VerificationReview::class,
+            'trip' => Trip::class,
+            'booking' => Booking::class,
         ]);
 
         // Per-IP cap on OTP requests, on top of the per-phone limits in settings.

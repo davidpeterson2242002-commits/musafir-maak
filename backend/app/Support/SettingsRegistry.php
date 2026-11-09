@@ -19,6 +19,7 @@ final class SettingsRegistry
     public const GROUPS = [
         'fees' => 'العمولات',
         'settlement' => 'التسوية والرصيد',
+        'trips' => 'الرحلات والبحث',
         'booking' => 'الحجوزات',
         'cancellation' => 'الإلغاء',
         'verification' => 'التوثيق',
@@ -109,6 +110,41 @@ final class SettingsRegistry
             'booking.no_show_dispute_hours' => [
                 'type' => SettingType::Integer, 'group' => 'booking', 'label' => 'مهلة اعتراض الراكب على "لم يحضر" (ساعات)',
                 'default' => 24, 'min' => 1,
+            ],
+
+            'booking.reminder_evening_hour' => [
+                'type' => SettingType::Integer, 'group' => 'booking', 'label' => 'تذكير الرحلة مساء اليوم السابق — الساعة (بتوقيت السودان)',
+                'default' => 20, 'min' => 0, 'max' => 23,
+            ],
+            'booking.reminder_soon_hours' => [
+                'type' => SettingType::Integer, 'group' => 'booking', 'label' => 'تذكير قبل الانطلاق بـ (ساعات)',
+                'default' => 2, 'min' => 1,
+            ],
+
+            // ---------------- Trips & search ----------------
+            'trips.min_minutes_ahead' => [
+                'type' => SettingType::Integer, 'group' => 'trips', 'label' => 'أقل وقت قبل الانطلاق لنشر رحلة (دقائق)',
+                'default' => 30, 'min' => 0,
+            ],
+            'trips.max_days_ahead' => [
+                'type' => SettingType::Integer, 'group' => 'trips', 'label' => 'أقصى مدة مسبقة لنشر رحلة (أيام)',
+                'default' => 60, 'min' => 1,
+            ],
+            'trips.depart_early_minutes' => [
+                'type' => SettingType::Integer, 'group' => 'trips', 'label' => 'يمكن للسائق تسجيل الانطلاق قبل الموعد بـ (دقائق)',
+                'default' => 60, 'min' => 0,
+            ],
+            'trips.auto_complete_hours' => [
+                'type' => SettingType::Integer, 'group' => 'trips', 'label' => 'إكمال الرحلة تلقائياً بعد الانطلاق بـ (ساعات) إذا نسي السائق',
+                'default' => 48, 'min' => 6,
+            ],
+            'search.nearby_days' => [
+                'type' => SettingType::Integer, 'group' => 'trips', 'label' => 'عرض أيام قريبة عند عدم وجود رحلات (± أيام)',
+                'default' => 3, 'min' => 0, 'max' => 14,
+            ],
+            'route_alerts.max_per_user' => [
+                'type' => SettingType::Integer, 'group' => 'trips', 'label' => 'أقصى عدد تنبيهات طرق للمستخدم',
+                'default' => 10, 'min' => 1,
             ],
 
             // ---------------- Cancellation ----------------

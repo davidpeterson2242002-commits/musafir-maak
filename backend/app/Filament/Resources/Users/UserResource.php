@@ -103,6 +103,7 @@ class UserResource extends Resource
                 TextEntry::make('status')->label('حالة الحساب')->badge()
                     ->formatStateUsing(fn (UserStatus $state) => $state->label())->color(fn (UserStatus $state) => $state->color()),
                 TextEntry::make('suspended_until')->label('موقوف حتى')->dateTime('Y-m-d H:i')->placeholder('—'),
+                TextEntry::make('booking_restricted_until')->label('الحجز موقوف حتى')->dateTime('Y-m-d H:i')->timezone(config('app.display_timezone'))->placeholder('—'),
                 TextEntry::make('id_verification_status')->label('توثيق الهوية')->badge()
                     ->formatStateUsing(fn (IdVerificationStatus $state) => $state->label())->color(fn (IdVerificationStatus $state) => $state->color()),
             ]),
@@ -161,6 +162,16 @@ class UserResource extends Resource
                     $record->tokens()->delete();
                     app(AuditLogger::class)->log('user.banned', $record, ['reason' => $data['reason']]);
                     Notification::make()->title('تم حظر الحساب')->success()->send();
+                }),
+            Action::make('lift_booking_restriction')
+                ->label('رفع إيقاف الحجز')->color('gray')->icon(Heroicon::OutlinedLockOpen)
+                ->visible(fn (User $record) => $record->isBookingRestricted())
+                ->requiresConfirmation()
+                ->schema([Textarea::make('reason')->label('السبب')->required()->maxLength(500)])
+                ->action(function (User $record, array $data) {
+                    $record->forceFill(['booking_restricted_until' => null])->save();
+                    app(AuditLogger::class)->log('user.booking_restriction_lifted', $record, ['reason' => $data['reason']]);
+                    Notification::make()->title('تم رفع الإيقاف')->success()->send();
                 }),
             Action::make('reactivate')
                 ->label('إعادة التفعيل')->color('success')->icon(Heroicon::OutlinedCheckCircle)

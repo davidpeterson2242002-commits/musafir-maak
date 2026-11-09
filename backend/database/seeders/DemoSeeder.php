@@ -5,8 +5,12 @@ namespace Database\Seeders;
 use App\Enums\DocumentKind;
 use App\Enums\IdDocumentType;
 use App\Enums\VehicleType;
+use App\Models\Booking;
 use App\Models\DriverProfile;
+use App\Models\TravelRoute;
+use App\Models\Trip;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Services\DocumentStore;
 use App\Services\VerificationService;
 use Illuminate\Database\Seeder;
@@ -52,6 +56,33 @@ class DemoSeeder extends Seeder
             }
 
             $verification->submitDriver($driver->fresh(), IdDocumentType::NationalId);
+        }
+
+        $this->trips();
+    }
+
+    /** An approved driver with upcoming trips, booking requests and an accepted booking. */
+    private function trips(): void
+    {
+        $driver = DriverProfile::factory()->active()->create([
+            'user_id' => User::factory()->create(['name' => 'مصطفى الأمين', 'gender' => 'male', 'id_verification_status' => 'verified'])->id,
+        ]);
+        $car = Vehicle::factory()->approved()->create([
+            'driver_profile_id' => $driver->id, 'make' => 'هيونداي', 'model' => 'أكسنت', 'plate_number' => 'خ ط 7788', 'seats' => 4,
+        ]);
+        $tz = config('app.display_timezone');
+
+        $routes = TravelRoute::where('is_popular', true)->orderBy('sort')->take(3)->get();
+        foreach ($routes as $i => $route) {
+            $trip = Trip::factory()->create([
+                'driver_profile_id' => $driver->id, 'vehicle_id' => $car->id, 'route_id' => $route->id,
+                'departs_at' => now($tz)->addDays($i + 1)->setTime(7 + $i, 0)->utc(),
+                'price_per_seat' => [15000, 25000, 40000][$i] ?? 20000,
+            ]);
+
+            $passengers = User::factory()->count(2)->create(['id_verification_status' => 'verified']);
+            Booking::factory()->create(['trip_id' => $trip->id, 'passenger_id' => $passengers[0]->id, 'message' => 'معاي شنطة واحدة']);
+            Booking::factory()->accepted()->create(['trip_id' => $trip->id, 'passenger_id' => $passengers[1]->id, 'seats' => 2, 'price_total' => 2 * $trip->price_per_seat]);
         }
     }
 

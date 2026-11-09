@@ -22,7 +22,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'phone', 'whatsapp_phone', 'email', 'gender', 'city_id', 'photo_path',
-        'status', 'suspended_until', 'id_verification_status', 'phone_verified_at',
+        'status', 'suspended_until', 'booking_restricted_until', 'id_verification_status', 'phone_verified_at',
         'terms_accepted_at', 'last_seen_at',
     ];
 
@@ -38,6 +38,7 @@ class User extends Authenticatable
             'status' => UserStatus::class,
             'id_verification_status' => IdVerificationStatus::class,
             'suspended_until' => 'datetime',
+            'booking_restricted_until' => 'datetime',
             'phone_verified_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'last_seen_at' => 'datetime',
@@ -71,6 +72,22 @@ class User extends Authenticatable
             IdVerificationStatus::Pending => settings()->bool('verification.allow_first_booking_while_pending'),
             default => false,
         };
+    }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'passenger_id');
+    }
+
+    public function routeAlerts(): HasMany
+    {
+        return $this->hasMany(RouteAlert::class);
+    }
+
+    /** Temporary booking block after repeated late cancellations (spec 5.4). */
+    public function isBookingRestricted(): bool
+    {
+        return $this->booking_restricted_until !== null && $this->booking_restricted_until->isFuture();
     }
 
     public function deviceTokens(): HasMany

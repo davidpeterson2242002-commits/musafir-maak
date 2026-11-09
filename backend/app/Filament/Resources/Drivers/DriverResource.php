@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Drivers;
 
 use App\Enums\AdminRole;
 use App\Enums\DriverStatus;
+use App\Enums\TripStatus;
 use App\Enums\VehicleStatus;
 use App\Filament\Concerns\RestrictedToRoles;
 use App\Filament\Resources\Users\UserResource;
@@ -96,6 +97,13 @@ class DriverResource extends Resource
                     ->formatStateUsing(fn ($state) => $state->label())->color(fn ($state) => $state->color()),
                 TextEntry::make('free_bookings_remaining')->label('حجوزات مجانية متبقية'),
                 TextEntry::make('balance_owed')->label('الرصيد المستحق')->suffix(' ج'),
+                TextEntry::make('recent_cancellations')->label('رحلات ألغاها مؤخراً')
+                    ->state(fn (DriverProfile $record) => $record->trips()->where('status', TripStatus::Cancelled)
+                        ->where('cancelled_at', '>=', now()->subDays(settings()->int('cancellation.driver_window_days')))->count())
+                    ->badge()->color(fn ($state) => $state >= settings()->int('cancellation.driver_limit') ? 'danger' : 'gray')
+                    ->helperText(fn () => 'خلال '.settings()->int('cancellation.driver_window_days').' يوماً'),
+                TextEntry::make('completed_trips')->label('رحلات مكتملة')
+                    ->state(fn (DriverProfile $record) => $record->trips()->where('status', TripStatus::Completed)->count()),
                 TextEntry::make('submitted_at')->label('أرسل الطلب')->dateTime('Y-m-d H:i')->placeholder('—'),
                 TextEntry::make('approved_at')->label('اعتُمد')->dateTime('Y-m-d H:i')->placeholder('—'),
             ]),

@@ -2,8 +2,10 @@
 
 use App\Enums\AdminRole;
 use App\Models\Admin;
+use App\Services\TripTimers;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Validator;
 
 use function Laravel\Prompts\password;
@@ -25,3 +27,13 @@ Artisan::command('admin:create', function () {
     Admin::create(['name' => $name, 'email' => $email, 'role' => $role, 'password' => $pass]);
     $this->info("Admin $email created.");
 })->purpose('Create an admin panel account');
+
+Artisan::command('musafir:tick', function (TripTimers $timers) {
+    $result = $timers->tick();
+    if (array_sum($result) > 0) {
+        $this->info(json_encode($result));
+    }
+})->purpose('Booking expiry, reminders, no-show confirmation, auto-complete (runs every minute)');
+
+// Production: one cron entry `* * * * * php artisan schedule:run` drives everything below.
+Schedule::command('musafir:tick')->everyMinute()->withoutOverlapping(5)->onOneServer();
