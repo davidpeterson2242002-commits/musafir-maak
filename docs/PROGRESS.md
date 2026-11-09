@@ -7,7 +7,8 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-09 (session 2): M1 blocked — packagist.org refused by the network allowlist.
 - 2026-11-09 (session 3): **M1 done.** Packagist reachable. 58 tests / 215 assertions passing. Code pushed to GitHub (`main`).
 - 2026-11-09 (session 3, cont.): **M2 done.** 95 tests / 412 assertions passing. Pushed to `main`.
-- 2026-11-09 (session 3, cont.): **M3 done.** 147 tests / 683 assertions passing. Pushed to `main`. **Next step: M4.**
+- 2026-11-09 (session 3, cont.): **M3 done.** 147 tests / 683 assertions passing. Pushed to `main`.
+- 2026-11-09 (session 3, cont.): **M4 done.** 190 tests / 876 assertions passing. Pushed to `main`. **Next step: M5.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -31,8 +32,8 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M1 | Laravel + Sanctum + Filament setup; phone OTP auth (log driver); users; settings table + typed cached accessor + Filament settings pages; states/cities/routes; admin users + audit log; gateway interfaces with fake/log drivers | **Done 2026-11-09** |
 | M2 | Driver registration, vehicles, private document uploads (signed URLs), verification queue (drivers / vehicles / passenger IDs) | **Done 2026-11-09** |
 | M3 | Trips + points, search (filters, sort, nearby dates, closure msg), bookings, 12h-or-departure expiry + hourly reminders (scheduler), cancellations + late-cancel penalties, no-show + 24h auto-reversal, route alerts, search logging | **Done 2026-11-09** |
-| M4 | Fee engine (percentage / per seat / per trip, per vehicle type, min/max, snapshot at acceptance), free bookings, ledger, payment methods, settlement requests, optional wallet, weekly cycle + balance limit + grace, auto-freeze/unfreeze | Next |
-| M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | — |
+| M4 | Fee engine (percentage / per seat / per trip, per vehicle type, min/max, snapshot at acceptance), free bookings, ledger, payment methods, settlement requests, optional wallet, weekly cycle + balance limit + grace, auto-freeze/unfreeze | **Done 2026-11-09** |
+| M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | Next |
 | M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | — |
 | M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | — |
 | M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | — |
@@ -108,6 +109,25 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 
 **Testing gotcha:** lazy loading is disabled outside production but only flagged when several models are loaded together; tests for list/detail pages must create 2+ related rows (the trip view bug was caught by a screenshot, not the 1-booking test). Filament adds a primary-key tie-break sort — use `->defaultKeySort(false)` on grouped queries.
 
+## M4 — what was built
+**API** (driver, token auth): `GET driver/balance`, `GET driver/ledger`, `GET payment-methods`, `GET/POST driver/settlements` (multipart receipt). `GET driver/requests` / trip bookings now include `fee` (preview while pending: `{amount, free, free_bookings_remaining}`; after acceptance: `{amount, free, reversed}`). `GET driver` adds `settlement_due_at`, `balance_limit_reached`. Full table in README.md.
+
+**Money model** (`app/Services/LedgerService.php`, the only writer):
+- `driver_profiles.balance_owed` (postpaid, owed to us) and `wallet_balance` (prepaid credit). Append-only `ledger_entries` (model throws on update/delete) with signed `amount` per bucket and running `balance_after` / `wallet_after`. Every method locks the driver row.
+- **Charge at acceptance** (`chargeBooking`, called inside `BookingService::accept`'s transaction; an exception rolls back the acceptance): checks balance limit and mandatory wallet → free booking if any left (`fee_free=true`, count decremented) → otherwise `FeeCalculator` amount snapshotted on the booking (`fee_amount`, `fee_model`) → taken from wallet first, remainder to balance. Balance going 0 → >0 starts a cycle: `settlement_due_at = now + settlement.cycle_days`.
+- **Fee models** (`app/Services/FeeCalculator.php`): percentage = seats × price × `fees.percent.{type}`%; fixed_per_seat = seats × `fees.fixed.{type}`; fixed_per_trip = `fees.fixed.{type}` once per trip (first accepted booking; if that booking is reversed the fee moves to another accepted booking on the trip). `fees.min_per_booking` / `fees.max_per_booking` clamp all modes. Extra-luggage money is not commissioned. Whole SDG, PHP `round` (half up). `parcelFee(size, price)` ready for M5 (`fees.parcel_model`: percentage / fixed_per_size).
+- **Reversals** (`reverseBooking`, idempotent via `bookings.fee_reversed_at`), wired as listeners in `AppServiceProvider`: `BookingCancelled` (passenger cancels an accepted booking), `NoShowConfirmed`, `TripCancelled` (each booking). Refunds exactly what each bucket took; if the fee was already paid, the refund becomes wallet credit; free bookings give the free booking back.
+- **Payments**: driver submits `settlement_requests` (method, purpose `settlement` | `wallet_topup`, amount, reference, receipt photo on the private disk). Rules: nothing to settle → `nothing_to_settle`; one pending request per purpose (`payment_pending`); a settlement reference can't be reused (`duplicate_reference`); reference required unless the method says otherwise (cash at agent). Finance confirms → payment entry; overpayment goes to wallet; top-up → wallet. Reject needs a reason.
+- **Cycle** (`app/Services/SettlementCycle.php`, in `musafir:tick`): reminder once per cycle `settlement.reminder_days_before` days before due (push + email); freeze when active, owing and `now > due + settlement.grace_hours` (push + WhatsApp). Fully paid (balance 0) → due date cleared, frozen → active (push). Partial payment keeps the due date and the freeze. Weekly email statement: `musafir:weekly-statements`, Saturday 09:00 Sudan time.
+- **Frozen**: can't accept (`driver_frozen`) or post trips; trips hidden from search (M3); accepted bookings stay valid with contacts visible. **Balance limit** (`settlement.balance_limit`, 50,000 placeholder): at/over the limit, accepting is refused (`balance_limit_reached`) but the driver isn't frozen. **Mandatory wallet** (`wallet.mode=mandatory`): accepting needs wallet ≥ fee (`wallet_insufficient`), free bookings excepted.
+- Admin `adjust(bucket, signed amount, reason)` (can't go negative; owing from zero starts a cycle) and `grantFreeBookings`, both audited. Account deletion blocked while owing (`has_balance_owed`).
+- Email channel: `NotificationEvent::sendsEmail()` → `App\Mail\NotificationMail` (RTL HTML) when the user has an email: settlement due, payment confirmed/rejected, weekly statement (email only).
+
+**Admin** (group المالية, role Finance + super admin): تأكيد المدفوعات (pending/confirmed/rejected tabs, nav badge, receipt image, driver balance beside it, confirm with amount in the dialog, reject with reason), دفتر الحسابات (all entries, filters type/bucket/driver/date, CSV export of the filtered rows with UTF-8 BOM, export audited), طرق الدفع (CRUD, enable toggle, drag to reorder, agent locations). Drivers list: owed, wallet, due date (red + days overdue), filters "owes" / "overdue"; driver page: balance, wallet, due, frozen since, actions كشف الحساب / تسوية يدوية / منح حجوزات مجانية (finance only). Dashboard `FinanceStats` (finance only): fees and reversals (7 days), confirmed payments, total owed + overdue count, frozen count, pending payments. Admin numbers use Western digits (`defaultNumberLocale('en')` for tables and schemas).
+- Seeded payment methods (`PaymentMethodSeeder`): بنكك، فوري، أوكاش، كاش عند وكيل — account details are placeholders to fill in before launch.
+
+**Tests (190 total, 43 new):** fee calculator (all models, per type, rounding, min/max, parcels); commission (3 free bookings, balance + cycle start, snapshot, wallet first, reversals on cancel / trip cancel / no-show, wallet refund, paid-fee refund to wallet, idempotency + free booking restored, per-trip once + move, balance limit with rollback, mandatory wallet, fee preview, deletion guard); settlements (balance screen, submit with receipt, validation, duplicate reference, confirm + email + audit, overpayment and partial, top-up, reject, reminder → freeze timing, frozen blocked until fully paid, accepted bookings valid when frozen, adjust + free bookings, weekly statement, append-only ledger); admin finance (role access, confirm/reject, adjust + grant, support can't adjust, payment methods, CSV export, widget).
+
 ## Repo structure (monorepo)
 ```
 musafir-maak/
@@ -150,10 +170,11 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - search_logs (built in M3): origin_city_id, destination_city_id, route_id?, date, kind (trip/parcel), results_count, user_id?
 - users.booking_restricted_until (M3)
 
-**Money**
-- ledger_entries (append-only): driver_profile_id, type (fee/payment/wallet_topup/adjustment/refund), bucket (balance/wallet), amount (signed), balance_after, wallet_after, reference (morph), note, created_by_admin_id?
-- payment_methods: name, account_name, account_number, instructions, agent_locations (json), enabled, sort
-- settlement_requests: driver_profile_id, payment_method_id, purpose (settlement/wallet_topup), amount, reference_number, receipt_path, status (pending/confirmed/rejected), reviewed_by, reject_reason
+**Money** (built in M4)
+- ledger_entries (append-only): driver_profile_id, type (fee/fee_reversal/payment/wallet_topup/adjustment), bucket (balance/wallet), amount (signed), balance_after, wallet_after, reference (morph: booking / settlement_request), note, created_by_admin_id?
+- payment_methods: name, account_name, account_number, instructions, agent_locations (json), requires_reference, enabled, sort
+- settlement_requests: driver_profile_id, payment_method_id, purpose (settlement/wallet_topup), amount, reference_number, receipt_disk, receipt_path, status (pending/confirmed/rejected), reviewed_by, reviewed_at, reject_reason
+- bookings.fee_model, bookings.fee_reversed_at; driver_profiles.settlement_reminded_at
 
 **Trust & comms**
 - conversations: subject (morph: booking/parcel); messages: conversation_id, sender_id, body, was_masked, flagged
@@ -201,3 +222,11 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-09 (M3): Recurring trips (D7 "repeat trip") left for Phase 2 as per the roadmap.
 - 2026-11-09 (M3): API times are returned in Sudan time with offset, so the app shows them as-is without timezone logic.
 - 2026-11-09 (M3): Driver repeated cancellations are surfaced to admin (count on driver page) rather than auto-suspending; suspension stays a human decision.
+- 2026-11-09 (M4): The weekly cycle starts at the first unpaid fee (due = that moment + 7 days), not on a fixed weekday — fair for drivers who join mid-week. Revisit if finance prefers one common settlement day.
+- 2026-11-09 (M4): Unfreezing requires the full balance to be paid; a partial payment keeps the account frozen and the due date unchanged.
+- 2026-11-09 (M4): Reaching the balance limit only blocks accepting new bookings; it doesn't freeze the account or hide trips.
+- 2026-11-09 (M4): Commission is on seat price only (seats × price per seat); extra-luggage payments are not commissioned.
+- 2026-11-09 (M4): Per-trip fee mode charges the first accepted booking; if it's reversed the fee moves to another accepted booking of the same trip.
+- 2026-11-09 (M4): Refunding a fee that the driver already paid goes to the wallet as credit (no cash refunds through the app).
+- 2026-11-09 (M4): The balance-limit check runs before free bookings are applied (in practice free bookings happen while the balance is 0).
+- 2026-11-09 (M4): Payment methods are seeded with placeholder account details; finance fills real numbers in admin before launch.
