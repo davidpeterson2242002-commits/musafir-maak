@@ -5,7 +5,8 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 ## Status
 - 2026-11-09: Development plan approved by the user (below).
 - 2026-11-09 (session 2): M1 blocked — packagist.org refused by the network allowlist.
-- 2026-11-09 (session 3): **M1 done.** Packagist reachable. 58 tests / 215 assertions passing. Code pushed to GitHub (`main`). **Next step: M2.**
+- 2026-11-09 (session 3): **M1 done.** Packagist reachable. 58 tests / 215 assertions passing. Code pushed to GitHub (`main`).
+- 2026-11-09 (session 3, cont.): **M2 done.** 95 tests / 412 assertions passing. Pushed to `main`. **Next step: M3.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -27,8 +28,8 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | # | Scope | Status |
 |---|---|---|
 | M1 | Laravel + Sanctum + Filament setup; phone OTP auth (log driver); users; settings table + typed cached accessor + Filament settings pages; states/cities/routes; admin users + audit log; gateway interfaces with fake/log drivers | **Done 2026-11-09** |
-| M2 | Driver registration, vehicles, private document uploads (signed URLs), verification queue (drivers / vehicles / passenger IDs) | Next |
-| M3 | Trips + points, search (filters, sort, nearby dates, closure msg), bookings, 12h-or-departure expiry + hourly reminders (scheduler), cancellations + late-cancel penalties, no-show + 24h auto-reversal, route alerts, search logging | — |
+| M2 | Driver registration, vehicles, private document uploads (signed URLs), verification queue (drivers / vehicles / passenger IDs) | **Done 2026-11-09** |
+| M3 | Trips + points, search (filters, sort, nearby dates, closure msg), bookings, 12h-or-departure expiry + hourly reminders (scheduler), cancellations + late-cancel penalties, no-show + 24h auto-reversal, route alerts, search logging | Next |
 | M4 | Fee engine (percentage / per seat / per trip, per vehicle type, min/max, snapshot at acceptance), free bookings, ledger, payment methods, settlement requests, optional wallet, weekly cycle + balance limit + grace, auto-freeze/unfreeze | — |
 | M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | — |
 | M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | — |
@@ -54,6 +55,28 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 - Seeders: settings defaults, 18 states / 36 cities, 28 routes (14 pairs both ways; launch routes marked popular). Local admin `admin@musafir.test` / `password` (local env only); `php artisan admin:create` for real admins.
 
 **Tests (58):** phone normalization; OTP request/verify (cooldown, hourly cap, attempts lockout, expiry, reuse, invalidation, banned, hashed storage, WhatsApp failure); profile setup/validation, gender lock, photo upload to private disk, device tokens, account delete + re-signup, suspension auto-lift; cities/routes availability and closure messages; public config; settings defaults/typing/cache/fallback/sync/audit; admin panel access per role, settings page save/validation/list field, route create + duplicate, ban/reactivate.
+
+## M2 — what was built
+**API** (all under `/api/v1`, token auth): `GET me/identity`, `POST me/identity/documents`, `POST me/identity/submit`; `GET/POST driver`, `POST driver/documents`, `POST driver/submit`; `POST driver/vehicles`, `PUT/DELETE driver/vehicles/{id}`, `POST driver/vehicles/{id}/documents`, `POST driver/vehicles/{id}/submit`. `GET me` now returns `driver_status` and `is_driver`. Full table in README.md.
+
+**Flow**
+- Passenger ID: upload selfie + (passport, or national ID front + back) → submit with `document_type` → user `id_verification_status=pending` + a `verification_reviews` row. Documents locked while pending/verified. `User::idAllowsBooking()` implements spec 5.12 (verified always; pending only if setting allows) — M3 booking must call it.
+- Driver: `POST driver` (needs completed profile) creates a `draft` profile. Identity docs use the shared identity endpoint; licence via `driver/documents`; vehicles with 5 photos each. `POST driver/submit` validates everything and returns all missing items at once. Status → `pending_review`, vehicles → `pending`, user ID → `pending` if not yet verified. One review covers identity + licence + vehicles.
+- Approve driver → driver `active`, `free_bookings_remaining` = setting `drivers.free_bookings` (first approval only), pending vehicles approved, user ID verified, any separate pending passenger-ID review settled.
+- Reject / request info → driver `rejected` (editable), pending vehicles `rejected`; user ID rejected too unless the reviewer ticks "identity OK". The user sees reasons + note, fixes and resubmits (new review row; history kept).
+- Vehicles added after approval: own review via `driver/vehicles/{id}/submit`; driver stays active. Max 5 vehicles. Plate unique among non-rejected vehicles, compared normalized (spaces/dashes ignored, Arabic digits → ASCII). Seat caps per vehicle type (`VehicleType::maxSeats`).
+- `DriverProfile::canOperate()` = active + ≥1 approved vehicle — M3 trip posting must call it.
+
+**Key code**
+- `app/Services/VerificationService.php` (submissions, approve, reject/info, claim, row lock against double decisions, audit log `verification.*`).
+- `app/Services/DocumentStore.php` (one current file per owner+kind; replacing deletes the old file). `app/Models/Document::temporaryUrl()` (signed; unsigned/tampered → 403, verified).
+- `app/Services/Notifier.php` + `app/Enums/NotificationEvent.php` (push to all device tokens, prunes invalid ones; WhatsApp for important events per spec 10; runs after commit; never throws). M6 makes channels configurable.
+- Morph map enforced (`user, admin, driver_profile, vehicle, verification_review, setting, state, city, route`).
+- Filament: `Verifications` (queue tabs: pending / passenger IDs / drivers / vehicles / history; priority then oldest first; selfie beside ID; vehicle photos; previous submissions; approve / reject with reasons from setting `verification.rejection_reasons` / request info; opening claims the item for 15 min, others get a warning; "next in queue"), `Drivers` (list/view), dashboard `OverviewStats` widget. Phone numbers in admin use `Phone::displayLtr()` so "+249" stays left in RTL.
+- `database/seeders/DemoSeeder.php` — local demo: 2 pending passenger IDs + 2 pending driver applications with placeholder images.
+- New settings: `verification.rejection_reasons` (list), `verification.max_upload_kb` (8192). Run `php artisan settings:sync` on an existing DB.
+
+**Tests (95 total, 37 new):** identity upload/replace/kind+type validation, submit per document type, locking, approve (WhatsApp + audit), reject → resubmit, booking allowance setting, double-decision guard; driver full API flow, missing-items errors, verified user skips identity, seat caps, plate duplicates (normalized) and reuse after rejection, locking while pending, ownership 404s, approval effects, settling separate ID review, reject + resubmit, identity-OK option, free bookings only first time, new vehicle for active driver, draft can't submit vehicle alone, notification failure doesn't block, push token pruning; admin queue access per role, tab filtering + priority order, claim, approve/reject/info via Livewire, hidden actions after decision, dashboard widget.
 
 ## Repo structure (monorepo)
 ```
@@ -82,13 +105,13 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - states (name_ar, name_en, enabled, sort); cities (state_id, name_ar, name_en, enabled, sort)
 - routes (model `TravelRoute`): origin_city_id, destination_city_id (unique pair), enabled, max_price_per_seat?, closure_message?, is_popular, sort
 
-**Verification**
-- documents: owner (morph: user / driver_profile / vehicle), kind (selfie, id_front, id_back, licence, registration, vehicle_front/back/side/interior), path (private disk)
-- verification_reviews: subject (morph), status (pending/approved/rejected/info_requested), reasons (json), note, reviewed_by, reviewed_at
+**Verification** (built in M2)
+- documents: owner (morph: user / driver_profile / vehicle), kind (selfie, passport, national_id_front, national_id_back, driving_licence, vehicle_front/back/side/interior, vehicle_registration), disk, path, mime, size. Unique per owner+kind
+- verification_reviews: subject (morph: user / driver_profile / vehicle), status (pending/approved/rejected/info_requested), id_document_type (passport/national_id, when identity is included), priority, reasons (json), note, assigned_to/assigned_at (reviewer claim), reviewed_by, reviewed_at
 
 **Drivers & trips**
-- driver_profiles: user_id (unique), status (pending_review/active/rejected/suspended/frozen), free_bookings_remaining, balance_owed, wallet_balance, settlement_due_at, frozen_at, rating_avg, rating_count
-- vehicles: driver_profile_id, type (car/boksi/minibus/bus/pickup), make, model, color, year?, plate_number, seats, status
+- driver_profiles (built in M2): user_id (unique), status (draft/pending_review/rejected/active/suspended/frozen), free_bookings_remaining, balance_owed, wallet_balance, settlement_due_at, frozen_at, rating_avg, rating_count, terms_accepted_at, submitted_at, approved_at
+- vehicles (built in M2): driver_profile_id, type (car/boksi/minibus/bus/pickup), make, model, color, year?, plate_number, plate_normalized, seats (passengers, excl. driver), status (draft/pending/approved/rejected), submitted_at, approved_at, soft deletes
 - trips: driver_profile_id, vehicle_id, route_id, departs_at, est_arrival_at?, price_per_seat, seats_total, seats_available, luggage_large, luggage_small, extra_luggage_price?, accepts_parcels, parcel_price_small/medium/large, max_parcels, women_only, notes, status (scheduled/departed/completed/cancelled), cancel_reason, departed_at, completed_at, hidden_by_admin
 - trip_points: trip_id, kind (pickup/dropoff), label, lat?, lng?, sort
 - bookings: trip_id, passenger_id, seats, pickup_point_id, extra_bags, includes_family, message, status (pending/accepted/rejected/expired/cancelled_by_passenger/cancelled_by_driver/completed/no_show), price_total, fee_amount, fee_free, expires_at, last_reminded_at, accepted_at, cancelled_at, late_cancellation, no_show_at, no_show_disputed_at
@@ -131,3 +154,12 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-09 (M1): The Laravel skeleton's CLAUDE.md asks to install Laravel Boost; not installed (not requested by the user).
 - 2026-11-09 (M1): All 36 seeded cities are enabled; the admin should review coverage (e.g. areas affected by the war) before launch.
 - 2026-11-09: Code hosted on GitHub `davidpeterson2242002-commits/musafir-maak` (private). User granted standing permission to push to it.
+- 2026-11-09 (M2): Identity documents belong to the user and are shared by passenger-ID verification and driver registration (no double upload). A driver application includes identity unless already verified.
+- 2026-11-09 (M2): Driver status gained `draft` (registration started, documents uploaded one by one — better on weak connections than one big upload). `rejected` is not final: the driver fixes and resubmits. Permanent refusal = ban the user.
+- 2026-11-09 (M2): "Request more info" behaves like a rejection for the user (they can edit and resubmit) but is recorded as `info_requested` with a required note.
+- 2026-11-09 (M2): Rejection reasons are an admin-editable list (setting `verification.rejection_reasons`), per spec 1.6.
+- 2026-11-09 (M2): Documents are photos only (jpg/png/webp, max 8 MB, setting). Image compression is the app's job (M7) to save upload data; the server stores as received.
+- 2026-11-09 (M2): Vehicle registration card is labelled "شهادة البحث" (Sudanese term).
+- 2026-11-09 (M2): Approved vehicles and an expired licence can't be changed from the app (support handles it) — keeps approved data trustworthy. Revisit in M10 if drivers need self-service renewal.
+- 2026-11-09 (M2): Multiple reviewers: opening an item claims it for 15 minutes (soft lock, warning to others); decisions are guarded by a row lock so an item can't be decided twice.
+- 2026-11-09 (M2): Created resources return HTTP 201 (Laravel default); the app should treat any 2xx as success.
