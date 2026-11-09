@@ -45,6 +45,12 @@ final class Phone
         return self::normalize($input) !== null;
     }
 
+    /** For RTL (Arabic) screens: wrapped in a left-to-right isolate so "+249" stays on the left. */
+    public static function displayLtr(?string $e164): ?string
+    {
+        return $e164 === null ? null : "\u{2066}".self::display($e164)."\u{2069}";
+    }
+
     /** +249912345678 → +249 91 234 5678 */
     public static function display(string $e164): string
     {

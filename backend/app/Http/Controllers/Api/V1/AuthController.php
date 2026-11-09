@@ -67,7 +67,7 @@ class AuthController extends Controller
         return response()->json([
             'token' => $token,
             'is_new' => $isNew,
-            'user' => new MeResource($user->load('city.state')),
+            'user' => new MeResource($user->load(['city.state', 'driverProfile'])),
         ]);
     }
 

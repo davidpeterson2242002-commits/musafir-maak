@@ -90,7 +90,7 @@ class UserResource extends Resource
         return $schema->components([
             Section::make('الملف الشخصي')->columns(3)->schema([
                 TextEntry::make('name')->label('الاسم')->placeholder('لم يُكمل الملف'),
-                TextEntry::make('phone')->label('الهاتف')->formatStateUsing(fn ($state) => Phone::display($state))->copyable(),
+                TextEntry::make('phone')->label('الهاتف')->formatStateUsing(fn ($state) => Phone::displayLtr($state))->copyable(),
                 TextEntry::make('whatsapp_phone')->label('واتساب')->placeholder('نفس الهاتف'),
                 TextEntry::make('email')->label('البريد')->placeholder('—'),
                 TextEntry::make('gender')->label('الجنس')->formatStateUsing(fn (?Gender $state) => $state?->label())->placeholder('—'),
@@ -116,7 +116,7 @@ class UserResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('name')->label('الاسم')->searchable()->placeholder('لم يُكمل الملف'),
-                TextColumn::make('phone')->label('الهاتف')->searchable()->formatStateUsing(fn ($state) => Phone::display($state)),
+                TextColumn::make('phone')->label('الهاتف')->searchable()->formatStateUsing(fn ($state) => Phone::displayLtr($state)),
                 TextColumn::make('city.name_ar')->label('المدينة')->placeholder('—'),
                 TextColumn::make('status')->label('الحالة')->badge()
                     ->formatStateUsing(fn (UserStatus $state) => $state->label())->color(fn (UserStatus $state) => $state->color()),

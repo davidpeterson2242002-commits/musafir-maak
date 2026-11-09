@@ -84,7 +84,7 @@ class AdminPanelTest extends TestCase
         $this->assertSame(8, settings()->int('booking.response_timeout_hours'));
         $this->assertSame('fixed_per_seat', settings('fees.model'));
         $this->assertFalse(settings()->bool('verification.allow_first_booking_while_pending'));
-        $this->assertSame(3, AuditLog::where('subject_type', 'App\Models\Setting')->count());
+        $this->assertSame(3, AuditLog::where('subject_type', 'setting')->count());
     }
 
     public function test_settings_page_validates_minimums(): void
@@ -126,7 +126,7 @@ class AdminPanelTest extends TestCase
             ->callAction('create', ['origin_city_id' => $kosti, 'destination_city_id' => $obeid, 'enabled' => true, 'sort' => 0])
             ->assertHasActionErrors(['origin_city_id' => 'unique']);
 
-        $this->assertSame(1, AuditLog::where('subject_type', 'App\Models\TravelRoute')->where('action', 'created')->count());
+        $this->assertSame(1, AuditLog::where('subject_type', 'route')->where('action', 'created')->count());
     }
 
     public function test_admin_can_ban_and_reactivate_a_user(): void

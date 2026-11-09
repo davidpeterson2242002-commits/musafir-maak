@@ -6,9 +6,11 @@ use App\Enums\Gender;
 use App\Enums\IdVerificationStatus;
 use App\Enums\UserStatus;
 use App\Models\Concerns\Auditable;
+use App\Models\Concerns\HasDocuments;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -16,7 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Auditable, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use Auditable, HasApiTokens, HasDocuments, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name', 'phone', 'whatsapp_phone', 'email', 'gender', 'city_id', 'photo_path',
@@ -51,6 +53,24 @@ class User extends Authenticatable
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function driverProfile(): HasOne
+    {
+        return $this->hasOne(DriverProfile::class);
+    }
+
+    /**
+     * May this user submit a booking or parcel request? (spec 5.12)
+     * Verified ID always; pending ID only if the admin setting allows it.
+     */
+    public function idAllowsBooking(): bool
+    {
+        return match ($this->id_verification_status) {
+            IdVerificationStatus::Verified => true,
+            IdVerificationStatus::Pending => settings()->bool('verification.allow_first_booking_while_pending'),
+            default => false,
+        };
     }
 
     public function deviceTokens(): HasMany

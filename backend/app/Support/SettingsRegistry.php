@@ -143,6 +143,24 @@ final class SettingsRegistry
                 'default' => true,
             ],
 
+            'verification.rejection_reasons' => [
+                'type' => SettingType::List, 'group' => 'verification', 'label' => 'أسباب رفض التوثيق (تظهر للمراجع)',
+                'default' => [
+                    'صورة غير واضحة',
+                    'السيلفي لا يطابق صورة الهوية',
+                    'مستند ناقص',
+                    'المستند منتهي الصلاحية',
+                    'شهادة البحث لا تطابق العربية أو اللوحة',
+                    'اللوحة غير ظاهرة في صورة العربية',
+                    'بيانات العربية غير صحيحة',
+                    'الاسم لا يطابق الهوية',
+                ],
+            ],
+            'verification.max_upload_kb' => [
+                'type' => SettingType::Integer, 'group' => 'verification', 'label' => 'أقصى حجم للصورة المرفوعة (كيلوبايت)',
+                'default' => 8192, 'min' => 512,
+            ],
+
             // ---------------- Ratings ----------------
             'ratings.review_threshold' => [
                 'type' => SettingType::Decimal, 'group' => 'ratings', 'label' => 'تقييم السائق الذي يستدعي المراجعة (أقل من)',

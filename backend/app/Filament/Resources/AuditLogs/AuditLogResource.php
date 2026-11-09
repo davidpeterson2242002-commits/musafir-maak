@@ -49,15 +49,18 @@ class AuditLogResource extends Resource
 
     public static function subjectLabel(?string $type): string
     {
-        return match ($type ? class_basename($type) : null) {
-            'Setting' => 'إعداد',
-            'TravelRoute' => 'طريق',
-            'City' => 'مدينة',
-            'State' => 'ولاية',
-            'Admin' => 'مشرف',
-            'User' => 'مستخدم',
+        return match ($type) {
+            'setting' => 'إعداد',
+            'route' => 'طريق',
+            'city' => 'مدينة',
+            'state' => 'ولاية',
+            'admin' => 'مشرف',
+            'user' => 'مستخدم',
+            'driver_profile' => 'سائق',
+            'vehicle' => 'عربية',
+            'verification_review' => 'مراجعة توثيق',
             null => '—',
-            default => class_basename($type),
+            default => $type,
         };
     }
 

@@ -31,7 +31,8 @@ class MeResource extends JsonResource
             'rating_count' => $this->rating_count,
             'profile_completed' => $this->profileCompleted(),
             'terms_accepted' => $this->terms_accepted_at !== null,
-            'is_driver' => false, // driver profiles arrive in M2
+            'driver_status' => $this->driverProfile?->status->value, // null = not registered as driver
+            'is_driver' => $this->driverProfile?->isActive() ?? false,
             'member_since' => $this->created_at?->toDateString(),
         ];
     }

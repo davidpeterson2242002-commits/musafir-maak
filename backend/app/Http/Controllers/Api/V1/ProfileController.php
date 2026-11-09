@@ -16,7 +16,7 @@ class ProfileController extends Controller
     /** GET /api/v1/me */
     public function show(Request $request): MeResource
     {
-        return new MeResource($request->user()->load('city.state'));
+        return new MeResource($request->user()->load(['city.state', 'driverProfile']));
     }
 
     /** PUT /api/v1/me — first-time profile setup and later edits. */
@@ -31,7 +31,7 @@ class ProfileController extends Controller
 
         $user->fill($data)->save();
 
-        return new MeResource($user->load('city.state'));
+        return new MeResource($user->load(['city.state', 'driverProfile']));
     }
 
     /** POST /api/v1/me/photo — upload/replace profile photo (private storage). */
@@ -52,7 +52,7 @@ class ProfileController extends Controller
 
         $user->update(['photo_path' => $path]);
 
-        return new MeResource($user->load('city.state'));
+        return new MeResource($user->load(['city.state', 'driverProfile']));
     }
 
     /** DELETE /api/v1/me — delete account (soft delete; data retained for safety/audit). */
