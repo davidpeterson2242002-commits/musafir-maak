@@ -9,6 +9,7 @@ use App\Enums\TripStatus;
 use App\Filament\Concerns\RestrictedToRoles;
 use App\Filament\Resources\Bookings\BookingResource;
 use App\Filament\Resources\Drivers\DriverResource;
+use App\Filament\Resources\Parcels\ParcelResource;
 use App\Models\TravelRoute;
 use App\Models\Trip;
 use App\Support\Phone;
@@ -126,6 +127,19 @@ class TripResource extends Resource
                 TextEntry::make('dropoff')->label('نقاط النزول')->state(fn (Trip $record) => $record->points->where('kind', PointKind::Dropoff)->pluck('label')->values()->all())->listWithLineBreaks()->bulleted(),
                 TextEntry::make('notes')->label('ملاحظات')->placeholder('—')->columnSpan(2),
                 TextEntry::make('cancel_reason')->label('سبب الإلغاء')->visible(fn (Trip $record) => $record->status === TripStatus::Cancelled)->columnSpanFull(),
+            ]),
+            Section::make('الارساليات')->visible(fn (Trip $record) => $record->accepts_parcels)->schema([
+                RepeatableEntry::make('parcels')->hiddenLabel()->schema([
+                    Grid::make(5)->schema([
+                        TextEntry::make('sender.name')->label('المرسل')
+                            ->url(fn ($record) => ParcelResource::getUrl('view', ['record' => $record->id])),
+                        TextEntry::make('receiver_name')->label('المستلم'),
+                        TextEntry::make('size')->label('الحجم')->formatStateUsing(fn ($state, $record) => $record->sizeLabel()),
+                        TextEntry::make('price')->label('السعر')->suffix(' ج'),
+                        TextEntry::make('status')->label('الحالة')->badge()
+                            ->formatStateUsing(fn ($state) => $state->label())->color(fn ($state) => $state->color()),
+                    ]),
+                ])->placeholder('لا توجد ارساليات'),
             ]),
             Section::make('الحجوزات')->schema([
                 RepeatableEntry::make('bookings')->hiddenLabel()->schema([

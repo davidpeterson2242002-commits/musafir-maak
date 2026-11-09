@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BookingStatus;
 use App\Enums\DriverStatus;
+use App\Enums\ParcelStatus;
 use App\Enums\PointKind;
 use App\Enums\TripStatus;
 use Illuminate\Database\Eloquent\Builder;
@@ -73,6 +74,21 @@ class Trip extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function parcels(): HasMany
+    {
+        return $this->hasMany(Parcel::class);
+    }
+
+    /** Parcel slots still free (max_parcels minus accepted / picked up / delivered). */
+    public function parcelSlotsLeft(): int
+    {
+        if (! $this->accepts_parcels) {
+            return 0;
+        }
+
+        return max(0, $this->max_parcels - $this->parcels()->whereIn('status', ParcelStatus::slotHolders())->count());
     }
 
     public function acceptedBookings(): HasMany

@@ -47,6 +47,7 @@ class BookingResource extends JsonResource
                     && $this->no_show_at->gt(now()->subHours($disputeHours)),
             ] : null,
             'can_cancel' => $this->status->isActive() && $trip->status === TripStatus::Scheduled && $trip->departs_at->isFuture(),
+            'conversation_id' => $this->conversation?->id,
             'trip' => (new TripResource($trip))->withDetails(),
             'contact' => $reveal ? [
                 'driver_phone' => $driverUser->phone,

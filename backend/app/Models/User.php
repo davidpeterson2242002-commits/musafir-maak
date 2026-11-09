@@ -79,6 +79,37 @@ class User extends Authenticatable
         return $this->hasMany(Booking::class, 'passenger_id');
     }
 
+    public function parcels(): HasMany
+    {
+        return $this->hasMany(Parcel::class, 'sender_id');
+    }
+
+    public function blocks(): HasMany
+    {
+        return $this->hasMany(UserBlock::class, 'blocker_id');
+    }
+
+    public function enforcementActions(): HasMany
+    {
+        return $this->hasMany(EnforcementAction::class)->latest('id');
+    }
+
+    /** Either user blocked the other (spec P13). */
+    public function isBlockedWith(int $otherUserId): bool
+    {
+        return UserBlock::where(fn ($q) => $q->where('blocker_id', $this->id)->where('blocked_id', $otherUserId))
+            ->orWhere(fn ($q) => $q->where('blocker_id', $otherUserId)->where('blocked_id', $this->id))
+            ->exists();
+    }
+
+    /** Ids of users this user blocked or was blocked by. @return array<int, int> */
+    public function blockedUserIds(): array
+    {
+        return UserBlock::where('blocker_id', $this->id)->pluck('blocked_id')
+            ->merge(UserBlock::where('blocked_id', $this->id)->pluck('blocker_id'))
+            ->unique()->values()->all();
+    }
+
     public function routeAlerts(): HasMany
     {
         return $this->hasMany(RouteAlert::class);

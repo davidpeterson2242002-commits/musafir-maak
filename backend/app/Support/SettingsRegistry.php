@@ -26,6 +26,8 @@ final class SettingsRegistry
         'ratings' => 'التقييمات',
         'otp' => 'رمز التحقق',
         'routes' => 'الطرق',
+        'parcels' => 'الارساليات',
+        'trust' => 'المحادثات والبلاغات',
         'content' => 'النصوص والمحتوى',
     ];
 
@@ -233,6 +235,35 @@ final class SettingsRegistry
             'routes.auto_create' => [
                 'type' => SettingType::Boolean, 'group' => 'routes', 'label' => 'إنشاء الطريق تلقائياً عند أول رحلة بين مدينتين مفعّلتين',
                 'default' => true, 'help' => 'إذا أُوقف، يمكن نشر الرحلات فقط على الطرق التي أضافتها الإدارة',
+            ],
+
+            // ---------------- Parcels ----------------
+            'parcels.code_max_attempts' => [
+                'type' => SettingType::Integer, 'group' => 'parcels', 'label' => 'أقصى محاولات لإدخال رمز التسليم',
+                'default' => 5, 'min' => 1,
+            ],
+            'parcels.dispute_days' => [
+                'type' => SettingType::Integer, 'group' => 'parcels', 'label' => 'مهلة فتح نزاع بعد التسليم (أيام)',
+                'default' => 3, 'min' => 0,
+            ],
+
+            // ---------------- Chat, ratings, reports ----------------
+            'chat.flag_keywords' => [
+                'type' => SettingType::List, 'group' => 'trust', 'label' => 'كلمات تُعلّم الرسالة للمراجعة',
+                'default' => ['حيوان', 'كلب', 'حمار', 'غبي', 'وسخ', 'حرامي', 'برا التطبيق', 'بره التطبيق', 'كاش برا'],
+                'help' => 'الرسائل التي تحتوي هذه الكلمات تظهر في قائمة المراجعة ولا تُحجب',
+            ],
+            'chat.days_after_trip' => [
+                'type' => SettingType::Integer, 'group' => 'trust', 'label' => 'تبقى المحادثة مفتوحة بعد الرحلة (أيام)',
+                'default' => 3, 'min' => 0,
+            ],
+            'ratings.window_days' => [
+                'type' => SettingType::Integer, 'group' => 'ratings', 'label' => 'مهلة التقييم بعد الرحلة (أيام)',
+                'default' => 14, 'min' => 1,
+            ],
+            'reports.max_per_day' => [
+                'type' => SettingType::Integer, 'group' => 'trust', 'label' => 'أقصى عدد بلاغات للمستخدم في اليوم',
+                'default' => 10, 'min' => 1,
             ],
 
             // ---------------- Content ----------------

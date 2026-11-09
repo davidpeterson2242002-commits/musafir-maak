@@ -51,6 +51,8 @@ class DriverTripResource extends JsonResource
                 'can_complete' => $this->status === TripStatus::Departed,
                 'can_cancel' => $this->status === TripStatus::Scheduled,
             ],
+            'parcels' => $this->when($this->relationLoaded('parcels'), fn () => DriverParcelResource::collection($this->parcels)),
+            'parcel_slots_left' => $this->accepts_parcels ? $this->parcelSlotsLeft() : 0,
             'bookings' => $this->when(
                 $this->relationLoaded('bookings'),
                 fn () => DriverBookingResource::collection($this->bookings->sortBy(fn ($b) => [$b->status === BookingStatus::Pending ? 0 : 1, $b->id])->values()),

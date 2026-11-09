@@ -54,6 +54,7 @@ class DriverBookingResource extends JsonResource
             'fee' => $this->status === BookingStatus::Pending
                 ? $this->feePreview()
                 : ['amount' => $this->fee_amount, 'free' => $this->fee_free, 'reversed' => $this->fee_reversed_at !== null],
+            'conversation_id' => $this->conversation?->id,
             'can_mark_no_show' => $this->status === BookingStatus::Accepted && $this->trip->departs_at->isPast(),
             'trip' => $this->whenLoaded('trip', fn () => [
                 'id' => $this->trip->id,

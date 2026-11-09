@@ -27,6 +27,8 @@ class TripTimers
         return [
             'expired' => $this->bookings->expireOverdue(),
             'driver_reminders' => $this->bookings->remindDrivers(),
+            'parcels_expired' => app(ParcelService::class)->expireOverdue(),
+            'parcel_reminders' => app(ParcelService::class)->remindDrivers(),
             'trip_reminders' => $this->tripReminders(),
             'no_shows_confirmed' => $this->bookings->confirmUndisputedNoShows(),
             'auto_completed' => $this->autoComplete(),

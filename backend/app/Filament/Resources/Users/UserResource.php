@@ -3,13 +3,17 @@
 namespace App\Filament\Resources\Users;
 
 use App\Enums\AdminRole;
+use App\Enums\BookingStatus;
 use App\Enums\Gender;
 use App\Enums\IdVerificationStatus;
 use App\Enums\UserStatus;
 use App\Filament\Concerns\RestrictedToRoles;
+use App\Filament\Resources\Reports\ReportResource;
 use App\Models\City;
+use App\Models\Report;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\EnforcementService;
 use App\Support\Phone;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -29,6 +33,8 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class UserResource extends Resource
@@ -99,6 +105,20 @@ class UserResource extends Resource
                 TextEntry::make('last_seen_at')->label('آخر نشاط')->since()->placeholder('—'),
                 TextEntry::make('rating_avg')->label('التقييم')->formatStateUsing(fn ($state, User $record) => $record->rating_count ? "$state ({$record->rating_count})" : 'لا يوجد'),
             ]),
+            Section::make('السجل')->columns(4)->schema([
+                TextEntry::make('reports_against')->label('بلاغات ضده')
+                    ->state(fn (User $record) => Report::where('reported_user_id', $record->id)->count())
+                    ->url(fn (User $record) => ReportResource::getUrl('index')),
+                TextEntry::make('reports_by')->label('بلاغات منه')
+                    ->state(fn (User $record) => Report::where('reporter_id', $record->id)->count()),
+                TextEntry::make('bookings_count')->label('حجوزات مكتملة')
+                    ->state(fn (User $record) => $record->bookings()->where('status', BookingStatus::Completed)->count()),
+                TextEntry::make('parcels_count')->label('ارساليات')
+                    ->state(fn (User $record) => $record->parcels()->count()),
+                TextEntry::make('enforcement')->label('الإجراءات السابقة')->columnSpanFull()->listWithLineBreaks()->bulleted()->placeholder('لا يوجد')
+                    ->state(fn (User $record) => $record->enforcementActions()->with('admin')->limit(10)->get()
+                        ->map(fn ($a) => local_time($a->created_at)->format('Y-m-d').' — '.$a->actionLabel().': '.$a->reason.' ('.$a->admin?->name.')')->all()),
+            ]),
             Section::make('الحالة')->columns(3)->schema([
                 TextEntry::make('status')->label('حالة الحساب')->badge()
                     ->formatStateUsing(fn (UserStatus $state) => $state->label())->color(fn (UserStatus $state) => $state->color()),
@@ -139,28 +159,32 @@ class UserResource extends Resource
     public static function enforcementActions(): array
     {
         return [
+            Action::make('warn')
+                ->label('تنبيه')->color('gray')->icon(Heroicon::OutlinedExclamationTriangle)
+                ->schema([Textarea::make('reason')->label('نص التنبيه (يصل للمستخدم)')->required()->maxLength(500)])
+                ->action(function (User $record, array $data) {
+                    app(EnforcementService::class)->warn($record, $data['reason'], Auth::guard('admin')->user());
+                    Notification::make()->title('تم إرسال التنبيه')->success()->send();
+                }),
             Action::make('suspend')
                 ->label('إيقاف مؤقت')->color('warning')->icon(Heroicon::OutlinedPauseCircle)
                 ->visible(fn (User $record) => $record->status === UserStatus::Active)
                 ->schema([
                     DateTimePicker::make('until')->label('حتى')->required()->minDate(now())->default(now()->addDays(7)),
-                    Textarea::make('reason')->label('السبب')->required()->maxLength(500),
+                    Textarea::make('reason')->label('السبب (يصل للمستخدم)')->required()->maxLength(500),
                 ])
                 ->action(function (User $record, array $data) {
-                    $record->forceFill(['status' => UserStatus::Suspended, 'suspended_until' => $data['until']])->save();
-                    app(AuditLogger::class)->log('user.suspended', $record, ['until' => $data['until'], 'reason' => $data['reason']]);
+                    app(EnforcementService::class)->suspend($record, Carbon::parse($data['until']), $data['reason'], Auth::guard('admin')->user());
                     Notification::make()->title('تم إيقاف الحساب مؤقتاً')->success()->send();
                 }),
             Action::make('ban')
                 ->label('حظر')->color('danger')->icon(Heroicon::OutlinedNoSymbol)
                 ->visible(fn (User $record) => $record->status !== UserStatus::Banned)
                 ->requiresConfirmation()
-                ->modalDescription('سيتم تسجيل خروج المستخدم من كل الأجهزة ولن يستطيع الدخول.')
+                ->modalDescription('يُسجّل خروجه من كل الأجهزة، وتُلغى رحلاته القادمة وحجوزاته وارسالياته المفتوحة.')
                 ->schema([Textarea::make('reason')->label('السبب')->required()->maxLength(500)])
                 ->action(function (User $record, array $data) {
-                    $record->forceFill(['status' => UserStatus::Banned, 'suspended_until' => null])->save();
-                    $record->tokens()->delete();
-                    app(AuditLogger::class)->log('user.banned', $record, ['reason' => $data['reason']]);
+                    app(EnforcementService::class)->ban($record, $data['reason'], Auth::guard('admin')->user());
                     Notification::make()->title('تم حظر الحساب')->success()->send();
                 }),
             Action::make('lift_booking_restriction')
@@ -179,8 +203,7 @@ class UserResource extends Resource
                 ->requiresConfirmation()
                 ->schema([Textarea::make('reason')->label('السبب')->required()->maxLength(500)])
                 ->action(function (User $record, array $data) {
-                    $record->forceFill(['status' => UserStatus::Active, 'suspended_until' => null])->save();
-                    app(AuditLogger::class)->log('user.reactivated', $record, ['reason' => $data['reason']]);
+                    app(EnforcementService::class)->reactivate($record, $data['reason'], Auth::guard('admin')->user());
                     Notification::make()->title('تم تفعيل الحساب')->success()->send();
                 }),
         ];

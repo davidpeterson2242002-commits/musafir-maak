@@ -31,13 +31,23 @@ enum NotificationEvent: string
     case PaymentConfirmed = 'payment_confirmed';
     case PaymentRejected = 'payment_rejected';
     case WeeklyStatement = 'weekly_statement';
+    case ParcelRequested = 'parcel_requested';
+    case ParcelAccepted = 'parcel_accepted';
+    case ParcelRejected = 'parcel_rejected';
+    case ParcelExpired = 'parcel_expired';
+    case ParcelPickedUp = 'parcel_picked_up';
+    case ParcelDelivered = 'parcel_delivered';
+    case ParcelRefused = 'parcel_refused';
+    case ParcelCancelled = 'parcel_cancelled';
+    case NewChatMessage = 'new_chat_message';
+    case RateTrip = 'rate_trip';
 
     public function sendsWhatsApp(): bool
     {
         return match ($this) {
             self::IdApproved, self::IdRejected, self::DriverApproved, self::DriverRejected,
             self::BookingRequested, self::BookingAccepted, self::TripCancelled, self::AccountWarning,
-            self::AccountFrozen => true,
+            self::AccountFrozen, self::ParcelRequested => true,
             default => false,
         };
     }

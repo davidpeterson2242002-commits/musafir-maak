@@ -81,7 +81,10 @@ class DriverResource extends Resource
                     ->color(fn (DriverProfile $record) => $record->settlement_due_at?->isPast() ? 'danger' : null)
                     ->description(fn (DriverProfile $record) => $record->settlement_due_at?->isPast()
                         ? 'متأخر '.(int) $record->settlement_due_at->diffInDays(now()).' يوم' : null),
-                TextColumn::make('rating_avg')->label('التقييم')->toggleable(),
+                TextColumn::make('rating_avg')->label('التقييم')->toggleable()
+                    ->formatStateUsing(fn ($state, DriverProfile $record) => $record->rating_count ? "$state ({$record->rating_count})" : '—')
+                    ->color(fn (DriverProfile $record) => $record->low_rating_flagged_at ? 'danger' : null)
+                    ->icon(fn (DriverProfile $record) => $record->low_rating_flagged_at ? Heroicon::OutlinedExclamationTriangle : null),
                 TextColumn::make('approved_at')->label('اعتُمد')->date()->placeholder('—')->sortable(),
                 TextColumn::make('created_at')->label('بدأ التسجيل')->since()->sortable()->toggleable(),
             ])

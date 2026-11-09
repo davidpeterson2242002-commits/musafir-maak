@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\DocumentKind;
 use App\Enums\IdDocumentType;
+use App\Enums\ReportReason;
 use App\Enums\VehicleType;
 use App\Models\Admin;
 use App\Models\Booking;
@@ -13,8 +14,11 @@ use App\Models\TravelRoute;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\ChatService;
 use App\Services\DocumentStore;
 use App\Services\LedgerService;
+use App\Services\ParcelService;
+use App\Services\ReportService;
 use App\Services\VerificationService;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
@@ -87,6 +91,24 @@ class DemoSeeder extends Seeder
             Booking::factory()->create(['trip_id' => $trip->id, 'passenger_id' => $passengers[0]->id, 'message' => 'معاي شنطة واحدة']);
             Booking::factory()->accepted()->create(['trip_id' => $trip->id, 'passenger_id' => $passengers[1]->id, 'seats' => 2, 'price_total' => 2 * $trip->price_per_seat]);
         }
+
+        // Parcels, chat and a report on the first trip.
+        $trip = Trip::where('driver_profile_id', $driver->id)->orderBy('departs_at')->first();
+        $trip->update(['accepts_parcels' => true, 'max_parcels' => 3, 'parcel_price_small' => 3000, 'parcel_price_medium' => 5000, 'parcel_price_large' => 8000]);
+        $sender = User::factory()->create(['name' => 'هالة بشير', 'gender' => 'female', 'id_verification_status' => 'verified']);
+        $photo = $this->image('ارسالية', 'parcel');
+        $parcel = app(ParcelService::class)->request($sender, $trip, [
+            'description' => 'أدوية وملابس أطفال', 'size' => 'medium', 'receiver_name' => 'أم حسن',
+            'receiver_phone' => '+249912000111', 'payer' => 'receiver',
+        ], $photo);
+        app(ParcelService::class)->accept($parcel);
+
+        $booking = $trip->bookings()->where('status', 'pending')->with('passenger')->first();
+        $chat = app(ChatService::class)->openFor($booking);
+        app(ChatService::class)->send($chat->load('subject.trip'), $booking->passenger, 'السلام عليكم، ممكن تتصل علي 0911223344؟');
+        app(ChatService::class)->send($chat->fresh()->load('subject.trip'), $driver->user, 'وعليكم السلام، سأرد على الطلب قريباً');
+        app(ReportService::class)->create($driver->user, $booking->passenger, ReportReason::Fraud,
+            'يطلب التواصل خارج التطبيق قبل القبول', $booking);
 
         // Money: some commission owed and a transfer waiting for finance to confirm.
         $admin = Admin::first() ?? Admin::factory()->create();

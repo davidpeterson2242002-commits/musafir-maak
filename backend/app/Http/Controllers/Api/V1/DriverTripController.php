@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\BookingStatus;
+use App\Enums\ParcelStatus;
 use App\Enums\TripStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\TripRequest;
@@ -94,7 +95,7 @@ class DriverTripController extends Controller
             ->whereIn('trip_id', $driver->trips()->select('id'))
             ->where('status', BookingStatus::Pending)
             ->where('expires_at', '>', now())
-            ->with(['passenger', 'pickupPoint', 'trip.route.origin', 'trip.route.destination', 'trip.driverProfile', 'trip.vehicle'])
+            ->with(['passenger', 'pickupPoint', 'trip.route.origin', 'trip.route.destination', 'trip.driverProfile', 'trip.vehicle', 'conversation'])
             ->orderBy('expires_at')
             ->get();
 
@@ -142,11 +143,14 @@ class DriverTripController extends Controller
             'route.origin', 'route.destination', 'vehicle', 'points',
             'bookings' => fn ($q) => $q->whereNotIn('status', [BookingStatus::Expired]),
             'bookings.passenger', 'bookings.pickupPoint', 'bookings.trip.driverProfile', 'bookings.trip.vehicle',
+            'bookings.conversation',
+            'parcels' => fn ($q) => $q->whereNotIn('status', [ParcelStatus::Expired, ParcelStatus::Rejected]),
+            'parcels.sender', 'parcels.trip.route.origin', 'parcels.trip.route.destination', 'parcels.trip.driverProfile', 'parcels.conversation',
         ]));
     }
 
     private function bookingResource(Booking $booking): DriverBookingResource
     {
-        return new DriverBookingResource($booking->fresh(['passenger', 'pickupPoint', 'trip.route.origin', 'trip.route.destination', 'trip.driverProfile', 'trip.vehicle']));
+        return new DriverBookingResource($booking->fresh(['passenger', 'pickupPoint', 'trip.route.origin', 'trip.route.destination', 'trip.driverProfile', 'trip.vehicle', 'conversation']));
     }
 }

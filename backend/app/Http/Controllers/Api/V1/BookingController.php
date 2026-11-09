@@ -19,7 +19,7 @@ class BookingController extends Controller
 {
     private const WITH = [
         'trip.route.origin', 'trip.route.destination', 'trip.points', 'trip.vehicle.documents',
-        'trip.driverProfile.user', 'pickupPoint',
+        'trip.driverProfile.user', 'pickupPoint', 'conversation',
     ];
 
     /** POST /trips/{trip}/bookings */

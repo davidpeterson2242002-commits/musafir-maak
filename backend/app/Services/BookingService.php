@@ -40,6 +40,9 @@ class BookingService
             throw new BusinessRuleException('لا يمكنك الحجز في رحلتك.', 'own_trip');
         }
         $this->assertCanBook($passenger);
+        if ($passenger->isBlockedWith($trip->driverProfile->user_id)) {
+            throw new BusinessRuleException('لا يمكنك الحجز مع هذا السائق.', 'blocked');
+        }
         if (! $trip->isBookable()) {
             throw new BusinessRuleException('هذه الرحلة لم تعد متاحة للحجز.', 'trip_unavailable');
         }
@@ -88,6 +91,8 @@ class BookingService
                 'price_total' => $seats * $trip->price_per_seat + $extraBags * (int) $trip->extra_luggage_price,
                 'expires_at' => $timeout->min($trip->departs_at),
             ]);
+
+            app(ChatService::class)->openFor($booking);
 
             // A first booking while the ID is under review jumps the verification queue (spec 9.2).
             if ($passenger->id_verification_status === IdVerificationStatus::Pending) {
@@ -391,7 +396,7 @@ class BookingService
 
     // ------------------------------------------------------------------ Internals
 
-    private function assertCanBook(User $passenger): void
+    public function assertCanBook(User $passenger): void
     {
         if (! $passenger->profileCompleted()) {
             throw new BusinessRuleException('أكمل ملفك الشخصي أولاً.', 'profile_incomplete');
@@ -421,7 +426,7 @@ class BookingService
         if ($requireActive && $driver->isFrozen()) {
             throw new BusinessRuleException('حسابك مجمّد لعدم سداد الرصيد المستحق. سدّد لتتمكن من قبول الحجوزات.', 'driver_frozen', ['balance_owed' => $driver->balance_owed]);
         }
-        if ($requireActive && ! $driver->isActive()) {
+        if ($requireActive && (! $driver->isActive() || $driver->user->isSuspended())) {
             throw new BusinessRuleException('حسابك كسائق غير نشط حالياً، لا يمكنك قبول حجوزات.', 'driver_not_active');
         }
         if ($booking->status !== BookingStatus::Pending) {

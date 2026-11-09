@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\BookingStatus;
 use App\Enums\NotificationEvent;
+use App\Enums\ParcelStatus;
 use App\Enums\PointKind;
 use App\Enums\TripStatus;
 use App\Enums\VehicleStatus;
@@ -36,7 +37,7 @@ class TripService
         if ($driver->isFrozen()) {
             throw new BusinessRuleException('حسابك مجمّد لعدم سداد الرصيد المستحق. سدّد لتتمكن من نشر رحلات.', 'driver_frozen', ['balance_owed' => $driver->balance_owed]);
         }
-        if (! $driver->isActive()) {
+        if (! $driver->isActive() || $driver->user->isSuspended()) {
             throw new BusinessRuleException('حسابك كسائق غير نشط حالياً، لا يمكن نشر رحلات.', 'driver_not_active');
         }
 
@@ -159,6 +160,8 @@ class TripService
                 );
             }
 
+            app(ParcelService::class)->cancelForTrip($trip, $reason);
+
             $trip->forceFill([
                 'status' => TripStatus::Cancelled,
                 'cancelled_at' => now(),
@@ -194,6 +197,7 @@ class TripService
 
             // Requests the driver never answered can't be accepted any more.
             app(BookingService::class)->expirePendingForTrip($trip);
+            $trip->parcels()->where('status', ParcelStatus::Pending)->update(['status' => ParcelStatus::Expired]);
 
             return $trip;
         });
@@ -213,7 +217,7 @@ class TripService
             $trip->bookings()->where('status', BookingStatus::Accepted)
                 ->update(['status' => BookingStatus::Completed, 'completed_at' => now()]);
 
-            // Rating prompts arrive with ratings in M5.
+            DB::afterCommit(fn () => app(RatingService::class)->promptAfterTrip($trip));
 
             return $trip;
         });

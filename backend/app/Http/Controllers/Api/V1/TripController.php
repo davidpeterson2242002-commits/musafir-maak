@@ -49,7 +49,8 @@ class TripController extends Controller
         ]);
 
         return (new TripResource($trip))->withDetails()->additional([
-            'bookable' => $trip->isBookable() && ! $isDriver,
+            'bookable' => $trip->isBookable() && ! $isDriver && ! $request->user()->isBlockedWith($trip->driverProfile->user_id),
+            'parcel_slots_left' => $trip->parcelSlotsLeft(),
             'my_booking_id' => $trip->bookings()->where('passenger_id', $request->user()->id)
                 ->whereIn('status', BookingStatus::active())->value('id'),
         ]);

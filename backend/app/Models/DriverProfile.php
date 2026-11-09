@@ -29,6 +29,7 @@ class DriverProfile extends Model
             'settlement_due_at' => 'datetime',
             'settlement_reminded_at' => 'datetime',
             'balance_owed' => 'integer',
+            'low_rating_flagged_at' => 'datetime',
             'wallet_balance' => 'integer',
             'frozen_at' => 'datetime',
             'rating_avg' => 'decimal:2',

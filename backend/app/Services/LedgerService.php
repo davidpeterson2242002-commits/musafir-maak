@@ -13,6 +13,7 @@ use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\DriverProfile;
 use App\Models\LedgerEntry;
+use App\Models\Parcel;
 use App\Models\SettlementRequest;
 use App\Models\Trip;
 use Illuminate\Database\Eloquent\Model;
@@ -138,6 +139,66 @@ class LedgerService
         });
     }
 
+    // ------------------------------------------------------------------ Parcels
+
+    /** Parcel commission at acceptance (spec 5.5). Free bookings also cover parcels. Inside the acceptance transaction. */
+    public function chargeParcel(Parcel $parcel, Trip $trip): void
+    {
+        $driver = $this->lockDriver($trip->driver_profile_id);
+
+        if ($driver->balanceLimitReached()) {
+            $this->assertCanAccept($driver, $trip->loadMissing('vehicle'), 1);
+        }
+
+        $fee = $this->fees->parcelFee($parcel->size, $parcel->price);
+
+        if ($driver->free_bookings_remaining > 0) {
+            $driver->decrement('free_bookings_remaining');
+            $parcel->forceFill(['fee_amount' => 0, 'fee_free' => true, 'fee_model' => $fee['model']])->save();
+
+            return;
+        }
+
+        if (settings()->string('wallet.mode') === 'mandatory' && $fee['amount'] > $driver->wallet_balance) {
+            throw new BusinessRuleException(
+                "رصيد المحفظة لا يكفي لعمولة هذه الارسالية ({$fee['amount']} جنيه). اشحن المحفظة أولاً.",
+                'wallet_insufficient',
+                ['fee' => $fee['amount'], 'wallet_balance' => $driver->wallet_balance],
+            );
+        }
+
+        $parcel->forceFill(['fee_amount' => $fee['amount'], 'fee_free' => false, 'fee_model' => $fee['model']])->save();
+
+        if ($fee['amount'] > 0) {
+            $this->applyCharge($driver, $fee['amount'], $parcel, 'عمولة الارسالية #'.$parcel->id);
+        }
+    }
+
+    public function previewParcelFee(DriverProfile $driver, Parcel $parcel): int
+    {
+        return $driver->free_bookings_remaining > 0 ? 0 : $this->fees->parcelFee($parcel->size, $parcel->price)['amount'];
+    }
+
+    /** Undo a parcel's commission (cancelled, refused at pickup, trip cancelled, dispute lost). Idempotent. */
+    public function reverseParcel(Parcel $parcel, string $reason): void
+    {
+        DB::transaction(function () use ($parcel, $reason) {
+            $parcel = Parcel::whereKey($parcel->id)->lockForUpdate()->first();
+            if ($parcel->fee_model === null || $parcel->fee_reversed_at !== null) {
+                return;
+            }
+
+            $driver = $this->lockDriver($parcel->trip()->value('driver_profile_id'));
+            $parcel->forceFill(['fee_reversed_at' => now()])->save();
+
+            if ($parcel->fee_free) {
+                $driver->increment('free_bookings_remaining');
+            } elseif ($parcel->fee_amount > 0) {
+                $this->refund($driver, $parcel, $reason);
+            }
+        });
+    }
+
     // ------------------------------------------------------------------ Payments
 
     public function confirmSettlement(SettlementRequest $request, Admin $admin): void
@@ -258,9 +319,9 @@ class LedgerService
     }
 
     /** Refund exactly what the booking's fee took from each bucket. */
-    private function refund(DriverProfile $driver, Booking $booking, string $reason): void
+    private function refund(DriverProfile $driver, Booking|Parcel $booking, string $reason): void
     {
-        $charges = LedgerEntry::where('reference_type', 'booking')->where('reference_id', $booking->id)
+        $charges = LedgerEntry::where('reference_type', $booking->getMorphClass())->where('reference_id', $booking->id)
             ->whereIn('type', [LedgerType::Fee, LedgerType::FeeReversal])
             ->get()->groupBy('bucket')->map->sum('amount');
 

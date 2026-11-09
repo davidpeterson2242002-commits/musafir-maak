@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\ReportReason;
 use App\Http\Controllers\Controller;
+use App\Support\RatingTags;
 use App\Support\SettingsRegistry;
 use Illuminate\Http\JsonResponse;
 
@@ -16,6 +18,8 @@ class ConfigController extends Controller
             'vehicle_types' => SettingsRegistry::VEHICLE_TYPES,
             'parcel_sizes' => SettingsRegistry::PARCEL_SIZES,
             'country_code' => '+249',
+            'rating_tags' => ['for_driver' => RatingTags::FOR_DRIVER, 'for_passenger' => RatingTags::FOR_PASSENGER],
+            'report_reasons' => ReportReason::options(),
         ]);
     }
 }

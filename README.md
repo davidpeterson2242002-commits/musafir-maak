@@ -89,6 +89,19 @@ php artisan test
 | GET | `/api/v1/payment-methods` | token | Enabled methods with account details / agent locations |
 | GET / POST | `/api/v1/driver/settlements` | token | Payment history / submit payment (multipart: `payment_method_id, purpose (settlement\|wallet_topup), amount, reference_number?, receipt`) |
 
+| POST | `/api/v1/trips/{id}/parcels` | token | Multipart: `description, size (small\|medium\|large), photo, receiver_name, receiver_phone, payer (sender\|receiver), message?, accept_prohibited` |
+| GET | `/api/v1/parcels?tab=active\|done`, `/api/v1/parcels/{id}` | token | Sender's parcels; delivery code + `share_text` after acceptance |
+| POST | `/api/v1/parcels/{id}/cancel\|dispute` | token | Cancel before pickup / dispute (`{details}`) |
+| GET | `/api/v1/driver/parcels?status=pending\|active\|done` | token | Driver's parcel requests and parcels (with fee preview) |
+| POST | `/api/v1/driver/parcels/{id}/accept\|reject\|pickup\|refuse\|deliver` | token | `pickup`: multipart `photo`; `refuse`: `{reason}`; `deliver`: `{code}` (4 digits) |
+| GET | `/api/v1/conversations`, `/api/v1/conversations/unread-count` | token | Chats (one per booking/parcel) with unread counts |
+| GET / POST | `/api/v1/conversations/{id}/messages` | token | Messages (`after_id` / `before_id`; marks read) / send `{body}` |
+| POST | `/api/v1/ratings` | token | `{subject_type: booking\|parcel, subject_id, stars, comment?, tags[]?}` |
+| GET | `/api/v1/ratings/pending` | token | What the user can still rate |
+| GET | `/api/v1/users/{id}` | token | Public profile with reviews |
+| POST / DELETE | `/api/v1/users/{id}/block`; GET `/api/v1/me/blocks` | token | Block / unblock / list |
+| POST | `/api/v1/reports` | token | `{reported_user_id, reason, details?, subject_type?, subject_id?}` |
+
 Times are returned in Sudan time with offset (`2026-11-12T07:30:00+02:00`); `departs_at` may be sent as
 `"2026-11-12 07:30"` (Sudan time). Rule violations return HTTP 422 `{message, code}` — e.g. `code: id_verification_required`
 tells the app to open the ID step.

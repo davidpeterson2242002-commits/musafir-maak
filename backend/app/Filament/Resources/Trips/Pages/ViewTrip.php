@@ -24,6 +24,7 @@ class ViewTrip extends ViewRecord
         return parent::resolveRecord($key)->load([
             'route.origin', 'route.destination', 'driverProfile.user', 'vehicle', 'points',
             'bookings' => fn ($q) => $q->orderBy('id'), 'bookings.passenger', 'bookings.pickupPoint',
+            'parcels' => fn ($q) => $q->orderBy('id'), 'parcels.sender',
         ]);
     }
 

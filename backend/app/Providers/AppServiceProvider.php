@@ -16,9 +16,14 @@ use App\Gateways\WhatsAppOtpSender;
 use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\City;
+use App\Models\Conversation;
 use App\Models\DriverProfile;
 use App\Models\LedgerEntry;
+use App\Models\Message;
+use App\Models\Parcel;
 use App\Models\PaymentMethod;
+use App\Models\Rating;
+use App\Models\Report;
 use App\Models\Setting;
 use App\Models\SettlementRequest;
 use App\Models\State;
@@ -78,6 +83,11 @@ class AppServiceProvider extends ServiceProvider
             'verification_review' => VerificationReview::class,
             'trip' => Trip::class,
             'booking' => Booking::class,
+            'parcel' => Parcel::class,
+            'conversation' => Conversation::class,
+            'message' => Message::class,
+            'rating' => Rating::class,
+            'report' => Report::class,
             'settlement_request' => SettlementRequest::class,
             'payment_method' => PaymentMethod::class,
             'ledger_entry' => LedgerEntry::class,

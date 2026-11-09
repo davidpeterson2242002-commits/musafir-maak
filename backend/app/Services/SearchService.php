@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ParcelStatus;
 use App\Models\City;
 use App\Models\SearchLog;
 use App\Models\TravelRoute;
@@ -75,11 +76,14 @@ class SearchService
             ->select('trips.*');
 
         if ($user) {
-            $query->whereHas('driverProfile', fn ($q) => $q->where('user_id', '!=', $user->id));
+            $hidden = [$user->id, ...$user->blockedUserIds()];
+            $query->whereHas('driverProfile', fn ($q) => $q->whereNotIn('user_id', $hidden));
         }
 
         if (($params['kind'] ?? 'trip') === 'parcel') {
-            $query->where('trips.accepts_parcels', true)->where('trips.max_parcels', '>', 0);
+            $query->where('trips.accepts_parcels', true)
+                ->whereRaw('trips.max_parcels > (select count(*) from parcels p where p.trip_id = trips.id and p.status in (?, ?, ?, ?))',
+                    array_map(fn ($s) => $s->value, ParcelStatus::slotHolders()));
         }
 
         if (! empty($params['time_of_day'])) {
