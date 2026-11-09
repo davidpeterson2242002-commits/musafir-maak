@@ -6,7 +6,8 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-09: Development plan approved by the user (below).
 - 2026-11-09 (session 2): M1 blocked — packagist.org refused by the network allowlist.
 - 2026-11-09 (session 3): **M1 done.** Packagist reachable. 58 tests / 215 assertions passing. Code pushed to GitHub (`main`).
-- 2026-11-09 (session 3, cont.): **M2 done.** 95 tests / 412 assertions passing. Pushed to `main`. **Next step: M3.**
+- 2026-11-09 (session 3, cont.): **M2 done.** 95 tests / 412 assertions passing. Pushed to `main`.
+- 2026-11-09 (session 3, cont.): **M3 done.** 147 tests / 683 assertions passing. Pushed to `main`. **Next step: M4.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -29,8 +30,8 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 |---|---|---|
 | M1 | Laravel + Sanctum + Filament setup; phone OTP auth (log driver); users; settings table + typed cached accessor + Filament settings pages; states/cities/routes; admin users + audit log; gateway interfaces with fake/log drivers | **Done 2026-11-09** |
 | M2 | Driver registration, vehicles, private document uploads (signed URLs), verification queue (drivers / vehicles / passenger IDs) | **Done 2026-11-09** |
-| M3 | Trips + points, search (filters, sort, nearby dates, closure msg), bookings, 12h-or-departure expiry + hourly reminders (scheduler), cancellations + late-cancel penalties, no-show + 24h auto-reversal, route alerts, search logging | Next |
-| M4 | Fee engine (percentage / per seat / per trip, per vehicle type, min/max, snapshot at acceptance), free bookings, ledger, payment methods, settlement requests, optional wallet, weekly cycle + balance limit + grace, auto-freeze/unfreeze | — |
+| M3 | Trips + points, search (filters, sort, nearby dates, closure msg), bookings, 12h-or-departure expiry + hourly reminders (scheduler), cancellations + late-cancel penalties, no-show + 24h auto-reversal, route alerts, search logging | **Done 2026-11-09** |
+| M4 | Fee engine (percentage / per seat / per trip, per vehicle type, min/max, snapshot at acceptance), free bookings, ledger, payment methods, settlement requests, optional wallet, weekly cycle + balance limit + grace, auto-freeze/unfreeze | Next |
 | M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | — |
 | M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | — |
 | M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | — |
@@ -78,6 +79,35 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 
 **Tests (95 total, 37 new):** identity upload/replace/kind+type validation, submit per document type, locking, approve (WhatsApp + audit), reject → resubmit, booking allowance setting, double-decision guard; driver full API flow, missing-items errors, verified user skips identity, seat caps, plate duplicates (normalized) and reuse after rejection, locking while pending, ownership 404s, approval effects, settling separate ID review, reject + resubmit, identity-OK option, free bookings only first time, new vehicle for active driver, draft can't submit vehicle alone, notification failure doesn't block, push token pruning; admin queue access per role, tab filtering + priority order, claim, approve/reject/info via Livewire, hidden actions after decision, dashboard widget.
 
+## M3 — what was built
+**API**: passenger `GET trips/search`, `GET trips/{id}`, `POST trips/{id}/bookings`, `GET bookings`, `GET bookings/{id}`, `POST bookings/{id}/cancel`, `POST bookings/{id}/dispute-no-show`, `GET/POST/DELETE route-alerts`; driver `GET/POST driver/trips`, `GET/PUT driver/trips/{id}`, `POST driver/trips/{id}/cancel|depart|complete`, `GET driver/requests`, `POST driver/bookings/{id}/accept|reject|no-show`. Full table in README.md.
+
+**Conventions introduced**
+- Times: stored UTC; API returns Sudan time with offset via `local_iso()`; `departs_at` input accepts "Y-m-d H:i" in Sudan time (`config('app.display_timezone')`, helpers `local_time()` / `local_iso()` in `app/helpers.php`). Search `date` is a Sudan-local day (01:30 local belongs to that day).
+- Business-rule failures throw `App\Exceptions\BusinessRuleException` → HTTP 422 `{message, code, ...context}`. Codes used so far: id_verification_required, booking_restricted, profile_incomplete, account_suspended, own_trip, trip_unavailable, not_enough_seats, women_only, invalid_pickup_point, no_extra_luggage, already_booked, not_pending, expired, driver_not_active, not_cancellable, trip_departed, too_early, not_disputable, already_disputed, dispute_window_closed, no_open_dispute, vehicle_not_approved, too_many_seats, route_closed, route_unavailable, city_unavailable, same_city, price_above_max, departure_too_soon, departure_too_far, trip_not_scheduled, trip_has_bookings, not_departed, too_many_alerts, has_active_bookings, has_active_trips.
+- Domain events for M4 (dispatched after commit): `BookingAccepted`, `BookingCancelled` (passenger cancels an accepted booking), `NoShowConfirmed` (auto after 24h or admin), `TripCancelled` (with booking ids). **M4 must add listeners**: record fee on accept (snapshot), reverse on cancel / no-show confirmed / trip cancelled. `bookings.fee_amount` / `fee_free` columns already exist.
+
+**Rules implemented**
+- Posting (`TripService::post`): driver must be `active`; vehicle approved and own; seats ≤ vehicle seats; price ≤ route max; departure between `trips.min_minutes_ahead` (30 min) and `trips.max_days_ahead` (60 days); ≥1 pickup and drop-off point; parcel prices + max required when accepting parcels. Route resolved by city pair; auto-created if `routes.auto_create` and both cities available; closed route → `route_closed` with its message. Route-alert subscribers notified after commit.
+- Editing: full edit before any active booking; afterwards only `notes` and increasing `seats_total`. Pickup points referenced by bookings are kept.
+- Cancel trip: all pending/accepted bookings → `cancelled_by_driver`, passengers get push + WhatsApp. Depart: from `trips.depart_early_minutes` (60) before departure; unanswered requests expire. Complete: accepted → completed. Departed trips auto-complete after `trips.auto_complete_hours` (48).
+- Search (`SearchService`): bookable = scheduled, not hidden, future, driver `active` (frozen drivers' trips hidden), seats ≥ requested, not own. Filters: time_of_day (night 0–5, morning 5–12, afternoon 12–17, evening 17–24, Sudan time), max_price, vehicle_types, women_only, min_rating; sort earliest/cheapest/rating. Empty day → `nearby_dates` (± `search.nearby_days`). Closed route → `closed` + message. Every search → `search_logs`.
+- Booking request (`BookingService::request`): own-trip check, then profile complete, not suspended, not restricted, `idAllowsBooking()`; a pending ID's review gets priority 10. Women-only: female or `includes_family`. Pending requests don't hold seats; accept locks the trip row and checks seats. `expires_at` = min(now + `booking.response_timeout_hours`, departure). One active booking per passenger per trip.
+- Accept: seats decremented; passenger WhatsApp includes driver name, phone, car and plate; booking API then shows `contact` + `share_text`. Frozen/inactive driver can't accept but can reject. Reject/expired/cancelled-by-driver → `alternatives` (same route, same Sudan day).
+- Timers (`php artisan musafir:tick`, scheduled every minute, idempotent; `App\Services\TripTimers`): expire overdue requests (+ push to passenger), remind drivers every `booking.reminder_interval_minutes` (first after one interval), trip reminders evening before (after `booking.reminder_evening_hour`, 20:00) and `booking.reminder_soon_hours` (2) before, to driver and accepted passengers, once each; confirm undisputed no-shows; auto-complete; deactivate past dated alerts.
+- Passenger cancel: any active booking before departure. Late = accepted and under `cancellation.late_window_hours` (3h) before departure. Late count in `cancellation.passenger_window_days` (30): at limit−1 a warning (push + WhatsApp), at limit (3) `users.booking_restricted_until` = now + `cancellation.passenger_restriction_days` (7). Cancelling a pending request is never penalised.
+- No-show: driver marks accepted booking after departure time; passenger can dispute within `booking.no_show_dispute_hours` (24); undisputed → confirmed by timer; disputed → admin confirms (fee reversal) or overturns (booking completed).
+- Driver cancellation count (last `cancellation.driver_window_days`) shown on admin driver page, red at `cancellation.driver_limit`. No automatic suspension yet (spec says "can lead to"); enforcement tools come in M5.
+- Account deletion blocked with active bookings or scheduled/departed trips (balance check in M4).
+
+**Admin**: Trips (tabs upcoming / on the road / all; filters status, route, date range, hidden; view with bookings; cancel with reason → passengers notified + audit; hide/unhide from search), Bookings (tabs all / pending / open no-show disputes with nav badge; view with timeline; confirm or overturn no-show), Users (shows booking restriction; "lift booking restriction" action), Drivers (recent cancellations, completed trips), dashboard (trips today, bookings this week, zero-result searches table for driver recruitment).
+
+**New settings**: `booking.reminder_evening_hour` (20), `booking.reminder_soon_hours` (2), `trips.min_minutes_ahead` (30), `trips.max_days_ahead` (60), `trips.depart_early_minutes` (60), `trips.auto_complete_hours` (48), `search.nearby_days` (3), `route_alerts.max_per_user` (10). Run `php artisan settings:sync` on an existing DB.
+
+**Tests (147 total, 52 new):** trip posting rules, auto-route + closed route, inactive driver, route-alert notifications, full vs limited edit, cancel trip (bookings, WhatsApp, event), depart/complete, auto-complete, ownership; search local-date boundaries, unbookable trips hidden, own trips excluded, every filter + sorts, nearby dates, closure, logging, parcel mode, details hide plate, validation; booking request, 12h-or-departure deadline, ID rules + priority, all booking rules, auto pickup point, women-only, accept (seats, contacts, event, WhatsApp with plate), over-accept/double accept, frozen driver, alternatives, ownership, expiry after 12h (idempotent), hourly reminders, trip reminders, cancel pending/accepted, warn-then-restrict, no cancel after departure, no-show window + auto-confirm, admin resolution, tabs, route alerts CRUD/limit/expiry, deletion guard; admin pages per role, admin cancel/hide, dispute tab + overturn, lift restriction, zero-result widget.
+
+**Testing gotcha:** lazy loading is disabled outside production but only flagged when several models are loaded together; tests for list/detail pages must create 2+ related rows (the trip view bug was caught by a screenshot, not the 1-booking test). Filament adds a primary-key tie-break sort — use `->defaultKeySort(false)` on grouped queries.
+
 ## Repo structure (monorepo)
 ```
 musafir-maak/
@@ -112,12 +142,13 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 **Drivers & trips**
 - driver_profiles (built in M2): user_id (unique), status (draft/pending_review/rejected/active/suspended/frozen), free_bookings_remaining, balance_owed, wallet_balance, settlement_due_at, frozen_at, rating_avg, rating_count, terms_accepted_at, submitted_at, approved_at
 - vehicles (built in M2): driver_profile_id, type (car/boksi/minibus/bus/pickup), make, model, color, year?, plate_number, plate_normalized, seats (passengers, excl. driver), status (draft/pending/approved/rejected), submitted_at, approved_at, soft deletes
-- trips: driver_profile_id, vehicle_id, route_id, departs_at, est_arrival_at?, price_per_seat, seats_total, seats_available, luggage_large, luggage_small, extra_luggage_price?, accepts_parcels, parcel_price_small/medium/large, max_parcels, women_only, notes, status (scheduled/departed/completed/cancelled), cancel_reason, departed_at, completed_at, hidden_by_admin
-- trip_points: trip_id, kind (pickup/dropoff), label, lat?, lng?, sort
-- bookings: trip_id, passenger_id, seats, pickup_point_id, extra_bags, includes_family, message, status (pending/accepted/rejected/expired/cancelled_by_passenger/cancelled_by_driver/completed/no_show), price_total, fee_amount, fee_free, expires_at, last_reminded_at, accepted_at, cancelled_at, late_cancellation, no_show_at, no_show_disputed_at
+- trips (built in M3; also cancelled_at, reminded_evening_at, reminded_soon_at): driver_profile_id, vehicle_id, route_id, departs_at, est_arrival_at?, price_per_seat, seats_total, seats_available, luggage_large, luggage_small, extra_luggage_price?, accepts_parcels, parcel_price_small/medium/large, max_parcels, women_only, notes, status (scheduled/departed/completed/cancelled), cancel_reason, departed_at, completed_at, hidden_by_admin
+- trip_points (built in M3): trip_id, kind (pickup/dropoff), label, lat?, lng?, sort
+- bookings (built in M3; also responded_at, rejection_reason, cancel_reason, no_show_dispute_details, no_show_confirmed_at, no_show_resolution, no_show_resolved_by, completed_at, reminded_evening_at, reminded_soon_at): trip_id, passenger_id, seats, pickup_point_id, extra_bags, includes_family, message, status (pending/accepted/rejected/expired/cancelled_by_passenger/cancelled_by_driver/completed/no_show), price_total, fee_amount, fee_free, expires_at, last_reminded_at, accepted_at, cancelled_at, late_cancellation, no_show_at, no_show_disputed_at
 - parcels: trip_id, sender_id, description, size, photo_path, receiver_name, receiver_phone, payer (sender/receiver), price, fee_amount, fee_free, delivery_code (encrypted), status (pending/accepted/picked_up/delivered/cancelled/disputed), expires_at, pickup_photo_path, picked_up_at, delivered_at, refusal_reason
-- route_alerts: user_id, origin_city_id, destination_city_id, date?, active
-- search_logs: city pair / route_id, date, results_count, user_id?
+- route_alerts (built in M3; also last_notified_at, notified_count): user_id, origin_city_id, destination_city_id, date?, active
+- search_logs (built in M3): origin_city_id, destination_city_id, route_id?, date, kind (trip/parcel), results_count, user_id?
+- users.booking_restricted_until (M3)
 
 **Money**
 - ledger_entries (append-only): driver_profile_id, type (fee/payment/wallet_topup/adjustment/refund), bucket (balance/wallet), amount (signed), balance_after, wallet_after, reference (morph), note, created_by_admin_id?
@@ -163,3 +194,10 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-09 (M2): Approved vehicles and an expired licence can't be changed from the app (support handles it) — keeps approved data trustworthy. Revisit in M10 if drivers need self-service renewal.
 - 2026-11-09 (M2): Multiple reviewers: opening an item claims it for 15 minutes (soft lock, warning to others); decisions are guarded by a row lock so an item can't be decided twice.
 - 2026-11-09 (M2): Created resources return HTTP 201 (Laravel default); the app should treat any 2xx as success.
+- 2026-11-09 (M3): Pending booking requests don't reserve seats; only acceptance does (a driver may get more requests than seats and choose). Accepting more than available is refused.
+- 2026-11-09 (M3): Before acceptance, trip pages show only the side and interior vehicle photos (front/back show the plate, which is revealed after acceptance).
+- 2026-11-09 (M3): Only cancelling an *accepted* booking late counts as a late cancellation; withdrawing a pending request is free.
+- 2026-11-09 (M3): Frozen drivers' trips disappear from search; their accepted bookings stay valid (spec 5.5). They can still reject requests and manage existing trips.
+- 2026-11-09 (M3): Recurring trips (D7 "repeat trip") left for Phase 2 as per the roadmap.
+- 2026-11-09 (M3): API times are returned in Sudan time with offset, so the app shows them as-is without timezone logic.
+- 2026-11-09 (M3): Driver repeated cancellations are surfaced to admin (count on driver page) rather than auto-suspending; suspension stays a human decision.
