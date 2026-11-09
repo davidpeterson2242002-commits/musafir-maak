@@ -8,7 +8,8 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-09 (session 3): **M1 done.** Packagist reachable. 58 tests / 215 assertions passing. Code pushed to GitHub (`main`).
 - 2026-11-09 (session 3, cont.): **M2 done.** 95 tests / 412 assertions passing. Pushed to `main`.
 - 2026-11-09 (session 3, cont.): **M3 done.** 147 tests / 683 assertions passing. Pushed to `main`.
-- 2026-11-09 (session 3, cont.): **M4 done.** 190 tests / 876 assertions passing. Pushed to `main`. **Next step: M5.**
+- 2026-11-09 (session 3, cont.): **M4 done.** 190 tests / 876 assertions passing. Pushed to `main`.
+- 2026-11-09 (session 3, cont.): **M5 done.** 246 tests / 1131 assertions passing. Pushed to `main`. **Next step: M6.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -33,8 +34,8 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M2 | Driver registration, vehicles, private document uploads (signed URLs), verification queue (drivers / vehicles / passenger IDs) | **Done 2026-11-09** |
 | M3 | Trips + points, search (filters, sort, nearby dates, closure msg), bookings, 12h-or-departure expiry + hourly reminders (scheduler), cancellations + late-cancel penalties, no-show + 24h auto-reversal, route alerts, search logging | **Done 2026-11-09** |
 | M4 | Fee engine (percentage / per seat / per trip, per vehicle type, min/max, snapshot at acceptance), free bookings, ledger, payment methods, settlement requests, optional wallet, weekly cycle + balance limit + grace, auto-freeze/unfreeze | **Done 2026-11-09** |
-| M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | Next |
-| M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | — |
+| M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | **Done 2026-11-09** |
+| M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | Next |
 | M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | — |
 | M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | — |
 | M9 | Parcels, chat, public profiles, reports | — |
@@ -128,6 +129,30 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 
 **Tests (190 total, 43 new):** fee calculator (all models, per type, rounding, min/max, parcels); commission (3 free bookings, balance + cycle start, snapshot, wallet first, reversals on cancel / trip cancel / no-show, wallet refund, paid-fee refund to wallet, idempotency + free booking restored, per-trip once + move, balance limit with rollback, mandatory wallet, fee preview, deletion guard); settlements (balance screen, submit with receipt, validation, duplicate reference, confirm + email + audit, overpayment and partial, top-up, reject, reminder → freeze timing, frozen blocked until fully paid, accepted bookings valid when frozen, adjust + free bookings, weekly statement, append-only ledger); admin finance (role access, confirm/reject, adjust + grant, support can't adjust, payment methods, CSV export, widget).
 
+## M5 — what was built
+**API**: parcels (sender) `POST trips/{id}/parcels` (multipart), `GET parcels`, `GET parcels/{id}`, `POST parcels/{id}/cancel|dispute`; parcels (driver) `GET driver/parcels`, `POST driver/parcels/{id}/accept|reject|pickup|refuse|deliver`; chat `GET conversations`, `GET conversations/unread-count`, `GET/POST conversations/{id}/messages`; `POST ratings`, `GET ratings/pending`; `GET users/{id}` (public profile + reviews), `POST/DELETE users/{id}/block`, `GET me/blocks`; `POST reports`. Bookings and parcels expose `conversation_id`; driver trip view lists `parcels` and `parcel_slots_left`; trip details add `parcel_slots_left`; `GET config` adds `rating_tags` and `report_reasons`. Full table in README.md.
+
+**Parcels** (`app/Services/ParcelService.php`)
+- Request: trip must accept parcels and have a free slot (`max_parcels` minus accepted/picked up/delivered/disputed); same checks as bookings (own trip, `assertCanBook` incl. ID rules, blocks); price = trip's price for the size; prohibited-items checkbox required (`accept_prohibited`); receiver phone normalized; parcel photo on private disk; 12h-or-departure deadline; conversation opened; driver push + WhatsApp.
+- Accept: slot re-checked under lock; 4-digit `delivery_code` generated (stored with Laravel `encrypted` cast because the sender must see it); commission via `LedgerService::chargeParcel` (`FeeCalculator::parcelFee`; free bookings count covers parcels; balance limit and mandatory wallet apply). After commit the receiver gets a WhatsApp message (spec S4: sender, driver name/phone, car + plate, date, who pays and how much, the code). WhatsApp failure is logged; the sender still has the code and a `share_text` in the app.
+- Pickup: driver uploads a photo → `picked_up`. Refuse at pickup (contents don't match) → `refused`, fee reversed. Deliver: driver enters the code; wrong code counts attempts (`parcels.code_max_attempts`, 5) then locks (`code_locked`, support confirms manually).
+- Sender cancels before pickup (fee reversed if accepted). Trip cancellation cancels open parcels (incl. picked up — sender told to collect) and reverses fees. Driver departure expires pending parcel requests. Timers expire overdue requests and remind drivers.
+- Dispute (sender): while picked up, or within `parcels.dispute_days` (3) after delivery → `disputed`; admin resolves "delivered" (fee stays) or "cancelled" (fee reversed), audited.
+
+**Chat** (`app/Services/ChatService.php`): one `conversations` row per booking/parcel (customer + driver), opened at request. Before acceptance, phone-like numbers (valid Sudanese numbers, international numbers, or 9+ digits; Arabic-Indic digits and separators handled) and WhatsApp/Telegram links are replaced with "[رقم مخفي — يظهر بعد قبول الحجز]"; the original is kept encrypted in `messages.original_body` and the message is flagged `number_before_acceptance`. Messages containing words from `chat.flag_keywords` are flagged `keyword` but delivered unchanged. Dates, times and prices are not masked. Sending is allowed while the booking/parcel is active and for `chat.days_after_trip` (3) days after the trip; closed after rejection/expiry/cancellation. Blocked pairs can't send. Unread counts via per-side `*_last_read_at`; reading messages marks read; recipient gets a push. Polling (no websockets).
+
+**Ratings** (`app/Services/RatingService.php`): after a completed booking or delivered parcel, both sides rate (1–5, comment, tags from `App\Support\RatingTags`); no-show → only the driver can rate; window `ratings.window_days` (14); one rating per rater per subject. Averages: driver ratings → `driver_profiles.rating_avg/count`; passenger ratings → `users.rating_avg/count`; hidden ratings excluded. Low-rating flag `driver_profiles.low_rating_flagged_at` when count ≥ `ratings.review_min_trips` and avg < `ratings.review_threshold` (cleared on recovery). Trip completion pushes "rate your trip". `GET ratings/pending` lists what to rate.
+
+**Reports & enforcement**: `POST reports` with reason (`App\Enums\ReportReason`), optional subject (booking/parcel/trip/conversation) that must involve both users; safety-critical reasons (harassment, wrong person/vehicle, unsafe driving) get priority 1; daily cap `reports.max_per_day`. `App\Services\EnforcementService`: warn, suspend (until), ban, reactivate → `enforcement_actions` row (optionally linked to a report), audit log `user.warned|suspended|banned|reactivated`, user notified (push + WhatsApp). Ban also revokes tokens, cancels the user's scheduled trips (passengers notified, fees reversed), their open bookings (no late penalty) and open parcels. Suspended users can't book, post trips or accept. Admin user actions now go through this service.
+
+**Blocks**: `user_blocks`; either direction hides the driver's trips from search, refuses bookings/parcels (`blocked`), marks trip details not bookable, and stops chat.
+
+**Admin**: الارساليات (tabs all / on the road / disputes with badge; photos from sender and at pickup; resolve dispute), البلاغات (safety first then oldest; opening sets "in review" and the handler; reporter + reported with history; chat log of the related booking/parcel showing masked text and the original; actions warn / suspend 1–30 days / ban / reverse fee; close with note), محادثات معلّمة (only flagged or reported chats are listable/viewable; every view is audited as `chat.viewed`), التقييمات (filters, hide/show → averages recalculated). Users page: history (reports by/against, completed bookings, parcels, past enforcement), new "warn" action. Drivers: rating shown with ⚠ when flagged, filter "low rating". Trip page lists parcels. Dashboard `TrustAlerts` (support): open reports (+ safety count), parcel disputes, no-show disputes, low-rated drivers, flagged chats (7 days).
+
+**New settings**: `parcels.code_max_attempts` (5), `parcels.dispute_days` (3), `chat.flag_keywords` (list), `chat.days_after_trip` (3), `ratings.window_days` (14), `reports.max_per_day` (10). Run `php artisan settings:sync` on an existing DB. `APP_FAKER_LOCALE=ar_SA` so demo/factory names are Arabic.
+
+**Tests (246 total, 56 new):** parcels (request + validation + rules, accept → code, encryption, receiver WhatsApp content, fee, free bookings, slots + search, WhatsApp failure, pickup + deliver, wrong code + lock, refuse, sender cancel, trip cancel, dispute + resolution, expiry, driver trip view); chat masking unit cases (masked and untouched); chat (opened with booking, mask + flag + original, visible after acceptance, keyword flag, unread/push/read, participants only, blocks, closed after rejection); ratings (both sides + tags, rules, no-show, low-rating flag + hide, pending + prompt, public profile); reports/blocks/enforcement (report from booking + priority, rules, blocking both ways, suspended can't book/accept, ban cancels driver trips, ban cancels passenger bookings without penalty); admin (pages per role, chat log shows original, finance blocked, report review + warn, suspend + resolve, flagged chat audited / unflagged 404, parcel dispute, hide rating, alerts widget).
+
 ## Repo structure (monorepo)
 ```
 musafir-maak/
@@ -165,7 +190,7 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - trips (built in M3; also cancelled_at, reminded_evening_at, reminded_soon_at): driver_profile_id, vehicle_id, route_id, departs_at, est_arrival_at?, price_per_seat, seats_total, seats_available, luggage_large, luggage_small, extra_luggage_price?, accepts_parcels, parcel_price_small/medium/large, max_parcels, women_only, notes, status (scheduled/departed/completed/cancelled), cancel_reason, departed_at, completed_at, hidden_by_admin
 - trip_points (built in M3): trip_id, kind (pickup/dropoff), label, lat?, lng?, sort
 - bookings (built in M3; also responded_at, rejection_reason, cancel_reason, no_show_dispute_details, no_show_confirmed_at, no_show_resolution, no_show_resolved_by, completed_at, reminded_evening_at, reminded_soon_at): trip_id, passenger_id, seats, pickup_point_id, extra_bags, includes_family, message, status (pending/accepted/rejected/expired/cancelled_by_passenger/cancelled_by_driver/completed/no_show), price_total, fee_amount, fee_free, expires_at, last_reminded_at, accepted_at, cancelled_at, late_cancellation, no_show_at, no_show_disputed_at
-- parcels: trip_id, sender_id, description, size, photo_path, receiver_name, receiver_phone, payer (sender/receiver), price, fee_amount, fee_free, delivery_code (encrypted), status (pending/accepted/picked_up/delivered/cancelled/disputed), expires_at, pickup_photo_path, picked_up_at, delivered_at, refusal_reason
+- parcels (built in M5): trip_id, sender_id, description, size, photo_path, receiver_name, receiver_phone, payer (sender/receiver), price, fee_amount, fee_free, delivery_code (encrypted), status (pending/accepted/picked_up/delivered/cancelled/disputed), expires_at, pickup_photo_path, picked_up_at, delivered_at, refusal_reason
 - route_alerts (built in M3; also last_notified_at, notified_count): user_id, origin_city_id, destination_city_id, date?, active
 - search_logs (built in M3): origin_city_id, destination_city_id, route_id?, date, kind (trip/parcel), results_count, user_id?
 - users.booking_restricted_until (M3)
@@ -176,12 +201,15 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - settlement_requests: driver_profile_id, payment_method_id, purpose (settlement/wallet_topup), amount, reference_number, receipt_disk, receipt_path, status (pending/confirmed/rejected), reviewed_by, reviewed_at, reject_reason
 - bookings.fee_model, bookings.fee_reversed_at; driver_profiles.settlement_reminded_at
 
-**Trust & comms**
-- conversations: subject (morph: booking/parcel); messages: conversation_id, sender_id, body, was_masked, flagged
-- ratings: rater_id, ratee_id, subject (morph), role (as_driver/as_passenger), stars, comment, tags (json). Unique per rater+subject
-- reports: reporter_id, reported_user_id, subject (morph), reason, details, priority, status (open/in_review/resolved), resolution_note, handled_by
-- enforcement_actions: user_id, action (warn/suspend/ban/unban), until?, reason, admin_id
-- user_blocks: blocker_id, blocked_id
+**Trust & comms** (built in M5)
+- conversations: subject (morph: booking/parcel, unique), customer_id, driver_user_id, customer_last_read_at, driver_last_read_at, last_message_at, has_flagged
+- messages: conversation_id, sender_id, body (as shown), original_body (encrypted, only when masked), was_masked, flagged, flag_reason
+- ratings: rater_id, ratee_id, subject (morph), role (as_driver/as_passenger — the ratee's role), stars, comment, tags (json), hidden. Unique per rater+subject
+- reports: reporter_id, reported_user_id, subject (morph: booking/parcel/trip/conversation, nullable), reason, details, priority, status (open/in_review/resolved), resolution_note, handled_by, handled_at
+- enforcement_actions: user_id, action (warn/suspend/ban/reactivate), until?, reason, report_id?, admin_id
+- user_blocks: blocker_id, blocked_id (unique pair)
+- parcels: also fee_model, fee_reversed_at, code_attempts, prohibited_ack_at, last_reminded_at, accepted_at, rejection_reason, pickup_photo_disk/path, cancelled_at, cancel_reason, receiver_notified_at, disputed_at, dispute_details, dispute_resolution, dispute_resolved_by; statuses add rejected / expired / refused
+- driver_profiles.low_rating_flagged_at
 - notification_logs: user_id/phone, event, channel, status, error
 
 ## Decisions log
@@ -230,3 +258,11 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-09 (M4): Refunding a fee that the driver already paid goes to the wallet as credit (no cash refunds through the app).
 - 2026-11-09 (M4): The balance-limit check runs before free bookings are applied (in practice free bookings happen while the balance is 0).
 - 2026-11-09 (M4): Payment methods are seeded with placeholder account details; finance fills real numbers in admin before launch.
+- 2026-11-09 (M5): The receiver gets the WhatsApp code when the driver accepts the parcel (so they know who's coming), not at pickup.
+- 2026-11-09 (M5): The "3 free bookings" counter covers parcels too (one counter for any accepted booking or parcel).
+- 2026-11-09 (M5): Wrong delivery codes lock after 5 attempts; support confirms delivery manually (prevents guessing the 4-digit code).
+- 2026-11-09 (M5): Chat masking only hides phone-like numbers (valid Sudanese number, international, or 9+ digits) and messaging links; dates, times and prices stay visible. Keyword matches are flagged for review, not blocked.
+- 2026-11-09 (M5): Admins can open a chat only from a report or an automatic flag, and every opening is written to the audit log (spec 5.8).
+- 2026-11-09 (M5): Passenger ratings are stored on `users.rating_avg`, driver ratings on `driver_profiles.rating_avg`, so a person's passenger and driver reputations stay separate.
+- 2026-11-09 (M5): Banning a driver cancels their upcoming trips automatically (passengers notified, fees reversed); banning a passenger cancels their bookings without late-cancellation penalties.
+- 2026-11-09 (M5): Chat uses polling + push notifications (no websockets) to keep the backend simple and work on weak connections.
