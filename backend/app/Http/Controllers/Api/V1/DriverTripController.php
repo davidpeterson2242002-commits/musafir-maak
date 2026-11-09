@@ -94,7 +94,7 @@ class DriverTripController extends Controller
             ->whereIn('trip_id', $driver->trips()->select('id'))
             ->where('status', BookingStatus::Pending)
             ->where('expires_at', '>', now())
-            ->with(['passenger', 'pickupPoint', 'trip.route.origin', 'trip.route.destination'])
+            ->with(['passenger', 'pickupPoint', 'trip.route.origin', 'trip.route.destination', 'trip.driverProfile', 'trip.vehicle'])
             ->orderBy('expires_at')
             ->get();
 
@@ -141,12 +141,12 @@ class DriverTripController extends Controller
         return new DriverTripResource($trip->load([
             'route.origin', 'route.destination', 'vehicle', 'points',
             'bookings' => fn ($q) => $q->whereNotIn('status', [BookingStatus::Expired]),
-            'bookings.passenger', 'bookings.pickupPoint', 'bookings.trip',
+            'bookings.passenger', 'bookings.pickupPoint', 'bookings.trip.driverProfile', 'bookings.trip.vehicle',
         ]));
     }
 
     private function bookingResource(Booking $booking): DriverBookingResource
     {
-        return new DriverBookingResource($booking->fresh(['passenger', 'pickupPoint', 'trip.route.origin', 'trip.route.destination']));
+        return new DriverBookingResource($booking->fresh(['passenger', 'pickupPoint', 'trip.route.origin', 'trip.route.destination', 'trip.driverProfile', 'trip.vehicle']));
     }
 }

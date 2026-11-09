@@ -33,6 +33,9 @@ class TripService
      */
     public function post(DriverProfile $driver, array $data): Trip
     {
+        if ($driver->isFrozen()) {
+            throw new BusinessRuleException('حسابك مجمّد لعدم سداد الرصيد المستحق. سدّد لتتمكن من نشر رحلات.', 'driver_frozen', ['balance_owed' => $driver->balance_owed]);
+        }
         if (! $driver->isActive()) {
             throw new BusinessRuleException('حسابك كسائق غير نشط حالياً، لا يمكن نشر رحلات.', 'driver_not_active');
         }

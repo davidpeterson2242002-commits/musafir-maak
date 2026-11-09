@@ -22,6 +22,8 @@ class Booking extends Model
             'status' => BookingStatus::class,
             'includes_family' => 'boolean',
             'fee_free' => 'boolean',
+            'fee_amount' => 'integer',
+            'fee_reversed_at' => 'datetime',
             'late_cancellation' => 'boolean',
             'expires_at' => 'datetime',
             'last_reminded_at' => 'datetime',

@@ -30,9 +30,11 @@ php artisan serve
 
 ## Scheduler
 
-Booking expiry, driver reminders, trip reminders, no-show confirmation and auto-complete run every minute via
+Booking expiry, driver reminders, trip reminders, no-show confirmation, auto-complete, settlement reminders and
+freezing run every minute via
 `php artisan musafir:tick`. In production add one cron entry: `* * * * * php artisan schedule:run`.
-Locally: `php artisan schedule:work`.
+Locally: `php artisan schedule:work`. The weekly email statement runs Saturdays 09:00 Sudan time
+(`php artisan musafir:weekly-statements`).
 
 ## Tests
 
@@ -81,6 +83,11 @@ php artisan test
 | POST | `/api/v1/driver/trips/{id}/cancel\|depart\|complete` | token | Lifecycle (`cancel` needs `{reason}`) |
 | GET | `/api/v1/driver/requests` | token | Pending booking requests, soonest deadline first |
 | POST | `/api/v1/driver/bookings/{id}/accept\|reject\|no-show` | token | Respond to a request / mark no-show |
+
+| GET | `/api/v1/driver/balance` | token | Balance owed, wallet, due date, freeze time, limit, free bookings, `can_accept_bookings` |
+| GET | `/api/v1/driver/ledger` | token | Ledger entries (fees, reversals, payments, top-ups, adjustments) |
+| GET | `/api/v1/payment-methods` | token | Enabled methods with account details / agent locations |
+| GET / POST | `/api/v1/driver/settlements` | token | Payment history / submit payment (multipart: `payment_method_id, purpose (settlement\|wallet_topup), amount, reference_number?, receipt`) |
 
 Times are returned in Sudan time with offset (`2026-11-12T07:30:00+02:00`); `departs_at` may be sent as
 `"2026-11-12 07:30"` (Sudan time). Rule violations return HTTP 422 `{message, code}` — e.g. `code: id_verification_required`

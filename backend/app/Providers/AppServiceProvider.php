@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Contracts\OtpSender;
 use App\Contracts\PushGateway;
 use App\Contracts\WhatsAppGateway;
+use App\Events\BookingCancelled;
+use App\Events\NoShowConfirmed;
+use App\Events\TripCancelled;
 use App\Gateways\FakePushGateway;
 use App\Gateways\FakeWhatsAppGateway;
 use App\Gateways\LogPushGateway;
@@ -14,18 +17,25 @@ use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\City;
 use App\Models\DriverProfile;
+use App\Models\LedgerEntry;
+use App\Models\PaymentMethod;
 use App\Models\Setting;
+use App\Models\SettlementRequest;
 use App\Models\State;
 use App\Models\TravelRoute;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VerificationReview;
+use App\Services\LedgerService;
 use App\Support\Settings;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
@@ -68,7 +78,25 @@ class AppServiceProvider extends ServiceProvider
             'verification_review' => VerificationReview::class,
             'trip' => Trip::class,
             'booking' => Booking::class,
+            'settlement_request' => SettlementRequest::class,
+            'payment_method' => PaymentMethod::class,
+            'ledger_entry' => LedgerEntry::class,
         ]);
+
+        // Admin shows Western digits (as used in Sudan for money, phones and references), not Arabic-Indic.
+        Table::configureUsing(fn (Table $table) => $table->defaultNumberLocale('en'));
+        Schema::configureUsing(fn (Schema $schema) => $schema->defaultNumberLocale('en'));
+
+        // Commission reversals (spec 5.3/5.4/5.5). Listeners are idempotent.
+        Event::listen(BookingCancelled::class, fn ($e) => app(LedgerService::class)
+            ->reverseBooking($e->booking, 'إلغاء الراكب للحجز #'.$e->booking->id));
+        Event::listen(NoShowConfirmed::class, fn ($e) => app(LedgerService::class)
+            ->reverseBooking($e->booking, 'عدم حضور الراكب — الحجز #'.$e->booking->id));
+        Event::listen(TripCancelled::class, function ($e) {
+            foreach (Booking::whereIn('id', $e->bookingIds)->get() as $booking) {
+                app(LedgerService::class)->reverseBooking($booking, 'إلغاء الرحلة — الحجز #'.$booking->id);
+            }
+        });
 
         // Per-IP cap on OTP requests, on top of the per-phone limits in settings.
         RateLimiter::for('otp', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));

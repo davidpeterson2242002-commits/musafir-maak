@@ -27,6 +27,8 @@ class DriverResource extends JsonResource
             'free_bookings_remaining' => $this->free_bookings_remaining,
             'balance_owed' => $this->balance_owed,
             'wallet_balance' => $this->wallet_balance,
+            'settlement_due_at' => local_iso($this->settlement_due_at),
+            'balance_limit_reached' => $this->balanceLimitReached(),
             'rating_avg' => (float) $this->rating_avg,
             'rating_count' => $this->rating_count,
             'submitted_at' => $this->submitted_at?->toIso8601String(),

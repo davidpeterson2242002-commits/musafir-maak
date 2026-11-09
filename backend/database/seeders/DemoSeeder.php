@@ -5,13 +5,16 @@ namespace Database\Seeders;
 use App\Enums\DocumentKind;
 use App\Enums\IdDocumentType;
 use App\Enums\VehicleType;
+use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\DriverProfile;
+use App\Models\PaymentMethod;
 use App\Models\TravelRoute;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\DocumentStore;
+use App\Services\LedgerService;
 use App\Services\VerificationService;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
@@ -83,6 +86,20 @@ class DemoSeeder extends Seeder
             $passengers = User::factory()->count(2)->create(['id_verification_status' => 'verified']);
             Booking::factory()->create(['trip_id' => $trip->id, 'passenger_id' => $passengers[0]->id, 'message' => 'معاي شنطة واحدة']);
             Booking::factory()->accepted()->create(['trip_id' => $trip->id, 'passenger_id' => $passengers[1]->id, 'seats' => 2, 'price_total' => 2 * $trip->price_per_seat]);
+        }
+
+        // Money: some commission owed and a transfer waiting for finance to confirm.
+        $admin = Admin::first() ?? Admin::factory()->create();
+        app(LedgerService::class)->adjust($driver, 'balance', 9000, 'عمولات تجريبية', $admin);
+        $method = PaymentMethod::orderBy('sort')->first();
+        if ($method) {
+            $receipt = $this->image('إشعار تحويل بنكك', '9000 SDG');
+            $driver->settlementRequests()->create([
+                'payment_method_id' => $method->id, 'purpose' => 'settlement', 'amount' => 9000,
+                'reference_number' => '20261109-55120', 'receipt_disk' => config('filesystems.private_disk'),
+                'receipt_path' => $receipt->store("receipts/{$driver->id}", ['disk' => config('filesystems.private_disk')]),
+                'status' => 'pending',
+            ]);
         }
     }
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class DriverProfile extends Model
 {
@@ -26,6 +27,9 @@ class DriverProfile extends Model
             'submitted_at' => 'datetime',
             'approved_at' => 'datetime',
             'settlement_due_at' => 'datetime',
+            'settlement_reminded_at' => 'datetime',
+            'balance_owed' => 'integer',
+            'wallet_balance' => 'integer',
             'frozen_at' => 'datetime',
             'rating_avg' => 'decimal:2',
         ];
@@ -49,6 +53,34 @@ class DriverProfile extends Model
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);
+    }
+
+    public function ledgerEntries(): HasMany
+    {
+        return $this->hasMany(LedgerEntry::class);
+    }
+
+    public function settlementRequests(): HasMany
+    {
+        return $this->hasMany(SettlementRequest::class);
+    }
+
+    public function isFrozen(): bool
+    {
+        return $this->status === DriverStatus::Frozen;
+    }
+
+    public function balanceLimitReached(): bool
+    {
+        $limit = settings()->int('settlement.balance_limit');
+
+        return $limit > 0 && $this->balance_owed >= $limit;
+    }
+
+    /** End of the grace period after the due date; freezing happens after this. */
+    public function freezesAt(): ?Carbon
+    {
+        return $this->settlement_due_at?->copy()->addHours(settings()->int('settlement.grace_hours'));
     }
 
     public function isActive(): bool

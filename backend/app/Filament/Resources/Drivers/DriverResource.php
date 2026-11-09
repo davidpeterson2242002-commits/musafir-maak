@@ -20,6 +20,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -73,13 +74,22 @@ class DriverResource extends Resource
                     ->formatStateUsing(fn (DriverStatus $state) => $state->label())->color(fn (DriverStatus $state) => $state->color()),
                 TextColumn::make('approved_vehicles_count')->label('عربيات معتمدة')
                     ->formatStateUsing(fn ($state, DriverProfile $record) => "$state / {$record->vehicles_count}"),
-                TextColumn::make('free_bookings_remaining')->label('حجوزات مجانية'),
+                TextColumn::make('free_bookings_remaining')->label('حجوزات مجانية')->toggleable(),
+                TextColumn::make('balance_owed')->label('المستحق')->numeric()->suffix(' ج')->sortable(),
+                TextColumn::make('wallet_balance')->label('المحفظة')->numeric()->suffix(' ج')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('settlement_due_at')->label('موعد السداد')->date()->timezone(config('app.display_timezone'))->sortable()->placeholder('—')
+                    ->color(fn (DriverProfile $record) => $record->settlement_due_at?->isPast() ? 'danger' : null)
+                    ->description(fn (DriverProfile $record) => $record->settlement_due_at?->isPast()
+                        ? 'متأخر '.(int) $record->settlement_due_at->diffInDays(now()).' يوم' : null),
                 TextColumn::make('rating_avg')->label('التقييم')->toggleable(),
                 TextColumn::make('approved_at')->label('اعتُمد')->date()->placeholder('—')->sortable(),
                 TextColumn::make('created_at')->label('بدأ التسجيل')->since()->sortable()->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')->label('الحالة')->options(DriverStatus::options()),
+                Filter::make('owes')->label('عليه رصيد مستحق')->query(fn (Builder $query) => $query->where('balance_owed', '>', 0)),
+                Filter::make('overdue')->label('متأخر عن السداد')
+                    ->query(fn (Builder $query) => $query->where('balance_owed', '>', 0)->where('settlement_due_at', '<', now())),
             ])
             ->recordActions([ViewAction::make()]);
     }
@@ -96,7 +106,10 @@ class DriverResource extends Resource
                 TextEntry::make('user.id_verification_status')->label('الهوية')->badge()
                     ->formatStateUsing(fn ($state) => $state->label())->color(fn ($state) => $state->color()),
                 TextEntry::make('free_bookings_remaining')->label('حجوزات مجانية متبقية'),
-                TextEntry::make('balance_owed')->label('الرصيد المستحق')->suffix(' ج'),
+                TextEntry::make('balance_owed')->label('الرصيد المستحق')->numeric()->suffix(' ج'),
+                TextEntry::make('wallet_balance')->label('المحفظة')->numeric()->suffix(' ج'),
+                TextEntry::make('settlement_due_at')->label('موعد السداد')->dateTime('Y-m-d H:i')->timezone(config('app.display_timezone'))->placeholder('—'),
+                TextEntry::make('frozen_at')->label('مجمّد منذ')->dateTime('Y-m-d H:i')->timezone(config('app.display_timezone'))->placeholder('—'),
                 TextEntry::make('recent_cancellations')->label('رحلات ألغاها مؤخراً')
                     ->state(fn (DriverProfile $record) => $record->trips()->where('status', TripStatus::Cancelled)
                         ->where('cancelled_at', '>=', now()->subDays(settings()->int('cancellation.driver_window_days')))->count())

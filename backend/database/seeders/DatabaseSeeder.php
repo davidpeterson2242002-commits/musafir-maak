@@ -10,7 +10,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([SettingsSeeder::class, GeoSeeder::class]);
+        $this->call([SettingsSeeder::class, GeoSeeder::class, PaymentMethodSeeder::class]);
 
         if (app()->environment('local')) {
             Admin::firstOrCreate(

@@ -69,7 +69,9 @@ class ProfileController extends Controller
         if ($user->driverProfile()->first()?->trips()->whereIn('status', [TripStatus::Scheduled, TripStatus::Departed])->exists()) {
             throw new BusinessRuleException('ألغِ رحلاتك القادمة قبل حذف الحساب.', 'has_active_trips');
         }
-        // TODO(M4): block deletion while the driver owes a balance.
+        if (($user->driverProfile()->first()?->balance_owed ?? 0) > 0) {
+            throw new BusinessRuleException('سدّد رصيدك المستحق قبل حذف الحساب.', 'has_balance_owed');
+        }
 
         $user->tokens()->delete();
         $user->deviceTokens()->delete();

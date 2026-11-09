@@ -5,6 +5,7 @@ namespace App\Http\Resources\V1;
 use App\Enums\BookingStatus;
 use App\Enums\IdVerificationStatus;
 use App\Models\Booking;
+use App\Services\LedgerService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,6 +17,18 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class DriverBookingResource extends JsonResource
 {
+    private function feePreview(): array
+    {
+        $trip = $this->trip;
+        $driver = $trip->driverProfile;
+
+        return [
+            'amount' => app(LedgerService::class)->previewFee($driver, $trip, $this->seats),
+            'free' => $driver->free_bookings_remaining > 0,
+            'free_bookings_remaining' => $driver->free_bookings_remaining,
+        ];
+    }
+
     public function toArray(Request $request): array
     {
         $passenger = $this->passenger;
@@ -37,6 +50,10 @@ class DriverBookingResource extends JsonResource
             'expires_at' => $this->status === BookingStatus::Pending ? local_iso($this->expires_at) : null,
             'phone' => $this->revealsContacts() ? $passenger->phone : null,
             'whatsapp' => $this->revealsContacts() ? $passenger->whatsappNumber() : null,
+            // D10: "fee for this booking" or "free booking, X left". After acceptance: the snapshot.
+            'fee' => $this->status === BookingStatus::Pending
+                ? $this->feePreview()
+                : ['amount' => $this->fee_amount, 'free' => $this->fee_free, 'reversed' => $this->fee_reversed_at !== null],
             'can_mark_no_show' => $this->status === BookingStatus::Accepted && $this->trip->departs_at->isPast(),
             'trip' => $this->whenLoaded('trip', fn () => [
                 'id' => $this->trip->id,

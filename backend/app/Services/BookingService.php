@@ -24,6 +24,7 @@ class BookingService
     public function __construct(
         private Notifier $notifier,
         private AuditLogger $audit,
+        private LedgerService $ledger,
     ) {}
 
     // ------------------------------------------------------------------ Passenger
@@ -207,6 +208,9 @@ class BookingService
                 'accepted_at' => now(),
                 'responded_at' => now(),
             ])->save();
+
+            // Commission snapshot (free booking, wallet first, then balance). Throws → rollback.
+            $this->ledger->chargeBooking($booking, $trip);
 
             return $booking;
         });
@@ -413,7 +417,11 @@ class BookingService
 
     private function assertDriverCanRespond(Booking $booking, bool $requireActive = true): void
     {
-        if ($requireActive && ! $booking->trip->driverProfile->isActive()) {
+        $driver = $booking->trip->driverProfile;
+        if ($requireActive && $driver->isFrozen()) {
+            throw new BusinessRuleException('حسابك مجمّد لعدم سداد الرصيد المستحق. سدّد لتتمكن من قبول الحجوزات.', 'driver_frozen', ['balance_owed' => $driver->balance_owed]);
+        }
+        if ($requireActive && ! $driver->isActive()) {
             throw new BusinessRuleException('حسابك كسائق غير نشط حالياً، لا يمكنك قبول حجوزات.', 'driver_not_active');
         }
         if ($booking->status !== BookingStatus::Pending) {

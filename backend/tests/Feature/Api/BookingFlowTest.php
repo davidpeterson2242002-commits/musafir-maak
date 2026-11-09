@@ -190,7 +190,7 @@ class BookingFlowTest extends TestCase
         $trip->driverProfile->forceFill(['status' => 'frozen'])->save();
         $this->asDriver($trip);
 
-        $this->postJson("/api/v1/driver/bookings/{$a->id}/accept")->assertJsonPath('code', 'driver_not_active');
+        $this->postJson("/api/v1/driver/bookings/{$a->id}/accept")->assertJsonPath('code', 'driver_frozen');
         $this->postJson("/api/v1/driver/bookings/{$b->id}/reject", ['reason' => 'ممتلئة'])->assertOk()->assertJsonPath('data.status', 'rejected');
     }
 

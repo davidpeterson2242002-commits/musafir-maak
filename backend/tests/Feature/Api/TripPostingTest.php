@@ -110,6 +110,8 @@ class TripPostingTest extends TestCase
     public function test_inactive_driver_cannot_post(): void
     {
         $this->driver->forceFill(['status' => 'frozen'])->save();
+        $this->postJson('/api/v1/driver/trips', $this->payload())->assertJsonPath('code', 'driver_frozen');
+        $this->driver->forceFill(['status' => 'suspended'])->save();
         $this->postJson('/api/v1/driver/trips', $this->payload())->assertJsonPath('code', 'driver_not_active');
     }
 

@@ -18,6 +18,7 @@ class TripTimers
         private BookingService $bookings,
         private RouteAlertService $alerts,
         private Notifier $notifier,
+        private SettlementCycle $settlement,
     ) {}
 
     /** @return array<string, int> counts per step */
@@ -30,6 +31,8 @@ class TripTimers
             'no_shows_confirmed' => $this->bookings->confirmUndisputedNoShows(),
             'auto_completed' => $this->autoComplete(),
             'alerts_deactivated' => $this->alerts->deactivatePast(),
+            'settlement_reminders' => $this->settlement->remindDue(),
+            'frozen' => $this->settlement->freezeOverdue(),
         ];
     }
 

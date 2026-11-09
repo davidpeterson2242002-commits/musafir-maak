@@ -2,6 +2,7 @@
 
 use App\Enums\AdminRole;
 use App\Models\Admin;
+use App\Services\SettlementCycle;
 use App\Services\TripTimers;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Support\Facades\Artisan;
@@ -37,3 +38,10 @@ Artisan::command('musafir:tick', function (TripTimers $timers) {
 
 // Production: one cron entry `* * * * * php artisan schedule:run` drives everything below.
 Schedule::command('musafir:tick')->everyMinute()->withoutOverlapping(5)->onOneServer();
+
+Artisan::command('musafir:weekly-statements', function (SettlementCycle $cycle) {
+    $this->info('Sent '.$cycle->sendWeeklyStatements().' statements.');
+})->purpose('Email the weekly balance statement to drivers');
+
+Schedule::command('musafir:weekly-statements')
+    ->weeklyOn(6, '9:00')->timezone(config('app.display_timezone'))->onOneServer(); // Saturday morning, Sudan time

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BalanceController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\ConfigController;
 use App\Http\Controllers\Api\V1\DriverController;
@@ -64,6 +65,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('driver/bookings/{booking}/accept', [DriverTripController::class, 'accept']);
         Route::post('driver/bookings/{booking}/reject', [DriverTripController::class, 'reject']);
         Route::post('driver/bookings/{booking}/no-show', [DriverTripController::class, 'noShow']);
+
+        // Driver money
+        Route::get('driver/balance', [BalanceController::class, 'show']);
+        Route::get('driver/ledger', [BalanceController::class, 'ledger']);
+        Route::get('driver/settlements', [BalanceController::class, 'settlements']);
+        Route::post('driver/settlements', [BalanceController::class, 'submit']);
+        Route::get('payment-methods', [BalanceController::class, 'paymentMethods']);
 
         // Passenger: search, trips, bookings
         Route::get('trips/search', [TripController::class, 'search']);

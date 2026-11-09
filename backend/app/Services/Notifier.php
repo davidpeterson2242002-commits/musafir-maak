@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Contracts\PushGateway;
 use App\Contracts\WhatsAppGateway;
 use App\Enums\NotificationEvent;
+use App\Mail\NotificationMail;
 use App\Models\DeviceToken;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
@@ -28,7 +30,7 @@ class Notifier
         DB::afterCommit(function () use ($user, $event, $title, $body, $data) {
             $data = ['event' => $event->value] + $data;
 
-            $tokens = $user->deviceTokens()->pluck('token')->all();
+            $tokens = $event->sendsPush() ? $user->deviceTokens()->pluck('token')->all() : [];
             if ($tokens !== []) {
                 try {
                     $invalid = $this->push->send($tokens, $title, $body, $data);
@@ -37,6 +39,14 @@ class Notifier
                     }
                 } catch (Throwable $e) {
                     Log::warning('Push failed', ['user' => $user->id, 'event' => $event->value, 'error' => $e->getMessage()]);
+                }
+            }
+
+            if ($event->sendsEmail() && filled($user->email)) {
+                try {
+                    Mail::to($user->email)->send(new NotificationMail($title, $body));
+                } catch (Throwable $e) {
+                    Log::warning('Email failed', ['user' => $user->id, 'event' => $event->value, 'error' => $e->getMessage()]);
                 }
             }
 
