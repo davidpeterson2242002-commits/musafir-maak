@@ -28,6 +28,7 @@ final class SettingsRegistry
         'routes' => 'الطرق',
         'parcels' => 'الارساليات',
         'trust' => 'المحادثات والبلاغات',
+        'notifications' => 'الإشعارات',
         'content' => 'النصوص والمحتوى',
     ];
 
@@ -264,6 +265,16 @@ final class SettingsRegistry
             'reports.max_per_day' => [
                 'type' => SettingType::Integer, 'group' => 'trust', 'label' => 'أقصى عدد بلاغات للمستخدم في اليوم',
                 'default' => 10, 'min' => 1,
+            ],
+
+            // ---------------- Notifications ----------------
+            'notifications.log_retention_days' => [
+                'type' => SettingType::Integer, 'group' => 'notifications', 'label' => 'مدة حفظ سجل الإشعارات (أيام)',
+                'default' => 60, 'min' => 7, 'help' => 'تُحذف السجلات الأقدم تلقائياً كل يوم.',
+            ],
+            'notifications.broadcast_search_days' => [
+                'type' => SettingType::Integer, 'group' => 'notifications', 'label' => 'الإشعار الجماعي: ركاب بحثوا عن الطريق خلال (أيام)',
+                'default' => 30, 'min' => 1,
             ],
 
             // ---------------- Content ----------------

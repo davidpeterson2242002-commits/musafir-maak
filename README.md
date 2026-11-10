@@ -24,6 +24,8 @@ php artisan serve
 - Admin panel: http://localhost:8000/admin — local seed account `admin@musafir.test` / `password`
   (production: create admins with `php artisan admin:create`).
 - WhatsApp and push messages are written to `storage/logs/gateways-YYYY-MM-DD.log` (no API keys needed).
+- Notifications are queued. Locally either run `php artisan queue:work`, or set `QUEUE_CONNECTION=sync` in `.env`
+  to send them inline.
 - Demo data for the verification queue (pending IDs and driver applications with placeholder photos):
   `php artisan db:seed --class=DemoSeeder`
 - With `APP_ENV=local` and `OTP_EXPOSE_IN_RESPONSE=true`, `POST /api/v1/auth/otp` also returns `debug_code`.
@@ -35,6 +37,34 @@ freezing run every minute via
 `php artisan musafir:tick`. In production add one cron entry: `* * * * * php artisan schedule:run`.
 Locally: `php artisan schedule:work`. The weekly email statement runs Saturdays 09:00 Sudan time
 (`php artisan musafir:weekly-statements`).
+
+## Notifications (real providers)
+
+Every notification goes through `App\Services\Notifier` → one queued `DeliverNotification` job per channel →
+a gateway. Which channels an event uses is edited at **Admin → الإشعارات → قنوات الإشعارات**; every attempt
+(sent / failed / skipped, with the provider's error) is listed in **سجل الإشعارات**; **الإشعارات الجماعية** sends a
+message to a segment of users.
+
+| Channel | `.env` | What you need |
+|---|---|---|
+| WhatsApp | `WHATSAPP_DRIVER=meta`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | A WhatsApp Business (Cloud API) number, a permanent system-user token, and the approved templates in [`docs/WHATSAPP_TEMPLATES.md`](docs/WHATSAPP_TEMPLATES.md) |
+| Push | `PUSH_DRIVER=fcm`, `FCM_CREDENTIALS=/path/to/service-account.json` (or `FCM_CREDENTIALS_BASE64`) | A Firebase project; Project settings → Service accounts → Generate new private key |
+| Email | `MAIL_MAILER=smtp` + `MAIL_HOST/PORT/USERNAME/PASSWORD`, `MAIL_FROM_ADDRESS` | Any SMTP or a Laravel-supported provider (Resend, Postmark, SES) |
+
+Leave a driver on `log` to keep that channel local. After setting the keys:
+
+```bash
+php artisan config:clear
+php artisan notifications:test 0912345678            # sends a test on every channel to that registered user
+php artisan notifications:test 0912345678 --channel=whatsapp
+```
+
+Production needs a queue worker next to the cron entry, e.g. under Supervisor:
+`php artisan queue:work --tries=3 --max-time=3600`. Failed deliveries are retried twice (after 30s and 3 min), then
+logged as failed. OTP is the exception: it is sent inline so the app gets an immediate error if WhatsApp refuses.
+
+Other commands: `php artisan notifications:sync` (add new events to the matrix; also run by `settings:sync`),
+`php artisan notifications:prune` (daily; retention is the setting `notifications.log_retention_days`).
 
 ## Tests
 

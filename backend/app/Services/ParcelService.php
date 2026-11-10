@@ -7,6 +7,7 @@ use App\Enums\IdVerificationStatus;
 use App\Enums\NotificationEvent;
 use App\Enums\ParcelStatus;
 use App\Exceptions\BusinessRuleException;
+use App\Jobs\SendParcelCodeToReceiver;
 use App\Models\Admin;
 use App\Models\Parcel;
 use App\Models\Trip;
@@ -337,25 +338,45 @@ class ParcelService
     /** Text for the receiver (spec S4); also used for the sender's "share with receiver" button. */
     public function receiverMessage(Parcel $parcel): string
     {
+        return sprintf(
+            "لديك ارسالية من %s عبر مسافر معاك.\n%s\nرمز التسليم: %s\nلا تعطِ الرمز للسائق إلا بعد استلام الارسالية.",
+            $parcel->sender->name, $this->receiverDetails($parcel), $parcel->delivery_code,
+        );
+    }
+
+    /** Driver, car, arrival and payment lines of the receiver message (the "details" WhatsApp template variable). */
+    private function receiverDetails(Parcel $parcel): string
+    {
         $trip = $parcel->trip;
         $driverUser = $trip->driverProfile->user;
         $payment = $parcel->payer === 'sender' ? 'المبلغ مدفوع من المرسل' : 'ادفع للسائق '.number_format($parcel->price).' جنيه عند الاستلام';
 
         return sprintf(
-            "لديك ارسالية من %s عبر مسافر معاك.\nالسائق: %s — %s\nالعربية: %s %s، لوحة %s\nالوصول المتوقع: %s إلى %s\n%s.\nرمز التسليم: %s\nلا تعطِ الرمز للسائق إلا بعد استلام الارسالية.",
-            $parcel->sender->name, $driverUser->name, $driverUser->phone, $trip->vehicle->make, $trip->vehicle->model, $trip->vehicle->plate_number,
+            "السائق: %s — %s\nالعربية: %s %s، لوحة %s\nالوصول المتوقع: %s إلى %s\n%s.",
+            $driverUser->name, $driverUser->phone, $trip->vehicle->make, $trip->vehicle->model, $trip->vehicle->plate_number,
             local_time($trip->est_arrival_at ?? $trip->departs_at)->format('Y-m-d'), $trip->route->destination->name_ar,
-            $payment, $parcel->delivery_code,
+            $payment,
         );
+    }
+
+    /**
+     * Send the delivery-code message to the receiver's WhatsApp (they don't need the app).
+     * Called by the SendParcelCodeToReceiver job; throws on provider failure so the job can retry.
+     */
+    public function sendReceiverMessage(Parcel $parcel): void
+    {
+        $this->whatsapp->send($parcel->receiver_phone, 'parcel_delivery_code', [
+            'sender' => $parcel->sender->name, 'details' => $this->receiverDetails($parcel),
+            'code' => $parcel->delivery_code, 'parcel_id' => $parcel->id,
+        ], $this->receiverMessage($parcel));
+
+        $parcel->forceFill(['receiver_notified_at' => now()])->save();
     }
 
     private function notifyReceiver(Parcel $parcel): void
     {
         try {
-            $this->whatsapp->send($parcel->receiver_phone, 'parcel_delivery_code', [
-                'sender' => $parcel->sender->name, 'code' => $parcel->delivery_code, 'parcel_id' => $parcel->id,
-            ], $this->receiverMessage($parcel));
-            $parcel->forceFill(['receiver_notified_at' => now()])->save();
+            SendParcelCodeToReceiver::dispatch($parcel->id);
         } catch (Throwable $e) {
             // The sender still sees the code in the app and can share it (spec 5.6).
             Log::warning('Receiver WhatsApp failed', ['parcel' => $parcel->id, 'error' => $e->getMessage()]);

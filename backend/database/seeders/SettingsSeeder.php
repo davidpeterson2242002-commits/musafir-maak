@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Support\ChannelMatrix;
 use App\Support\SettingsRegistry;
 use Illuminate\Database\Seeder;
 
@@ -24,5 +25,8 @@ class SettingsSeeder extends Seeder
             $setting->fill(['type' => $def['type'], 'group' => $def['group'], 'label' => $def['label']]);
             $setting->save();
         }
+
+        // The notification channel matrix is configuration too: add rows for new events.
+        app(ChannelMatrix::class)->sync();
     }
 }

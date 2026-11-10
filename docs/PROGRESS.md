@@ -9,11 +9,12 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-09 (session 3, cont.): **M2 done.** 95 tests / 412 assertions passing. Pushed to `main`.
 - 2026-11-09 (session 3, cont.): **M3 done.** 147 tests / 683 assertions passing. Pushed to `main`.
 - 2026-11-09 (session 3, cont.): **M4 done.** 190 tests / 876 assertions passing. Pushed to `main`.
-- 2026-11-09 (session 3, cont.): **M5 done.** 246 tests / 1131 assertions passing. Pushed to `main`. **Next step: M6.**
+- 2026-11-09 (session 3, cont.): **M5 done.** 246 tests / 1131 assertions passing. Pushed to `main`.
+- 2026-11-10 (session 4): **M6 done.** 280 tests / 1270 assertions passing. Pushed to `main`. **Next step: M7 (Flutter foundation).**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
-- Start of every session: attach the repo (add_repo, push access) and clone it to `/home/claude/musafir-maak`; set up the workspace (below); then `cd backend && composer install && cp .env.example .env && php artisan key:generate && php artisan migrate --seed` and run `php artisan test`.
+- Start of every session: attach the repo (add_repo, push access) and clone it to `/home/claude/musafir-maak`; set up the workspace (below); then `cd backend && composer install && cp .env.example .env && php artisan key:generate && php artisan migrate --seed` and run `php artisan test`. (`composer install` took ~12 minutes in session 4: zip downloads from api.github.com failed and Composer fell back to git clones — let it run, don't restart it.)
 - The user has given standing permission to push any code to this repository. Commit per milestone (or logical step) and push to `main`.
 - `docs/PROGRESS.md` in the repo mirrors this log (the claude.ai Project copy is `claude/dev-progress-log.md`).
 
@@ -35,8 +36,8 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M3 | Trips + points, search (filters, sort, nearby dates, closure msg), bookings, 12h-or-departure expiry + hourly reminders (scheduler), cancellations + late-cancel penalties, no-show + 24h auto-reversal, route alerts, search logging | **Done 2026-11-09** |
 | M4 | Fee engine (percentage / per seat / per trip, per vehicle type, min/max, snapshot at acceptance), free bookings, ledger, payment methods, settlement requests, optional wallet, weekly cycle + balance limit + grace, auto-freeze/unfreeze | **Done 2026-11-09** |
 | M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | **Done 2026-11-09** |
-| M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | Next |
-| M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | — |
+| M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | **Done 2026-11-10** |
+| M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | Next |
 | M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | — |
 | M9 | Parcels, chat, public profiles, reports | — |
 | M10 | Driver mode: registration, post trip, requests, trip management, balance, payments | — |
@@ -153,6 +154,35 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 
 **Tests (246 total, 56 new):** parcels (request + validation + rules, accept → code, encryption, receiver WhatsApp content, fee, free bookings, slots + search, WhatsApp failure, pickup + deliver, wrong code + lock, refuse, sender cancel, trip cancel, dispute + resolution, expiry, driver trip view); chat masking unit cases (masked and untouched); chat (opened with booking, mask + flag + original, visible after acceptance, keyword flag, unread/push/read, participants only, blocks, closed after rejection); ratings (both sides + tags, rules, no-show, low-rating flag + hide, pending + prompt, public profile); reports/blocks/enforcement (report from booking + priority, rules, blocking both ways, suspended can't book/accept, ban cancels driver trips, ban cancels passenger bookings without penalty); admin (pages per role, chat log shows original, finance blocked, report review + warn, suspend + resolve, flagged chat audited / unflagged 404, parcel dispute, hide rating, alerts widget).
 
+## M6 — what was built
+No API changes for the app (device tokens were already `POST/DELETE devices`). Everything is backend + admin.
+
+**Delivery pipeline**
+- `Notifier::send()` (same signature for callers, plus optional forced channels / broadcast id) → after commit, one queued `App\Jobs\DeliverNotification` per enabled channel (`tries=3`, backoff 30s / 180s) → gateway → row in `notification_logs`. Still never throws into business code. Email is not queued for users without an address; push without a device is logged `skipped`.
+- Channels per event come from `App\Support\ChannelMatrix` (table `notification_channels`, cached, flushed on save). A missing row = the event's defaults (`NotificationEvent::defaultChannels()`, spec section 10). `settings:sync` / `notifications:sync` add rows for new events without touching admin changes.
+- `notification_logs`: user or phone, event, channel, status (`sent` / `failed` / `skipped`), title, provider error, broadcast id. The message body is not stored (it can contain delivery codes); OTP rows have no title either. Pruned daily (`notifications:prune`, setting `notifications.log_retention_days`, 60).
+- OTP stays synchronous (the app needs the 503 immediately) but is logged. The parcel receiver's WhatsApp message is now a queued job (`SendParcelCodeToReceiver`, retried, skipped if the parcel was cancelled meanwhile) and is logged with the receiver's phone.
+
+**Real providers** (still `log` by default; `fake` in tests)
+- `WHATSAPP_DRIVER=meta` → `App\Gateways\MetaWhatsAppGateway` (WhatsApp Cloud API, `graph.facebook.com/{version}/{phone_number_id}/messages`). Every message is a template. Map in `config/whatsapp.php`: `otp_code` → `musafir_otp` (authentication template, code also sent to the copy-code button), `parcel_delivery_code` → `musafir_parcel_code` (sender, details, code), `broadcast` → `musafir_announcement`, everything else → `musafir_notice` (title, body). Variables are cleaned (no line breaks, trimmed to 600 chars, never empty). API errors become `GatewayException` with Meta's code and detail. Wording to submit to Meta: `docs/WHATSAPP_TEMPLATES.md`.
+- `PUSH_DRIVER=fcm` → `App\Gateways\FcmPushGateway` (FCM HTTP v1). Service-account key from `FCM_CREDENTIALS` (path) or `FCM_CREDENTIALS_BASE64`; RS256 JWT signed with openssl (no Google SDK), access token cached; tokens sent concurrently (pool of 20); `UNREGISTERED` / malformed tokens are returned for deletion; throws only when nothing could be delivered (so the job retries). Data payload values are strings (`event`, ids) for deep links in the app.
+- Email: Laravel mailer (`MAIL_MAILER=smtp` or Resend/Postmark/SES) — config only.
+- `php artisan notifications:test <phone> [--channel=push|whatsapp|email]` sends a test through the configured providers and prints sent / skipped / the provider error.
+
+**Broadcast** (`App\Services\BroadcastService`, `App\Jobs\SendBroadcast`): segments all users / users in a city / all drivers (active + frozen) / drivers in a city / drivers who owe a balance / passengers who searched a route in the last `notifications.broadcast_search_days` (30). Banned and deleted users and unfinished profiles are excluded. The admin picks the channels per broadcast (push by default). Each recipient/channel is its own delivery job, logged with the broadcast id; the fan-out job never retries (no double sends). Audited as `broadcast.sent`.
+
+**Admin** (new group الإشعارات)
+- قنوات الإشعارات — the matrix: one row per event with push / WhatsApp / email toggles (saved instantly, audited), "reset to defaults" action. Super admin only.
+- الإشعارات الجماعية — list + "send" modal (segment, city or route, live recipient count, channels with cost hints, title, text), view page with sent / skipped / failed counts. Super admin only.
+- سجل الإشعارات — read-only log, tabs all / failed / WhatsApp, filters status / channel / event, search by name or phone, nav badge = failures in the last 24h. Support + super admin.
+- Settings: new tab الإشعارات (log retention, broadcast search window).
+
+**Production checklist added by M6**: run a queue worker (`php artisan queue:work --tries=3 --max-time=3600` under Supervisor) next to the cron entry; `QUEUE_CONNECTION=database` is the default.
+
+**Tests (280 total, 34 new):** matrix defaults = spec table, fallback + sync keeps admin changes, channels applied immediately, per-channel logs, skipped push / no email job, provider failure logged and swallowed, dead-token pruning, queued job per channel, deleted user, OTP logged without code, parcel receiver template values + log, prune, test command; Meta gateway (default / OTP / parcel templates, cleaning, error mapping, config), FCM (auth JWT + token cache, payload, unregistered tokens, total failure, auth failure, credentials); admin (role access, toggle + audit, reset, log tabs + badge, audience segments, send broadcast end-to-end, validation, no double send).
+
+**Not done on purpose** (candidates for later): WhatsApp delivery-status webhooks (we log "accepted by Meta", not "delivered/read"); per-user notification preferences (spec P11 "Settings: notifications") — to decide in M7 with the app's settings screen; an in-app notification inbox (not in the spec).
+
 ## Repo structure (monorepo)
 ```
 musafir-maak/
@@ -210,7 +240,11 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - user_blocks: blocker_id, blocked_id (unique pair)
 - parcels: also fee_model, fee_reversed_at, code_attempts, prohibited_ack_at, last_reminded_at, accepted_at, rejection_reason, pickup_photo_disk/path, cancelled_at, cancel_reason, receiver_notified_at, disputed_at, dispute_details, dispute_resolution, dispute_resolved_by; statuses add rejected / expired / refused
 - driver_profiles.low_rating_flagged_at
-- notification_logs: user_id/phone, event, channel, status, error
+
+**Notifications** (built in M6)
+- notification_channels: event (unique), push, whatsapp, email
+- notification_logs: user_id?, phone?, event, channel (push/whatsapp/email), status (sent/failed/skipped), title, error, broadcast_id?, created_at
+- broadcasts: admin_id, segment, filters (json: city_id / origin_city_id + destination_city_id), channels (json), title, body, recipients_count, status (queued/sending/sent/failed), sent_at
 
 ## Decisions log
 - 2026-11-09: Monorepo (backend/, mobile/, docs/).
@@ -266,3 +300,10 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-09 (M5): Passenger ratings are stored on `users.rating_avg`, driver ratings on `driver_profiles.rating_avg`, so a person's passenger and driver reputations stay separate.
 - 2026-11-09 (M5): Banning a driver cancels their upcoming trips automatically (passengers notified, fees reversed); banning a passenger cancels their bookings without late-cancellation penalties.
 - 2026-11-09 (M5): Chat uses polling + push notifications (no websockets) to keep the backend simple and work on weak connections.
+- 2026-11-10 (M6): WhatsApp uses 4 templates instead of one per event: `musafir_otp`, `musafir_notice` (generic title + text), `musafir_parcel_code`, `musafir_announcement`. One approval covers every event; any event can be mapped to its own template later in `config/whatsapp.php` without code changes.
+- 2026-11-10 (M6): Notifications are queued (database queue) with 2 retries; OTP is the only message sent inline. Production therefore needs a queue worker.
+- 2026-11-10 (M6): The notification log stores the title and the provider's error but not the message body (bodies can contain delivery codes and phone numbers). Kept 60 days by default.
+- 2026-11-10 (M6): The channel matrix is its own table and admin page (not 100 switches inside the settings page). Broadcast channels are chosen per message and ignore the matrix.
+- 2026-11-10 (M6): Broadcasts and the channel matrix are super-admin only (WhatsApp costs money per message); Support can read the notification log.
+- 2026-11-10 (M6): FCM is called directly over HTTP v1 with a hand-signed JWT, so there is no Firebase/Google SDK dependency on the server.
+- 2026-11-10 (M6): Spec 13 open question 2 says WhatsApp is "charged per conversation"; Meta's pricing should be re-checked before launch (the user to confirm the current rate card for Sudan), since it decides which events keep WhatsApp on.

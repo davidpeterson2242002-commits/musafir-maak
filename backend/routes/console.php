@@ -1,9 +1,16 @@
 <?php
 
 use App\Enums\AdminRole;
+use App\Enums\NotificationChannelType;
+use App\Enums\NotificationEvent;
+use App\Jobs\DeliverNotification;
 use App\Models\Admin;
+use App\Models\NotificationLog;
+use App\Models\User;
 use App\Services\SettlementCycle;
 use App\Services\TripTimers;
+use App\Support\ChannelMatrix;
+use App\Support\Phone;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -45,3 +52,49 @@ Artisan::command('musafir:weekly-statements', function (SettlementCycle $cycle) 
 
 Schedule::command('musafir:weekly-statements')
     ->weeklyOn(6, '9:00')->timezone(config('app.display_timezone'))->onOneServer(); // Saturday morning, Sudan time
+
+Artisan::command('notifications:sync', function (ChannelMatrix $matrix) {
+    $this->info('Added '.$matrix->sync().' notification event(s) to the channel matrix (existing rows kept).');
+})->purpose('Add new notification events to the admin channel matrix with their default channels');
+
+Artisan::command('notifications:prune', function () {
+    $days = settings()->int('notifications.log_retention_days');
+    $deleted = NotificationLog::where('created_at', '<', now()->subDays($days))->delete();
+    $this->info("Deleted $deleted notification log rows older than $days days.");
+})->purpose('Delete old notification log rows (retention is an admin setting)');
+
+Schedule::command('notifications:prune')->dailyAt('01:30')->onOneServer();
+
+Artisan::command('notifications:test {phone : Phone of a registered user, e.g. 0912345678} {--channel=all : push, whatsapp, email or all}', function () {
+    $phone = Phone::normalize($this->argument('phone'));
+    $user = $phone ? User::where('phone', $phone)->first() : null;
+    if ($user === null) {
+        $this->error('No user with this phone. Log in to the app with it first.');
+
+        return 1;
+    }
+
+    $this->line('Drivers: whatsapp='.config('services.whatsapp.driver').', push='.config('services.push.driver').', mail='.config('mail.default'));
+    $wanted = $this->option('channel');
+    $failed = false;
+
+    foreach (NotificationChannelType::cases() as $channel) {
+        if ($wanted !== 'all' && $wanted !== $channel->value) {
+            continue;
+        }
+
+        $job = new DeliverNotification($user->id, NotificationEvent::Broadcast->value, $channel->value,
+            'رسالة تجريبية', 'هذه رسالة تجريبية من مسافر معاك للتأكد من إعدادات الإشعارات.', ['test' => true]);
+
+        try {
+            app()->call([$job, 'handle']);
+            $log = NotificationLog::where('user_id', $user->id)->where('channel', $channel->value)->latest('id')->first();
+            $this->line(sprintf('  %-9s %s', $channel->value, $log?->status === NotificationLog::SKIPPED ? 'skipped — '.$log->error : 'sent ✔'));
+        } catch (Throwable $e) {
+            $failed = true;
+            $this->line(sprintf('  %-9s FAILED — %s', $channel->value, $e->getMessage()));
+        }
+    }
+
+    return $failed ? 1 : 0;
+})->purpose('Send a test notification to one user through the configured providers');
