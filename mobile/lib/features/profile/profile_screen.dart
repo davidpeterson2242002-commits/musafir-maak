@@ -308,6 +308,7 @@ class _SoonTag extends StatelessWidget {
 }
 
 class _MenuItem extends StatelessWidget {
+  // ignore: unused_element_parameter
   const _MenuItem({required this.icon, required this.label, this.onTap, this.soon = false, this.last = false});
 
   final IconData icon;

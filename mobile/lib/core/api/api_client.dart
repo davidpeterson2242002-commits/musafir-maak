@@ -135,6 +135,7 @@ class ApiClient {
       case DioExceptionType.cancel:
       case DioExceptionType.badCertificate:
       case DioExceptionType.unknown:
+      default: // newer dio versions add types (e.g. transformTimeout)
         // A socket error with no response (airplane mode on some devices) lands here.
         return e.response == null ? const ApiException.network() : const ApiException.unknown();
     }
