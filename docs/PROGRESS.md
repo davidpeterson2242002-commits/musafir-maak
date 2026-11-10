@@ -10,7 +10,8 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-09 (session 3, cont.): **M3 done.** 147 tests / 683 assertions passing. Pushed to `main`.
 - 2026-11-09 (session 3, cont.): **M4 done.** 190 tests / 876 assertions passing. Pushed to `main`.
 - 2026-11-09 (session 3, cont.): **M5 done.** 246 tests / 1131 assertions passing. Pushed to `main`.
-- 2026-11-10 (session 4): **M6 done.** 280 tests / 1270 assertions passing. Pushed to `main`. **Next step: M7 (Flutter foundation).**
+- 2026-11-10 (session 4): **M6 done.** 280 tests / 1270 assertions passing. Pushed to `main`. 
+- 2026-11-10 (session 4, cont.): **M7 code written, NOT yet compiled.** The workspace can't download the Flutter SDK or reach pub.dev, so `flutter analyze` / `flutter test` have never run on `mobile/`. The user is installing Flutter locally. **Next step: compile M7 on the user's machine (see "M7 — first compile checklist"), fix whatever the analyzer reports, then M8.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -37,7 +38,7 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M4 | Fee engine (percentage / per seat / per trip, per vehicle type, min/max, snapshot at acceptance), free bookings, ledger, payment methods, settlement requests, optional wallet, weekly cycle + balance limit + grace, auto-freeze/unfreeze | **Done 2026-11-09** |
 | M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | **Done 2026-11-09** |
 | M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | **Done 2026-11-10** |
-| M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | Next |
+| M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | **Written 2026-11-10, awaiting first compile** |
 | M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | — |
 | M9 | Parcels, chat, public profiles, reports | — |
 | M10 | Driver mode: registration, post trip, requests, trip management, balance, payments | — |
@@ -183,6 +184,32 @@ No API changes for the app (device tokens were already `POST/DELETE devices`). E
 
 **Not done on purpose** (candidates for later): WhatsApp delivery-status webhooks (we log "accepted by Meta", not "delivered/read"); per-user notification preferences (spec P11 "Settings: notifications") — to decide in M7 with the app's settings screen; an in-app notification inbox (not in the spec).
 
+## M7 — what was built (uncompiled)
+`mobile/` — Flutter app, Dart only (no `android/` folder yet; `flutter create .` generates it — steps in `mobile/README.md`). ~4,800 lines incl. tests.
+
+**Dependencies** (kept few and on APIs that are stable): dio ^5.7, flutter_riverpod ^2.6 (Notifier / StateProvider — stay on 2.x), go_router ^14.6, flutter_secure_storage ^9.2, shared_preferences ^2.3, image_picker ^1.1, url_launcher ^6.3, flutter_localizations. No codegen, no Firebase yet.
+
+**Foundation**
+- `core/api/api_client.dart`: Dio wrapper; adds the Bearer token, unwraps Laravel's `{data: …}` envelope, converts every failure to `ApiException` (`kind`: network / timeout / unauthorized / forbidden / notFound / validation / rateLimited / server; `code` for business rules; `fieldErrors` = first message per field; message shown as-is because the backend answers in Arabic). 401 or `account_banned` on an authenticated call signs the user out. `offlineProvider` flips on connection failures → `OfflineBanner`.
+- `core/storage`: `TokenStore` (Keystore via flutter_secure_storage, memory impl for tests), `CacheStore` (JSON + timestamp in shared_preferences; keys under `user.` are wiped on logout).
+- `features/auth/session_controller.dart`: restore at startup (cached profile shown immediately → works offline, refreshed in background), sign in, sign out, account deleted, forced sign-out. `core/router/app_router.dart`: go_router + pure `redirectFor()` (splash → welcome/login → setup → home; `/page/*` always readable).
+- Cached data: `GET config` (network first, cache fallback, built-in defaults last), cities and popular routes (cache fresh for 12h → no request on most app starts), `me`.
+- `core/strings.dart`: all Arabic text in one class (`S`), Sudanese colloquial wording. `core/utils`: phone normalisation mirroring the backend, formatting with Western digits.
+- `features/push/push_service.dart`: interface + no-op; Firebase implementation waits for the Firebase project (`POST/DELETE devices` already exist).
+
+**Screens**: splash; onboarding (3 pages, P1); phone → 6-digit code with resend countdown, auto-submit, debug-code autofill (P2); profile setup (photo, name, gender, city, email, terms links); home shell with 4 tabs; home search form (trip/parcel toggle, from/to with swap, date with today/tomorrow, seats, popular-route chips that fill the form — the search button is wired in M8); bookings and messages tabs as empty states; profile tab (header, ID status card, become-driver card, menu, WhatsApp support if `content.support_whatsapp` is set, logout, delete account); edit profile (photo, name, city, email, WhatsApp number); terms / privacy / prohibited items pages from config; searchable city picker.
+
+**Design**: green `#0B6E5B` (highway signboard) + amber `#F2B01E` (road centre line) on a pale background; fonts bundled in `assets/fonts`: Lalezar (display: app name, screen titles, signs) + Tajawal 400/500/700 (body), ≈470 KB total, OFL licences included. Signature element: the green road sign (onboarding headings, route chips) and the dashed amber route line. Icons are Material icons; illustrations are drawn in code (no image assets). Previews: `docs/design/m7-login-flow.png`, `docs/design/m7-app-screens.png` — these are HTML mock-ups built from the same colours, fonts and texts, not screenshots of the running app.
+
+**Tests written (not run)**: `test/phone_test.dart`, `api_exception_test.dart`, `models_test.dart`, `cache_store_test.dart`, `session_test.dart` (session restore/sign-in/out with fakes + routing rules).
+
+### M7 — first compile checklist
+1. `cd mobile && flutter create --platforms=android --org com.musafirmaak --project-name musafir_maak . && flutter pub get` (delete `test/widget_test.dart` if created).
+2. `flutter analyze` and `flutter test` — expect some errors on the first run (never compiled). Paste the output into the chat, or connect the project folder so Claude can run them.
+3. Manifest: INTERNET permission + cleartext for local http (README).
+4. Run against the local backend with `--dart-define=API_BASE_URL=…` and walk: onboarding → OTP → setup → home → edit profile → logout → relaunch offline.
+5. Things to look at on a real phone: Lalezar/Tajawal rendering, the code boxes with the keyboard open, the city picker with the keyboard, small screens (≤ 360dp wide).
+
 ## Repo structure (monorepo)
 ```
 musafir-maak/
@@ -307,3 +334,11 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-10 (M6): Broadcasts and the channel matrix are super-admin only (WhatsApp costs money per message); Support can read the notification log.
 - 2026-11-10 (M6): FCM is called directly over HTTP v1 with a hand-signed JWT, so there is no Firebase/Google SDK dependency on the server.
 - 2026-11-10 (M6): Spec 13 open question 2 says WhatsApp is "charged per conversation"; Meta's pricing should be re-checked before launch (the user to confirm the current rate card for Sudan), since it decides which events keep WhatsApp on.
+- 2026-11-10 (M7): State management Riverpod 2.x, navigation go_router, HTTP Dio. Text lives in one Dart class (`S`) while the app is Arabic-only; move to ARB files when English is added.
+- 2026-11-10 (M7): App wording is Sudanese colloquial ("ماشي وين؟", "حاول تاني") rather than formal Arabic — to be confirmed by the user from the previews.
+- 2026-11-10 (M7): Digits are always Western (0-9) in the app, as in the admin panel.
+- 2026-11-10 (M7): Offline detection has no extra plugin: a failed request for lack of connection turns the offline banner on, the next successful one turns it off.
+- 2026-11-10 (M7): Profile photos are resized to 1080px / quality 78 on the phone before upload (image_picker), no separate compression package.
+- 2026-11-10 (M7): Input and app-bar styling is applied per widget (`AppTheme.input()`) instead of theme-level `inputDecorationTheme` / `appBarTheme` / `cardTheme`, whose types changed across recent Flutter versions.
+- 2026-11-10 (M7): The home search form is part of M7 (it exercises the city picker and cache); results, trip details and booking are M8.
+- 2026-11-10 (M7): Per-user notification preferences (spec P11) still undecided — not built.
