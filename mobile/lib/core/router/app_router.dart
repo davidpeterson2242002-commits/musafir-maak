@@ -13,6 +13,8 @@ import '../../features/bookings/booking_request_screen.dart';
 import '../../features/bookings/booking_status_screen.dart';
 import '../../features/chat/chat_screens.dart';
 import '../../features/driver/driver_registration_screen.dart';
+import '../../features/driver/driver_trip_screen.dart';
+import '../../features/driver/post_trip_screen.dart';
 import '../../features/driver/vehicle_form_screen.dart';
 import '../../features/home/home_shell.dart';
 import '../../features/parcels/parcel_request_screen.dart';
@@ -23,6 +25,7 @@ import '../../features/ratings/rate_screen.dart';
 import '../../features/trips/search_results_screen.dart';
 import '../../features/trips/trip_details_screen.dart';
 import '../../models/driver.dart';
+import '../../models/driver_trip.dart';
 import '../../models/misc.dart';
 import '../../features/profile/edit_profile_screen.dart';
 import '../../features/profile/text_page_screen.dart';
@@ -89,6 +92,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: 'alerts', builder: (context, state) => const RouteAlertsScreen()),
           GoRoute(path: 'driver/register', builder: (context, state) => const DriverRegistrationScreen()),
+          // 'new' is listed before ':id' so it isn't read as a trip id.
+          GoRoute(path: 'driver/trips/new', builder: (context, state) => const PostTripScreen()),
+          GoRoute(
+            path: 'driver/trips/:id',
+            builder: (context, state) => DriverTripScreen(tripId: _id(state)),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                // Opened from the trip page with the loaded trip; otherwise back to it.
+                redirect: (context, state) =>
+                    state.extra is DriverTrip ? null : '/driver/trips/${state.pathParameters['id']}',
+                builder: (context, state) => PostTripScreen(trip: state.extra! as DriverTrip),
+              ),
+            ],
+          ),
           GoRoute(
             path: 'driver/vehicle',
             // extra: the Vehicle to edit, or nothing for a new one.

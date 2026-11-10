@@ -1,3 +1,4 @@
+import '../core/utils/api_time.dart';
 import 'identity.dart';
 
 /// Photos required for every vehicle, in the order they are asked for.
@@ -95,6 +96,8 @@ class DriverAccount {
     this.freeBookingsRemaining = 0,
     this.balanceOwed = 0,
     this.walletBalance = 0,
+    this.settlementDueAt,
+    this.balanceLimitReached = false,
   });
 
   /// draft / pending_review / rejected / active / suspended / frozen.
@@ -116,6 +119,14 @@ class DriverAccount {
   final int freeBookingsRemaining;
   final int balanceOwed;
   final int walletBalance;
+
+  /// When the owed balance must be paid (Sudan clock time); null when nothing is due.
+  final DateTime? settlementDueAt;
+
+  /// Owes the maximum allowed: can't accept new requests until paying.
+  final bool balanceLimitReached;
+
+  bool get isFrozen => status == 'frozen';
 
   bool get readyToSubmit => identityDone && licenceDone && vehicleDone;
 
@@ -154,6 +165,8 @@ class DriverAccount {
       freeBookingsRemaining: (json['free_bookings_remaining'] as num?)?.toInt() ?? 0,
       balanceOwed: (json['balance_owed'] as num?)?.toInt() ?? 0,
       walletBalance: (json['wallet_balance'] as num?)?.toInt() ?? 0,
+      settlementDueAt: ApiTime.wall(json['settlement_due_at']),
+      balanceLimitReached: json['balance_limit_reached'] as bool? ?? false,
     );
   }
 }

@@ -8,6 +8,9 @@ import '../auth/session_controller.dart';
 import '../bookings/my_bookings_screen.dart';
 import '../chat/chat_repository.dart';
 import '../chat/chat_screens.dart';
+import '../driver/driver_home_screen.dart';
+import '../driver/driver_trip_repository.dart';
+import '../driver/driver_trips_screen.dart';
 import '../profile/profile_screen.dart';
 import 'home_screen.dart';
 
@@ -23,6 +26,8 @@ class HomeShell extends ConsumerWidget {
     final tab = ref.watch(homeTabProvider);
     final suspended = ref.watch(currentUserProvider)?.isSuspended ?? false;
     final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
+    final isDriver = ref.watch(currentUserProvider)?.isDriver ?? false;
+    final driverMode = ref.watch(driverModeProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -30,6 +35,11 @@ class HomeShell extends ConsumerWidget {
         child: Column(
           children: [
             const OfflineBanner(),
+            if (isDriver)
+              _ModeSwitch(
+                driverMode: driverMode,
+                onChanged: (value) => ref.read(driverModeProvider.notifier).set(value),
+              ),
             if (suspended)
               Container(
                 width: double.infinity,
@@ -44,8 +54,8 @@ class HomeShell extends ConsumerWidget {
               child: IndexedStack(
                 index: tab,
                 children: [
-                  const HomeScreen(),
-                  const MyBookingsScreen(),
+                  if (driverMode) const DriverHomeScreen() else const HomeScreen(),
+                  if (driverMode) const DriverTripsScreen() else const MyBookingsScreen(),
                   const ConversationsScreen(),
                   const ProfileScreen(),
                 ],
@@ -70,10 +80,10 @@ class HomeShell extends ConsumerWidget {
               selectedIcon: Icon(Icons.home_rounded),
               label: S.tabHome,
             ),
-            const NavigationDestination(
-              icon: Icon(Icons.confirmation_number_outlined),
-              selectedIcon: Icon(Icons.confirmation_number_rounded),
-              label: S.tabBookings,
+            NavigationDestination(
+              icon: Icon(driverMode ? Icons.route_outlined : Icons.confirmation_number_outlined),
+              selectedIcon: Icon(driverMode ? Icons.route_rounded : Icons.confirmation_number_rounded),
+              label: driverMode ? S.tabMyTrips : S.tabBookings,
             ),
             NavigationDestination(
               icon: Badge(
@@ -92,6 +102,67 @@ class HomeShell extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// راكب / سائق — shown only to approved drivers (spec: one app, two modes).
+class _ModeSwitch extends StatelessWidget {
+  const _ModeSwitch({required this.driverMode, required this.onChanged});
+
+  final bool driverMode;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget option(String label, IconData icon, bool value) {
+      final selected = driverMode == value;
+      return Expanded(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onChanged(value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected ? AppColors.green : Colors.transparent,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: selected ? Colors.white : AppColors.inkMuted),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? Colors.white : AppColors.inkMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        children: [
+          option(S.passengerMode, Icons.person_rounded, false),
+          option(S.driverMode, Icons.directions_car_filled_rounded, true),
+        ],
       ),
     );
   }

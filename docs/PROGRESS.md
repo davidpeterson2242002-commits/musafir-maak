@@ -15,6 +15,7 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-10 (session 4, cont.): **M8 code written on top of M7, also NOT compiled** (the user asked to continue while Flutter downloads). `mobile/` is now ~9,000 lines of Dart that have never been through `flutter analyze`. **Next step: first compile of M7+M8 together (checklist below) before writing M9.**
 - 2026-11-10 (session 4, cont.): **M9 code written, also NOT compiled** (Flutter still downloading on the user's side). `mobile/` is ~12,000 lines of Dart (lib + tests) that have never been analysed or run. **Next step: first compile of M7+M8+M9 (checklist below). Strongly preferred before M10.**
 - 2026-11-10 (session 4, cont.): **M10a (driver registration) written, NOT compiled.** M10 was split into three parts because the session's usage was nearly used up; only M10a is done. **Next step: first compile of everything in `mobile/` (checklist below), then M10b.**
+- 2026-11-10 (session 4, evening): **M10b (driver mode: trips and requests) written, NOT compiled** — the user asked to keep writing and deal with compile problems once the SDK is installed. `mobile/` is ~14,500 lines of Dart never analysed or run. **Next step: M10c, or the first compile if Flutter is ready (checklist below).**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -45,8 +46,8 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | **Written 2026-11-10, awaiting first compile** |
 | M9 | Parcels, chat, public profiles, reports | **Written 2026-11-10, awaiting first compile** |
 | M10a | Driver registration: intro, checklist (identity, licence, vehicle + photos), submit, under review / rejected / approved, vehicles | **Written 2026-11-10, awaiting first compile** |
-| M10b | Driver mode: passenger/driver switch, driver home (status banner, balance card, pending requests), post a trip (D7), my trips (D8), trip management (D9: passengers, depart, complete, cancel, no-show), booking request detail with accept / reject (D10) | Next (after the first compile) |
-| M10c | Driver parcels (D11–D12: accept / reject, pickup photo, refuse, delivery code), balance + ledger + submit payment (D13–D14), rate passengers (D15) | — |
+| M10b | Driver mode: passenger/driver switch, driver home (status banner, balance card, pending requests), post a trip (D7), my trips (D8), trip management (D9: passengers, depart, complete, cancel, no-show), booking request detail with accept / reject (D10) | **Written 2026-11-10, awaiting first compile** |
+| M10c | Driver parcels (D11–D12: accept / reject, pickup photo, refuse, delivery code), balance + ledger + submit payment (D13–D14), rate passengers (D15) | Next |
 | M11 | Polish, low-bandwidth pass, release build | — |
 
 ## M1 — what was built
@@ -249,6 +250,17 @@ No backend changes. Uses `GET/POST driver`, `POST driver/documents`, `POST drive
 - `models/driver.dart` (DriverAccount, Vehicle), `features/driver/driver_repository.dart`, shared `core/widgets/photo_tile.dart`. Test written (not run): `test/driver_test.dart`. Preview: `docs/design/m10a-driver-registration.png` (HTML mock-up).
 - Not done: licence renewal / document update for approved drivers (support handles it, per the M2 decision); the driver's own profile page with reviews (use the public profile).
 
+## M10b — what was built (uncompiled)
+No backend changes. Uses `GET/POST driver/trips`, `GET/PUT driver/trips/{id}`, `…/cancel|depart|complete`, `GET driver/requests`, `POST driver/bookings/{id}/accept|reject|no-show`.
+
+- **Mode switch**: `driverModeProvider` (in `features/driver/driver_trip_repository.dart`) — on only for approved drivers (`user.is_driver`), remembered in the user cache. A راكب / سائق switch sits at the top of the home shell for drivers. In driver mode tab 1 = driver home, tab 2 = "رحلاتي"; messages and profile are shared.
+- **Driver home** (D6, `driver_home_screen.dart`): frozen / balance-limit banner, balance card (owed, due date or free bookings left; "سدّد" says payments come next update), "انشر رحلة", pending requests across all trips, next 3 trips.
+- **Post / edit a trip** (D7, `post_trip_screen.dart`, routes `/driver/trips/new` and `/driver/trips/:id/edit`): from / to, date + time, vehicle (approved ones; chips when more than one), seats (≤ the vehicle's), price, pickup and drop-off points (text labels, up to 10), bags per passenger, extra-bag price, parcels switch with 3 prices + max count, women-only, notes. Sends `departs_at` as Sudan clock time without an offset (the server parses it in its display timezone). Server errors (price above the route cap, too soon, frozen) are shown as they come. Editing is offered only while the trip has no active bookings (`can_edit_all`), and the route is locked.
+- **My trips** (D8): upcoming / ongoing / past / cancelled, cards with a seats-filled bar and a "requests waiting" tag.
+- **Trip management** (D9, `/driver/trips/:id`): summary, seats bar, hidden-by-admin and parcels notices, bookings (pending first) — each a `DriverBookingCard` (D10): passenger (tap → public profile), verified / "ID under review" tag, seats, total, bags, family, pickup point, message, commission preview or "free booking", expiry countdown, accept / reject / chat; once accepted: phone, call, WhatsApp, chat, "ما حضر" when the server allows it. Bottom button: "بدأت الرحلة" → "وصلنا — أكمل الرحلة" (with confirmation). Cancel asks for a reason and warns when passengers are booked.
+- Models `models/driver_trip.dart` (DriverTrip, DriverBooking, TripDraft); `DriverAccount` gained `settlementDueAt`, `balanceLimitReached`, `isFrozen`; shared `askTextSheet()` in `core/widgets/common.dart`. Test written (not run): `test/driver_trip_test.dart`. Preview: `docs/design/m10b-driver-mode.png` (HTML mock-up).
+- Known gaps: limited edit of a trip that already has bookings (`can_edit_limited`) isn't offered — the driver must cancel and repost or contact passengers; pickup points have no map pin; no reject reason field (server accepts none); estimated arrival time isn't asked; parcels on a trip show only a count until M10c.
+
 ### M7 — first compile checklist
 1. `cd mobile && flutter create --platforms=android --org com.musafirmaak --project-name musafir_maak . && flutter pub get` (delete `test/widget_test.dart` if created).
 2. `flutter analyze` and `flutter test` — expect some errors on the first run (never compiled). Paste the output into the chat, or connect the project folder so Claude can run them.
@@ -399,3 +411,6 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-10 (M10): M10 split into M10a (registration), M10b (trips and requests), M10c (parcels, balance, payments, rating passengers).
 - 2026-11-10 (M10a): Driver registration is a single checklist screen the driver can leave and resume, not a 3-step wizard — each photo is saved on the server as soon as it is taken.
 - 2026-11-10 (M10a): Licence and vehicle photos are camera-only, like ID photos.
+- 2026-11-10 (M10b): The passenger/driver switch is a visible toggle at the top of the main screen (drivers only) rather than a setting buried in the profile.
+- 2026-11-10 (M10b): Booking requests are answered inline on cards (driver home and trip page) — no separate request-detail screen.
+- 2026-11-10 (M10b): Pickup / drop-off points are typed as place names only in v1 of the app; map pins (already supported by the API) can be added later.

@@ -296,3 +296,53 @@ Future<bool> confirmSheet(
   );
   return result ?? false;
 }
+
+/// Asks for a short piece of text in a bottom sheet. Returns null if dismissed
+/// or shorter than [minLength].
+Future<String?> askTextSheet(
+  BuildContext context, {
+  required String title,
+  required String hint,
+  required String action,
+  String? warning,
+  int minLength = 3,
+}) {
+  final controller = TextEditingController();
+
+  return showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    showDragHandle: true,
+    builder: (sheet) => Padding(
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.viewInsetsOf(sheet).bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: Theme.of(sheet).textTheme.titleLarge),
+          if (warning != null) ...[
+            const SizedBox(height: 6),
+            Text(warning, style: Theme.of(sheet).textTheme.bodyMedium?.copyWith(color: AppColors.danger)),
+          ],
+          const SizedBox(height: 12),
+          TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: 3,
+            maxLength: 500,
+            decoration: AppTheme.input(hint: hint),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.length >= minLength) Navigator.of(sheet).pop(value);
+            },
+            child: Text(action),
+          ),
+        ],
+      ),
+    ),
+  );
+}
