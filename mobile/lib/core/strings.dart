@@ -1,3 +1,5 @@
+import 'utils/formatters.dart';
+
 /// All user-facing text, in Sudanese-friendly Arabic (spec section 3).
 ///
 /// Kept as plain constants while the app is Arabic-only; when English is added
@@ -123,9 +125,173 @@ class S {
   static const cancel = 'إلغاء';
   static const memberSince = 'عضو منذ';
   static const noRatingsYet = 'بدون تقييمات';
-  static String ratingsCount(int n) => '$n تقييم';
+  static String ratingsCount(int n) => Fmt.count(n, one: 'تقييم واحد', two: 'تقييمين', few: 'تقييمات', many: 'تقييم');
   static const comingSoon = 'قريباً';
   static const suspendedBanner = 'حسابك موقوف مؤقتاً. تقدر تشوف حجوزاتك لكن ما تقدر تحجز أو تنشر رحلات.';
+
+  // Search results
+  static const routeArrow = '←';
+  static String tripsFound(int n) => Fmt.count(n, one: 'رحلة واحدة', two: 'رحلتين', few: 'رحلات', many: 'رحلة');
+  static const filters = 'تصفية';
+  static const sortBy = 'الترتيب';
+  static const sortEarliest = 'الأبكر';
+  static const sortCheapest = 'الأرخص';
+  static const sortRating = 'الأعلى تقييماً';
+  static const timeOfDay = 'وقت الانطلاق';
+  static const timeMorning = 'الصباح';
+  static const timeAfternoon = 'الظهر';
+  static const timeEvening = 'المساء';
+  static const timeNight = 'الليل';
+  static const vehicleType = 'نوع العربية';
+  static const womenOnlyFilter = 'رحلات النساء والعوائل فقط';
+  static const minRating = 'تقييم السائق';
+  static const anyRating = 'الكل';
+  static const applyFilters = 'اعرض النتائج';
+  static const clearFilters = 'امسح التصفية';
+  static const noTripsTitle = 'ما في رحلات في اليوم ده';
+  static const noTripsBody = 'جرّب يوم قريب، أو خلّينا ننبّهك أول ما سائق ينشر رحلة على الطريق ده.';
+  static const noTripsFiltered = 'ما في رحلات بالتصفية دي. خفّف الشروط وجرّب تاني.';
+  static const nearbyDays = 'أيام قريبة فيها رحلات';
+  static const alertMe = 'نبّهني لمّا تنزل رحلة';
+  static const alertCreated = 'تمام — بننبّهك أول ما تنزل رحلة على الطريق ده';
+  static const routeClosedTitle = 'الطريق موقوف مؤقتاً';
+  static const womenOnly = 'نساء وعوائل';
+  static const acceptsParcels = 'يقبل ارساليات';
+  static String seatsLeft(int n) =>
+      Fmt.count(n, one: 'مقعد واحد متاح', two: 'مقعدين متاحين', few: 'مقاعد متاحة', many: 'مقعد متاح');
+  static const perSeat = 'للمقعد';
+  static const parcelFrom = 'الارسالية تبدأ من';
+  static const newDriver = 'سائق جديد';
+
+  // Trip details
+  static const tripDetails = 'تفاصيل الرحلة';
+  static const pickupPoints = 'نقاط التحرك';
+  static const dropoffPoints = 'نقاط النزول';
+  static const luggage = 'الشنط';
+  static String luggageAllowance(int large, int small) {
+    final parts = [
+      if (large > 0) large == 1 ? 'شنطة كبيرة' : '$large شنط كبيرة',
+      if (small > 0) small == 1 ? 'شنطة صغيرة' : '$small شنط صغيرة',
+    ];
+    return parts.isEmpty ? 'بدون شنط' : '${parts.join(' + ')} لكل راكب';
+  }
+
+  static String extraBag(String price) => 'الشنطة الإضافية بـ $price';
+  static const noExtraBags = 'السائق ما بياخد شنط إضافية';
+  static const driverNotes = 'ملاحظات السائق';
+  static const vehicle = 'العربية';
+  static const plateAfterAccept = 'رقم اللوحة يظهر بعد قبول الحجز';
+  static const womenOnlyNotice = 'الرحلة دي للنساء والعوائل فقط';
+  static String tripsDone(int n) => Fmt.count(n, one: 'رحلة واحدة', two: 'رحلتين', few: 'رحلات', many: 'رحلة');
+  static const bookSeat = 'احجز مقعد';
+  static const viewMyBooking = 'افتح حجزي';
+  static const tripNotBookable = 'الرحلة دي ما متاحة للحجز حالياً';
+  static const estimatedArrival = 'الوصول المتوقع';
+
+  // Booking request
+  static const bookingRequest = 'طلب الحجز';
+  static const pickupPoint = 'نقطة التحرك';
+  static const extraBags = 'شنط إضافية';
+  static const withFamily = 'معاي عائلتي';
+  static const withFamilyHelp = 'الرحلة للنساء والعوائل — أكّد إنك مسافر مع عائلتك.';
+  static const messageToDriver = 'رسالة للسائق (اختياري)';
+  static const total = 'الإجمالي';
+  static const payDriverDirectly = 'تدفع للسائق مباشرة — كاش أو تحويل.';
+  static const sendRequest = 'أرسل طلب الحجز';
+  static const verifyThenBook = 'وثّق هويتك وأكمل الحجز';
+  static const idNeededTitle = 'توثيق الهوية مطلوب قبل أول حجز';
+  static const idNeededBody = 'صورة هويتك وسيلفي — مرة واحدة بس، والسائق بيعرف إنك شخص موثّق.';
+  static const requestSent = 'أرسلنا طلبك للسائق';
+
+  // Booking status
+  static const bookingTitle = 'الحجز';
+  static const waitingDriver = 'في انتظار رد السائق';
+  static String expiresIn(String time) => 'الطلب ينتهي بعد $time لو السائق ما رد';
+  static const accepted = 'تم قبول حجزك';
+  static const acceptedBody = 'تواصل مع السائق وكن في نقطة التحرك قبل الموعد.';
+  static const rejected = 'السائق ما قبل الطلب';
+  static const expired = 'انتهت مهلة الطلب بدون رد';
+  static const cancelledByYou = 'ألغيت الحجز';
+  static const cancelledByDriver = 'السائق ألغى الرحلة';
+  static const completed = 'اكتملت الرحلة';
+  static const noShow = 'السائق سجّل إنك ما حضرت';
+  static const noShowDisputed = 'اعتراضك قيد المراجعة';
+  static const disputeNoShow = 'اعترض — أنا حضرت';
+  static const disputeHint = 'اكتب الحصل بالتفصيل';
+  static const disputeSent = 'وصلنا اعتراضك وبنراجعه';
+  static const sendDispute = 'أرسل الاعتراض';
+  static const driver = 'السائق';
+  static const callDriver = 'اتصل';
+  static const whatsappDriver = 'واتساب';
+  static const chat = 'محادثة';
+  static const plate = 'اللوحة';
+  static const shareTrip = 'شارك الرحلة مع أهلك';
+  static const shareWhatsapp = 'أرسلها على واتساب';
+  static const copyText = 'انسخ النص';
+  static const copied = 'تم النسخ';
+  static const cancelRequest = 'ألغِ الطلب';
+  static const cancelBooking = 'ألغِ الحجز';
+  static const cancelBookingConfirm = 'تلغي الحجز ده؟';
+  static const cancelLateWarning = 'الإلغاء المتكرر قبل الرحلة بوقت قصير بيوقف حسابك عن الحجز مؤقتاً.';
+  static const cancelReason = 'سبب الإلغاء (اختياري)';
+  static const bookingCancelled = 'تم إلغاء الحجز';
+  static const otherTrips = 'رحلات تانية في نفس اليوم';
+  static const rateTrip = 'قيّم الرحلة';
+  static String seatsCount(int n) => Fmt.count(n, one: 'مقعد واحد', two: 'مقعدين', few: 'مقاعد', many: 'مقعد');
+  static const savedCopy = 'نسخة محفوظة — افتح الإنترنت لتحديثها';
+  static const chatSoon = 'المحادثة تجي في التحديث القادم. اتصل بالسائق مباشرة.';
+
+  // My bookings
+  static const upcoming = 'القادمة';
+  static const past = 'السابقة';
+  static const cancelledTab = 'الملغاة';
+  static const noPastBookings = 'ما عندك رحلات سابقة';
+  static const noCancelledBookings = 'ما في حجوزات ملغاة';
+  static const nextTrip = 'رحلتك القادمة';
+
+  // Identity verification
+  static const idTitle = 'توثيق الهوية';
+  static const idIntro = 'نحتاج صورة هويتك وسيلفي عشان الكل يسافر مع ناس معروفين. صورك محفوظة عندنا وما بيشوفها غير فريق المراجعة.';
+  static const idType = 'نوع الهوية';
+  static const nationalId = 'بطاقة قومية';
+  static const passport = 'جواز سفر';
+  static const selfie = 'سيلفي لوجهك';
+  static const selfieHelp = 'بالكاميرا الأمامية، في مكان مضيء، بدون نظارة شمس.';
+  static const idFront = 'البطاقة — الوجه الأمامي';
+  static const idBack = 'البطاقة — الوجه الخلفي';
+  static const passportPage = 'صفحة البيانات في الجواز';
+  static const docHelp = 'كل الكتابة واضحة ومقروءة، بدون لمعة.';
+  static const takePhoto = 'صوّر';
+  static const retakePhoto = 'أعد التصوير';
+  static const uploaded = 'تم الرفع';
+  static const uploading = 'جارٍ الرفع…';
+  static const submitForReview = 'أرسل للمراجعة';
+  static const idSubmitted = 'أرسلنا مستنداتك للمراجعة';
+  static const idPendingLong = 'مستنداتك عندنا وبنراجعها، في العادة خلال يوم أو يومين. بنرسل ليك إشعار أول ما نخلص.';
+  static const idVerifiedLong = 'هويتك موثّقة. شارة التوثيق ظاهرة في حسابك للسائقين والركاب.';
+  static const idRejectedIntro = 'ما قدرنا نقبل المستندات للأسباب دي:';
+  static const continueBooking = 'كمّل الحجز';
+  static const done = 'تمام';
+
+  // Rating
+  static String rateTitle(String name) => 'كيف كانت رحلتك مع $name؟';
+  static const rateComment = 'تعليق (اختياري)';
+  static const sendRating = 'أرسل التقييم';
+  static const ratingSent = 'شكراً — وصلنا تقييمك';
+  static const chooseStars = 'اختر عدد النجوم';
+  static const rateLater = 'بعدين';
+  static String ratePrompt(String name) => 'قيّم رحلتك مع $name';
+
+  // Route alerts
+  static const alertsEmptyTitle = 'ما عندك تنبيهات';
+  static const alertsEmptyBody = 'أضف طريق، وبنرسل ليك إشعار أول ما سائق ينشر رحلة عليه.';
+  static const addAlert = 'أضف تنبيه';
+  static const anyDate = 'أي تاريخ';
+  static const specificDate = 'تاريخ محدد';
+  static const saveAlert = 'احفظ التنبيه';
+  static const alertDeleted = 'تم حذف التنبيه';
+  static const alertEnded = 'انتهى';
+  static const delete = 'حذف';
 
   // Connection and errors
   static const offline = 'ما في اتصال بالإنترنت — بنعرض آخر بيانات محفوظة';

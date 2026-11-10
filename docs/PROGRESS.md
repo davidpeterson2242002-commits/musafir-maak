@@ -12,6 +12,7 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-09 (session 3, cont.): **M5 done.** 246 tests / 1131 assertions passing. Pushed to `main`.
 - 2026-11-10 (session 4): **M6 done.** 280 tests / 1270 assertions passing. Pushed to `main`. 
 - 2026-11-10 (session 4, cont.): **M7 code written, NOT yet compiled.** The workspace can't download the Flutter SDK or reach pub.dev, so `flutter analyze` / `flutter test` have never run on `mobile/`. The user is installing Flutter locally. **Next step: compile M7 on the user's machine (see "M7 — first compile checklist"), fix whatever the analyzer reports, then M8.**
+- 2026-11-10 (session 4, cont.): **M8 code written on top of M7, also NOT compiled** (the user asked to continue while Flutter downloads). `mobile/` is now ~9,000 lines of Dart that have never been through `flutter analyze`. **Next step: first compile of M7+M8 together (checklist below) before writing M9.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -39,7 +40,7 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M5 | Parcels (sizes, payer, prohibited items ack, pickup photo, 4-digit code), chat with number masking + flagging, ratings + low-rating flag, reports + enforcement, blocks | **Done 2026-11-09** |
 | M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | **Done 2026-11-10** |
 | M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | **Written 2026-11-10, awaiting first compile** |
-| M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | — |
+| M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | **Written 2026-11-10, awaiting first compile** |
 | M9 | Parcels, chat, public profiles, reports | — |
 | M10 | Driver mode: registration, post trip, requests, trip management, balance, payments | — |
 | M11 | Polish, low-bandwidth pass, release build | — |
@@ -203,6 +204,26 @@ No API changes for the app (device tokens were already `POST/DELETE devices`). E
 
 **Tests written (not run)**: `test/phone_test.dart`, `api_exception_test.dart`, `models_test.dart`, `cache_store_test.dart`, `session_test.dart` (session restore/sign-in/out with fakes + routing rules).
 
+## M8 — what was built (uncompiled)
+No backend changes; everything uses the M3–M5 API as is.
+
+**Screens / routes** (all under the signed-in area in `app_router.dart`)
+- `/search` — results (P4): trip cards (time, vehicle, driver + rating + verified mark, price, seats left, women-only / parcels tags), sort chips (earliest / cheapest / rating), filters sheet (time of day, vehicle type, min driver rating, women-only), closed-route message, empty day → nearby days with trips (tap = search that day) + "alert me" (creates a route alert for that route and date). Parcel mode lists parcel-accepting trips with the lowest parcel price; sending a parcel itself is M9.
+- `/trips/:id` — trip page (P5): summary, driver, vehicle + plate-free photos, pickup / drop-off points, luggage allowance, notes, women-only notice; bottom bar = price + "احجز مقعد" (or "افتح حجزي" when `my_booking_id` is set, disabled when not bookable).
+- `/trips/:id/book` — booking request (P6): seats (≤ available), pickup point, extra bags (only if the driver takes them), "with my family" on women-only trips for non-female users, message, total. If the user's ID is none/rejected the button reads "وثّق هويتك وأكمل الحجز" and opens the ID step first; a server `id_verification_required` also routes there, then the request is retried.
+- `/identity` — ID verification (5.12): national ID (selfie + front + back) or passport (selfie + data page); camera only; each photo uploads as it is taken (1600px, quality 80); rejection reasons shown; submit → pending. Pops `true` when booking is now allowed. Also opened from the profile card.
+- `/bookings/:id` — booking page (P7): status banner with countdown while pending (refreshes every 30s), driver phone / plate / car + call / WhatsApp once accepted, booking facts, share-with-family sheet (WhatsApp or copy), cancel (with late-cancellation warning and the server's warning text), no-show dispute, alternatives when rejected / expired / cancelled by driver, "rate" when a rating is pending. Chat button shows "coming next update" (M9).
+- Bookings tab (P8): upcoming / past / cancelled. Home: "your next trip" card and a "rate your trip" prompt above the search form.
+- `/rate` — rating (P9): stars, tags from `GET config` (`rating_tags`), comment. `/alerts` — route alerts (P12): list, delete, add (from, to, any date or a date). Profile menu item now opens it.
+
+**Data layer**: `models/trip.dart` (Trip, PublicUser, TripPoint, TripDetails, SearchResult), `booking.dart`, `identity.dart`, `misc.dart` (RouteAlert, PendingRating); repositories under `features/{trips,bookings,identity,ratings,alerts}`. Bookings are cached per list tab and per booking after every successful load and served from cache when offline (spec 12) — an accepted booking opens without a connection, with a "saved copy" strip. `ApiTime.wall()` keeps trip times as Sudan clock time regardless of the phone's timezone; `ApiTime.instant()` is used for countdowns. Dio now sends list query params as `key[]=…` (Laravel arrays). `Fmt.count()` handles Arabic number agreement (1 / 2 / 3–10 / 11+).
+
+**Tests written (not run)**: `test/trips_bookings_test.dart` (time parsing, trip / booking / identity / alert parsing from real response shapes, filter query, wording).
+
+**Previews** (HTML mock-ups, not app screenshots): `docs/design/m8-search-and-booking.png`, `docs/design/m8-bookings-and-rating.png`.
+
+**Known gaps / to revisit after compiling**: bookings list loads the first page only (20); no map for pickup pins yet (label only); chat, reports, public profile page and parcels are M9; the search form keeps the previous user's "from" city after logout until the app restarts.
+
 ### M7 — first compile checklist
 1. `cd mobile && flutter create --platforms=android --org com.musafirmaak --project-name musafir_maak . && flutter pub get` (delete `test/widget_test.dart` if created).
 2. `flutter analyze` and `flutter test` — expect some errors on the first run (never compiled). Paste the output into the chat, or connect the project folder so Claude can run them.
@@ -342,3 +363,8 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-10 (M7): Input and app-bar styling is applied per widget (`AppTheme.input()`) instead of theme-level `inputDecorationTheme` / `appBarTheme` / `cardTheme`, whose types changed across recent Flutter versions.
 - 2026-11-10 (M7): The home search form is part of M7 (it exercises the city picker and cache); results, trip details and booking are M8.
 - 2026-11-10 (M7): Per-user notification preferences (spec P11) still undecided — not built.
+- 2026-11-10 (M8): Trip times are shown exactly as the server sends them (Sudan time), never converted to the phone's timezone.
+- 2026-11-10 (M8): ID photos are taken with the camera only (no gallery) — a live selfie and a photo of the real document, as the spec asks.
+- 2026-11-10 (M8): "Share trip with family" uses WhatsApp (`wa.me/?text=`) or copy-to-clipboard instead of the system share sheet — no extra plugin, and WhatsApp is what people use.
+- 2026-11-10 (M8): The booking page polls every 30 seconds while pending (same no-websocket approach as chat); push will make it instant once Firebase is set up.
+- 2026-11-10 (M8): Filters include time of day, vehicle type, driver rating and women-only; a max-price filter is supported by the API but left out of the UI (the "cheapest" sort covers it).

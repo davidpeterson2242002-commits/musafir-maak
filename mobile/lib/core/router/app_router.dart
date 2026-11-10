@@ -8,7 +8,15 @@ import '../../features/auth/onboarding_screen.dart';
 import '../../features/auth/profile_setup_screen.dart';
 import '../../features/auth/session_controller.dart';
 import '../../features/auth/splash_screen.dart';
+import '../../features/alerts/route_alerts_screen.dart';
+import '../../features/bookings/booking_request_screen.dart';
+import '../../features/bookings/booking_status_screen.dart';
 import '../../features/home/home_shell.dart';
+import '../../features/identity/identity_screen.dart';
+import '../../features/ratings/rate_screen.dart';
+import '../../features/trips/search_results_screen.dart';
+import '../../features/trips/trip_details_screen.dart';
+import '../../models/misc.dart';
 import '../../features/profile/edit_profile_screen.dart';
 import '../../features/profile/text_page_screen.dart';
 import '../storage/cache_store.dart';
@@ -54,6 +62,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const HomeShell(),
         routes: [
           GoRoute(path: 'profile/edit', builder: (context, state) => const EditProfileScreen()),
+          GoRoute(path: 'search', builder: (context, state) => const SearchResultsScreen()),
+          GoRoute(
+            path: 'trips/:id',
+            builder: (context, state) => TripDetailsScreen(tripId: _id(state)),
+            routes: [
+              GoRoute(path: 'book', builder: (context, state) => BookingRequestScreen(tripId: _id(state))),
+            ],
+          ),
+          GoRoute(path: 'bookings/:id', builder: (context, state) => BookingStatusScreen(bookingId: _id(state))),
+          GoRoute(
+            path: 'identity',
+            // extra == true when opened from the booking form.
+            builder: (context, state) => IdentityScreen(forBooking: state.extra == true),
+          ),
+          GoRoute(path: 'alerts', builder: (context, state) => const RouteAlertsScreen()),
+          GoRoute(
+            path: 'rate',
+            redirect: (context, state) => state.extra is PendingRating ? null : '/',
+            builder: (context, state) => RateScreen(subject: state.extra! as PendingRating),
+          ),
         ],
       ),
       GoRoute(
@@ -63,6 +91,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+int _id(GoRouterState state) => int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
 
 /// The routing rules as a pure function (unit-tested). Returns the location to
 /// go to instead, or null to stay.

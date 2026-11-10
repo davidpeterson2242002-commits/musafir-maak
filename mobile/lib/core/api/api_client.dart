@@ -46,6 +46,8 @@ class ApiClient {
                 sendTimeout: const Duration(seconds: 60),
                 receiveTimeout: const Duration(seconds: 30),
                 headers: const {'Accept': 'application/json'},
+                // Lists in the query string as key[]=a&key[]=b, which is what Laravel reads as an array.
+                listFormat: ListFormat.multiCompatible,
               ),
             );
 

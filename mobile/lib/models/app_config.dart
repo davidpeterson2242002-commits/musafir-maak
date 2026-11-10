@@ -5,11 +5,17 @@ class AppConfig {
     this.settings = const {},
     this.vehicleTypes = const {},
     this.parcelSizes = const {},
+    this.driverRatingTags = const {},
+    this.passengerRatingTags = const {},
   });
 
   final Map<String, dynamic> settings;
   final Map<String, String> vehicleTypes;
   final Map<String, String> parcelSizes;
+
+  /// Quick tags when rating a driver / a passenger: key → Arabic label, in display order.
+  final Map<String, String> driverRatingTags;
+  final Map<String, String> passengerRatingTags;
 
   String get terms => _text('content.terms');
   String get privacy => _text('content.privacy');
@@ -29,7 +35,10 @@ class AppConfig {
         value is Map ? value.map((k, v) => MapEntry(k.toString(), v.toString())) : const {};
 
     final settings = json['settings'];
+    final tags = json['rating_tags'];
     return AppConfig(
+      driverRatingTags: labels(tags is Map ? tags['for_driver'] : null),
+      passengerRatingTags: labels(tags is Map ? tags['for_passenger'] : null),
       settings: settings is Map ? Map<String, dynamic>.from(settings) : const {},
       vehicleTypes: labels(json['vehicle_types']),
       parcelSizes: labels(json['parcel_sizes']),

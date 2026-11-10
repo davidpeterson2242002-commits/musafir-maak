@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/strings.dart';
 import '../../core/theme/app_colors.dart';
@@ -9,8 +10,12 @@ import '../../core/widgets/common.dart';
 import '../../core/widgets/road.dart';
 import '../../models/city.dart';
 import '../auth/session_controller.dart';
+import '../bookings/booking_repository.dart';
+import '../bookings/booking_widgets.dart';
 import '../geo/city_picker.dart';
 import '../geo/geo_repository.dart';
+import '../ratings/rating_repository.dart';
+import '../trips/trip_repository.dart';
 
 /// What the user is searching for: a seat or a driver to carry a parcel.
 enum SearchKind { trip, parcel }
@@ -57,6 +62,8 @@ class HomeScreen extends ConsumerWidget {
       color: AppColors.green,
       onRefresh: () async {
         ref.invalidate(popularRoutesProvider);
+        ref.invalidate(bookingsProvider('upcoming'));
+        ref.invalidate(pendingRatingsProvider);
         await ref.read(sessionProvider.notifier).refresh();
       },
       child: ListView(
@@ -67,6 +74,8 @@ class HomeScreen extends ConsumerWidget {
             Text(S.hello(firstName), style: text.bodyLarge?.copyWith(color: AppColors.inkMuted)),
           Text(S.whereTo, style: text.displaySmall),
           const SizedBox(height: 16),
+          const _RatePrompt(),
+          const _NextTrip(),
           const _SearchCard(),
           const SizedBox(height: 28),
           Text(S.popularRoutes, style: text.titleMedium),
@@ -95,8 +104,9 @@ class _SearchCard extends ConsumerWidget {
       } else if (query.from == query.to) {
         showMessage(context, S.sameCity);
       } else {
-        // Search results are built in M8 on top of GET /trips/search.
-        showMessage(context, S.comingInNextUpdate);
+        // A new search starts without the previous search's filters.
+        ref.read(searchFiltersProvider.notifier).state = const SearchFilters();
+        context.push('/search');
       }
     }
 
@@ -433,6 +443,71 @@ class _PopularRoutes extends ConsumerWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Your next trip" (spec P3): the nearest upcoming booking, one tap from its page.
+class _NextTrip extends ConsumerWidget {
+  const _NextTrip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final next = ref.watch(bookingsProvider('upcoming')).valueOrNull?.firstOrNull;
+    if (next == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: BookingCard(
+        booking: next,
+        heading: S.nextTrip,
+        onTap: () => context.push('/bookings/${next.id}'),
+      ),
+    );
+  }
+}
+
+/// A finished trip waiting for a rating (spec P9).
+class _RatePrompt extends ConsumerWidget {
+  const _RatePrompt();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pending = ref.watch(pendingRatingsProvider).valueOrNull?.firstOrNull;
+    if (pending == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Material(
+        color: AppColors.amberTint,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () async {
+            await context.push('/rate', extra: pending);
+            ref.invalidate(pendingRatingsProvider);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                const Icon(Icons.star_rounded, color: AppColors.amber, size: 30),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(S.ratePrompt(pending.rateeName), style: Theme.of(context).textTheme.titleMedium),
+                      Text(pending.summary, style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_left_rounded, color: AppColors.ink, textDirection: TextDirection.ltr),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import '../../core/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/common.dart';
 import '../auth/session_controller.dart';
+import '../bookings/my_bookings_screen.dart';
 import '../profile/profile_screen.dart';
 import 'home_screen.dart';
 
@@ -41,13 +42,7 @@ class HomeShell extends ConsumerWidget {
                 index: tab,
                 children: [
                   const HomeScreen(),
-                  EmptyState(
-                    icon: Icons.confirmation_number_outlined,
-                    title: S.noBookingsTitle,
-                    body: S.noBookingsBody,
-                    actionLabel: S.findTrip,
-                    onAction: () => ref.read(homeTabProvider.notifier).state = 0,
-                  ),
+                  const MyBookingsScreen(),
                   const EmptyState(
                     icon: Icons.chat_bubble_outline_rounded,
                     title: S.noMessagesTitle,

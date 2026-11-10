@@ -33,6 +33,33 @@ class Fmt {
   static String isoDate(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
+  /// `7:30 ص` / `4:05 م`.
+  static String time(DateTime t) {
+    final hour = t.hour % 12 == 0 ? 12 : t.hour % 12;
+    return '$hour:${t.minute.toString().padLeft(2, '0')} ${t.hour < 12 ? 'ص' : 'م'}';
+  }
+
+  /// `الخميس 12 نوفمبر، 7:30 ص`.
+  static String dayTime(DateTime t) => '${dayMonth(t)}، ${time(t)}';
+
+  /// Arabic counting: 1 → واحد form, 2 → dual, 3–10 → plural, 11+ → singular.
+  static String count(int n, {required String one, required String two, required String few, required String many}) {
+    if (n == 1) return one;
+    if (n == 2) return two;
+    return n >= 3 && n <= 10 ? '$n $few' : '$n $many';
+  }
+
+  /// Time left as words: `5 ساعات و20 دقيقة`, `45 دقيقة`, `أقل من دقيقة`.
+  static String remaining(Duration d) {
+    if (d.inSeconds < 60) return 'أقل من دقيقة';
+    final hours = d.inHours;
+    final minutes = d.inMinutes % 60;
+    final h = count(hours, one: 'ساعة', two: 'ساعتين', few: 'ساعات', many: 'ساعة');
+    final m = count(minutes, one: 'دقيقة', two: 'دقيقتين', few: 'دقائق', many: 'دقيقة');
+    if (hours == 0) return m;
+    return minutes == 0 ? h : '$h و$m';
+  }
+
   /// `75` seconds → `1:15`.
   static String countdown(int seconds) {
     final s = seconds < 0 ? 0 : seconds;

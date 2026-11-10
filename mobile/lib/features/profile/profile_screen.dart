@@ -35,7 +35,7 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           _Header(user: user),
           const SizedBox(height: 16),
-          _IdentityCard(status: user.idStatus),
+          _IdentityCard(status: user.idStatus, onTap: () => context.push('/identity')),
           if (!user.isDriver) ...[
             const SizedBox(height: 12),
             _DriverCard(driverStatus: user.driverStatus),
@@ -50,7 +50,11 @@ class ProfileScreen extends ConsumerWidget {
                   label: S.editProfile,
                   onTap: () => context.push('/profile/edit'),
                 ),
-                const _MenuItem(icon: Icons.notifications_none_rounded, label: S.routeAlerts, soon: true),
+                _MenuItem(
+                  icon: Icons.notifications_none_rounded,
+                  label: S.routeAlerts,
+                  onTap: () => context.push('/alerts'),
+                ),
                 if (supportNumber.isNotEmpty)
                   _MenuItem(
                     icon: Icons.support_agent_rounded,
@@ -176,9 +180,10 @@ class _Header extends StatelessWidget {
 
 /// ID verification status and the next step (spec 5.12). The upload flow itself is M8.
 class _IdentityCard extends StatelessWidget {
-  const _IdentityCard({required this.status});
+  const _IdentityCard({required this.status, required this.onTap});
 
   final IdStatus status;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +194,19 @@ class _IdentityCard extends StatelessWidget {
       IdStatus.none => (Icons.badge_outlined, AppColors.green, AppColors.greenTint, S.verifyId, S.verifyIdBody),
     };
 
-    return _StatusCard(icon: icon, color: color, tint: tint, title: title, body: body);
+    return GestureDetector(
+      onTap: onTap,
+      child: _StatusCard(
+        icon: icon,
+        color: color,
+        tint: tint,
+        title: title,
+        body: body,
+        trailing: status == IdStatus.verified
+            ? null
+            : Icon(Icons.chevron_left_rounded, color: color, textDirection: TextDirection.ltr),
+      ),
+    );
   }
 }
 
