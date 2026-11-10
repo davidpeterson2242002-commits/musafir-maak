@@ -19,7 +19,11 @@ import 'identity_repository.dart';
 ///
 /// Pops with `true` when the user may now request bookings.
 class IdentityScreen extends ConsumerStatefulWidget {
-  const IdentityScreen({super.key, this.forBooking = false});
+  const IdentityScreen({super.key, this.forBooking = false, this.collectOnly = false});
+
+  /// Driver registration: only collect the photos here — they are sent for
+  /// review together with the licence and vehicle, as one application.
+  final bool collectOnly;
 
   /// Opened from the booking form: the last button returns to it.
   final bool forBooking;
@@ -201,11 +205,16 @@ class _IdentityScreenState extends ConsumerState<IdentityScreen> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          child: PrimaryButton(
-            label: S.submitForReview,
-            busy: _submitting,
-            onPressed: ready && _uploadingKind == null ? _submit : null,
-          ),
+          child: widget.collectOnly
+              ? FilledButton(
+                  onPressed: ready && _uploadingKind == null ? () => context.pop(true) : null,
+                  child: const Text(S.done),
+                )
+              : PrimaryButton(
+                  label: S.submitForReview,
+                  busy: _submitting,
+                  onPressed: ready && _uploadingKind == null ? _submit : null,
+                ),
         ),
       ],
     );

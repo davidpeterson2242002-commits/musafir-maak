@@ -14,6 +14,7 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-10 (session 4, cont.): **M7 code written, NOT yet compiled.** The workspace can't download the Flutter SDK or reach pub.dev, so `flutter analyze` / `flutter test` have never run on `mobile/`. The user is installing Flutter locally. **Next step: compile M7 on the user's machine (see "M7 — first compile checklist"), fix whatever the analyzer reports, then M8.**
 - 2026-11-10 (session 4, cont.): **M8 code written on top of M7, also NOT compiled** (the user asked to continue while Flutter downloads). `mobile/` is now ~9,000 lines of Dart that have never been through `flutter analyze`. **Next step: first compile of M7+M8 together (checklist below) before writing M9.**
 - 2026-11-10 (session 4, cont.): **M9 code written, also NOT compiled** (Flutter still downloading on the user's side). `mobile/` is ~12,000 lines of Dart (lib + tests) that have never been analysed or run. **Next step: first compile of M7+M8+M9 (checklist below). Strongly preferred before M10.**
+- 2026-11-10 (session 4, cont.): **M10a (driver registration) written, NOT compiled.** M10 was split into three parts because the session's usage was nearly used up; only M10a is done. **Next step: first compile of everything in `mobile/` (checklist below), then M10b.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -43,7 +44,9 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | **Written 2026-11-10, awaiting first compile** |
 | M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | **Written 2026-11-10, awaiting first compile** |
 | M9 | Parcels, chat, public profiles, reports | **Written 2026-11-10, awaiting first compile** |
-| M10 | Driver mode: registration, post trip, requests, trip management, balance, payments | — |
+| M10a | Driver registration: intro, checklist (identity, licence, vehicle + photos), submit, under review / rejected / approved, vehicles | **Written 2026-11-10, awaiting first compile** |
+| M10b | Driver mode: passenger/driver switch, driver home (status banner, balance card, pending requests), post a trip (D7), my trips (D8), trip management (D9: passengers, depart, complete, cancel, no-show), booking request detail with accept / reject (D10) | Next (after the first compile) |
+| M10c | Driver parcels (D11–D12: accept / reject, pickup photo, refuse, delivery code), balance + ledger + submit payment (D13–D14), rate passengers (D15) | — |
 | M11 | Polish, low-bandwidth pass, release build | — |
 
 ## M1 — what was built
@@ -236,6 +239,16 @@ No backend changes.
 - Tests written (not run): `test/parcels_chat_test.dart`. Previews: `docs/design/m9-parcels-and-chat.png`, `docs/design/m9-profile-and-report.png` (HTML mock-ups).
 - Known gaps: receiver's web tracking link is Phase 2; chat loads the latest 50 messages only (no "load older"); conversation list first page (30); the blocked-users list (`GET me/blocks`) has no screen yet — unblock is on the profile page.
 
+## M10a — what was built (uncompiled)
+No backend changes. Uses `GET/POST driver`, `POST driver/documents`, `POST driver/submit`, `POST/PUT/DELETE driver/vehicles…`, `POST driver/vehicles/{id}/documents|submit`.
+
+- `/driver/register` (`features/driver/driver_registration_screen.dart`): one resumable screen that shows, by state — **intro** (D1: benefits, what to prepare, how fees work; "ابدأ التسجيل" creates the draft), **checklist** (draft / rejected: 1 identity + selfie → the shared identity screen in "collect only" mode, 2 driving-licence photo, 3 vehicle; rejection reasons on top; driver-terms checkbox; "أرسل الطلب للمراجعة" sends one application), **under review** (D5), **approved** (account state + vehicles list + add vehicle; says trip posting comes in the next update).
+- `/driver/vehicle` (`vehicle_form_screen.dart`, D3): type chips from config, make, model, colour, plate, passenger seats, year; saved first, then the 5 photos (front, back, side, interior, شهادة البحث) upload one by one from the camera. Approved drivers send a new vehicle for its own review; approved vehicles are read-only; delete for non-approved ones.
+- `IdentityScreen(collectOnly: true)` (route extra `'driver'`): uploads the ID photos without submitting a separate passenger-ID review — the driver application covers identity.
+- Profile: the driver card is now a live entry (start / continue / under review / needs changes / active) instead of "قريباً".
+- `models/driver.dart` (DriverAccount, Vehicle), `features/driver/driver_repository.dart`, shared `core/widgets/photo_tile.dart`. Test written (not run): `test/driver_test.dart`. Preview: `docs/design/m10a-driver-registration.png` (HTML mock-up).
+- Not done: licence renewal / document update for approved drivers (support handles it, per the M2 decision); the driver's own profile page with reviews (use the public profile).
+
 ### M7 — first compile checklist
 1. `cd mobile && flutter create --platforms=android --org com.musafirmaak --project-name musafir_maak . && flutter pub get` (delete `test/widget_test.dart` if created).
 2. `flutter analyze` and `flutter test` — expect some errors on the first run (never compiled). Paste the output into the chat, or connect the project folder so Claude can run them.
@@ -383,3 +396,6 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-10 (M9): Parcels live in a 4th tab of "حجوزاتي" rather than a separate bottom-nav item.
 - 2026-11-10 (M9): Chat polls every 6 seconds while a conversation is open and not at all otherwise (the unread badge refreshes when tabs are switched); push takes over once Firebase is configured.
 - 2026-11-10 (M9): "Send details to receiver" opens WhatsApp directly on the receiver's number with the server's ready-made message — the manual fallback the spec asks for when the automatic message doesn't arrive.
+- 2026-11-10 (M10): M10 split into M10a (registration), M10b (trips and requests), M10c (parcels, balance, payments, rating passengers).
+- 2026-11-10 (M10a): Driver registration is a single checklist screen the driver can leave and resume, not a 3-step wizard — each photo is saved on the server as soon as it is taken.
+- 2026-11-10 (M10a): Licence and vehicle photos are camera-only, like ID photos.

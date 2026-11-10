@@ -36,9 +36,10 @@ class ProfileScreen extends ConsumerWidget {
           _Header(user: user),
           const SizedBox(height: 16),
           _IdentityCard(status: user.idStatus, onTap: () => context.push('/identity')),
-          if (!user.isDriver) ...[
+          // Approved drivers get driver mode (next update); until then the card leads to their driver account.
+          ...[
             const SizedBox(height: 12),
-            _DriverCard(driverStatus: user.driverStatus),
+            _DriverCard(driverStatus: user.driverStatus, onTap: () => context.push('/driver/register')),
           ],
           const SizedBox(height: 20),
           Panel(
@@ -211,22 +212,34 @@ class _IdentityCard extends StatelessWidget {
 }
 
 class _DriverCard extends StatelessWidget {
-  const _DriverCard({required this.driverStatus});
+  const _DriverCard({required this.driverStatus, required this.onTap});
 
   final String? driverStatus;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final pending = driverStatus == 'pending_review';
 
-    return _StatusCard(
-      icon: pending ? Icons.hourglass_top_rounded : Icons.directions_car_filled_outlined,
-      color: AppColors.ink,
-      tint: AppColors.surface,
-      bordered: true,
-      title: pending ? S.driverPending : S.becomeDriver,
-      body: pending ? S.idPendingBody : S.becomeDriverBody,
-      trailing: pending ? null : const _SoonTag(),
+    final (title, body) = switch (driverStatus) {
+      'pending_review' => (S.driverPending, S.idPendingBody),
+      'draft' => (S.driverContinue, S.driverContinueBody),
+      'rejected' => (S.driverRejectedTitle, S.idRejectedBody),
+      'active' || 'frozen' || 'suspended' => (S.driverActive, S.myVehicles),
+      _ => (S.becomeDriver, S.becomeDriverBody),
+    };
+
+    return GestureDetector(
+      onTap: onTap,
+      child: _StatusCard(
+        icon: pending ? Icons.hourglass_top_rounded : Icons.directions_car_filled_outlined,
+        color: driverStatus == 'rejected' ? AppColors.danger : AppColors.ink,
+        tint: AppColors.surface,
+        bordered: true,
+        title: title,
+        body: body,
+        trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.inkMuted, textDirection: TextDirection.ltr),
+      ),
     );
   }
 }

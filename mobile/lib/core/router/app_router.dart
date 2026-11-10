@@ -12,6 +12,8 @@ import '../../features/alerts/route_alerts_screen.dart';
 import '../../features/bookings/booking_request_screen.dart';
 import '../../features/bookings/booking_status_screen.dart';
 import '../../features/chat/chat_screens.dart';
+import '../../features/driver/driver_registration_screen.dart';
+import '../../features/driver/vehicle_form_screen.dart';
 import '../../features/home/home_shell.dart';
 import '../../features/parcels/parcel_request_screen.dart';
 import '../../features/parcels/parcel_status_screen.dart';
@@ -20,6 +22,7 @@ import '../../features/identity/identity_screen.dart';
 import '../../features/ratings/rate_screen.dart';
 import '../../features/trips/search_results_screen.dart';
 import '../../features/trips/trip_details_screen.dart';
+import '../../models/driver.dart';
 import '../../models/misc.dart';
 import '../../features/profile/edit_profile_screen.dart';
 import '../../features/profile/text_page_screen.dart';
@@ -79,9 +82,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'identity',
             // extra == true when opened from the booking form.
-            builder: (context, state) => IdentityScreen(forBooking: state.extra == true),
+            builder: (context, state) => IdentityScreen(
+              forBooking: state.extra == true,
+              collectOnly: state.extra == 'driver',
+            ),
           ),
           GoRoute(path: 'alerts', builder: (context, state) => const RouteAlertsScreen()),
+          GoRoute(path: 'driver/register', builder: (context, state) => const DriverRegistrationScreen()),
+          GoRoute(
+            path: 'driver/vehicle',
+            // extra: the Vehicle to edit, or nothing for a new one.
+            builder: (context, state) => VehicleFormScreen(vehicle: state.extra is Vehicle ? state.extra! as Vehicle : null),
+          ),
           GoRoute(path: 'parcels/:id', builder: (context, state) => ParcelStatusScreen(parcelId: _id(state))),
           GoRoute(path: 'chats/:id', builder: (context, state) => ChatScreen(conversationId: _id(state))),
           GoRoute(path: 'users/:id', builder: (context, state) => PublicProfileScreen(userId: _id(state))),
