@@ -74,7 +74,10 @@ class _RateScreenState extends ConsumerState<RateScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 children: [
-                  Text(S.rateTitle(widget.subject.rateeName), style: text.headlineMedium),
+                  Text(
+                    widget.subject.ratingDriver ? S.rateTitle(widget.subject.rateeName) : S.rateCustomer(widget.subject.rateeName),
+                    style: text.headlineMedium,
+                  ),
                   const SizedBox(height: 4),
                   Text(widget.subject.summary, style: text.bodyMedium?.copyWith(color: AppColors.inkMuted)),
                   const SizedBox(height: 24),

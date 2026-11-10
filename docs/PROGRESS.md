@@ -16,6 +16,7 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-10 (session 4, cont.): **M9 code written, also NOT compiled** (Flutter still downloading on the user's side). `mobile/` is ~12,000 lines of Dart (lib + tests) that have never been analysed or run. **Next step: first compile of M7+M8+M9 (checklist below). Strongly preferred before M10.**
 - 2026-11-10 (session 4, cont.): **M10a (driver registration) written, NOT compiled.** M10 was split into three parts because the session's usage was nearly used up; only M10a is done. **Next step: first compile of everything in `mobile/` (checklist below), then M10b.**
 - 2026-11-10 (session 4, evening): **M10b (driver mode: trips and requests) written, NOT compiled** — the user asked to keep writing and deal with compile problems once the SDK is installed. `mobile/` is ~14,500 lines of Dart never analysed or run. **Next step: M10c, or the first compile if Flutter is ready (checklist below).**
+- 2026-11-10 (session 4, evening): **M10c written, NOT compiled. M10 is complete on paper**, which makes every screen in the spec's passenger (P), sender (S) and driver (D) lists written at least once. `mobile/` is ~17,000 lines of Dart never analysed or run. **Next step: the first compile (checklist below) — M11 (end-to-end testing) can't start without it.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -47,7 +48,7 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M9 | Parcels, chat, public profiles, reports | **Written 2026-11-10, awaiting first compile** |
 | M10a | Driver registration: intro, checklist (identity, licence, vehicle + photos), submit, under review / rejected / approved, vehicles | **Written 2026-11-10, awaiting first compile** |
 | M10b | Driver mode: passenger/driver switch, driver home (status banner, balance card, pending requests), post a trip (D7), my trips (D8), trip management (D9: passengers, depart, complete, cancel, no-show), booking request detail with accept / reject (D10) | **Written 2026-11-10, awaiting first compile** |
-| M10c | Driver parcels (D11–D12: accept / reject, pickup photo, refuse, delivery code), balance + ledger + submit payment (D13–D14), rate passengers (D15) | Next |
+| M10c | Driver parcels (D11–D12: accept / reject, pickup photo, refuse, delivery code), balance + ledger + submit payment (D13–D14), rate passengers (D15) | **Written 2026-11-10, awaiting first compile** |
 | M11 | Polish, low-bandwidth pass, release build | — |
 
 ## M1 — what was built
@@ -261,6 +262,16 @@ No backend changes. Uses `GET/POST driver/trips`, `GET/PUT driver/trips/{id}`, `
 - Models `models/driver_trip.dart` (DriverTrip, DriverBooking, TripDraft); `DriverAccount` gained `settlementDueAt`, `balanceLimitReached`, `isFrozen`; shared `askTextSheet()` in `core/widgets/common.dart`. Test written (not run): `test/driver_trip_test.dart`. Preview: `docs/design/m10b-driver-mode.png` (HTML mock-up).
 - Known gaps: limited edit of a trip that already has bookings (`can_edit_limited`) isn't offered — the driver must cancel and repost or contact passengers; pickup points have no map pin; no reject reason field (server accepts none); estimated arrival time isn't asked; parcels on a trip show only a count until M10c.
 
+## M10c — what was built (uncompiled)
+No backend changes. Uses `GET driver/parcels`, `POST driver/parcels/{id}/accept|reject|pickup|refuse|deliver`, `GET driver/balance|ledger|settlements`, `POST driver/settlements`, `GET payment-methods`.
+
+- **Driver parcels** (D11/D12, `driver_parcel_card.dart`): one card per parcel with the sender's photo, size + description, receiver and city, price, who pays; **pending** → commission preview, countdown, accept / reject; **accepted** → sender and receiver phones, "استلمت الارسالية — صوّرها" (camera photo uploaded as pickup evidence) or "ارفض الاستلام" with a reason; **picked up** → "سلّمت الارسالية — أدخل الرمز" (4-digit sheet, shows attempts left; wrong-code errors come from the server). Chat link. Pending parcel requests appear on the driver home; all of a trip's parcels appear on the trip page (`DriverTrip.parcels`).
+- **Balance** (D13, `/driver/balance`, `balance_screens.dart`): owed amount, due date / overdue, freeze date, cycle length, free bookings left, wallet balance if any, payments in review, "سدّد المستحق", last 5 reported payments with status and rejection reason, statement (ledger: label, note, time, signed amount — positive = charge, as the backend stores it). Opened from the driver-home balance card and the approved-driver page.
+- **Report a payment** (D14, `/driver/pay`): payment methods from the admin panel as chips; the chosen one shows account name, number (copy button), instructions and cash-agent locations; amount (prefilled with what's owed), reference number (required when the method says so), receipt image from the gallery; server rules ("a payment is already in review", "reference already used") shown as they come.
+- **Rate passengers** (D15): a prompt on the driver home for pending ratings where the driver is the rater; the existing rating screen shows passenger tags and "قيّم <name>".
+- Models `models/driver_money.dart`; repository `features/driver/driver_money_repository.dart`. Test written (not run): `test/driver_money_test.dart`. Preview: `docs/design/m10c-driver-parcels-and-payments.png` (HTML mock-up).
+- Known gaps: wallet top-up (`purpose: wallet_topup`) has no screen — only settlement payments; ledger and payments show the first page only; wallet-bucket ledger lines use the same sign display as balance lines; a driver's full parcel history (`status=done`) has no list outside the trip page.
+
 ### M7 — first compile checklist
 1. `cd mobile && flutter create --platforms=android --org com.musafirmaak --project-name musafir_maak . && flutter pub get` (delete `test/widget_test.dart` if created).
 2. `flutter analyze` and `flutter test` — expect some errors on the first run (never compiled). Paste the output into the chat, or connect the project folder so Claude can run them.
@@ -414,3 +425,5 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-10 (M10b): The passenger/driver switch is a visible toggle at the top of the main screen (drivers only) rather than a setting buried in the profile.
 - 2026-11-10 (M10b): Booking requests are answered inline on cards (driver home and trip page) — no separate request-detail screen.
 - 2026-11-10 (M10b): Pickup / drop-off points are typed as place names only in v1 of the app; map pins (already supported by the API) can be added later.
+- 2026-11-10 (M10c): Payment receipts are picked from the gallery (they are usually banking-app screenshots); every other document photo in the app is camera-only.
+- 2026-11-10 (M10c): Parcels are handled on cards inside the trip page rather than on separate request / pickup / delivery screens.

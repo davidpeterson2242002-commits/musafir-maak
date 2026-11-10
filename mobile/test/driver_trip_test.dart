@@ -111,7 +111,7 @@ void main() {
     expect(trip.canCancel, isTrue);
     expect(trip.canEditAll, isFalse);
     expect(trip.bookings, hasLength(2));
-    expect(trip.parcelsCount, 0);
+    expect(trip.parcels, isEmpty);
   });
 
   group('TripDraft.toJson', () {

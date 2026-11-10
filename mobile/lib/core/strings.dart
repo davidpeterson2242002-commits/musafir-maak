@@ -283,6 +283,7 @@ class S {
   static const chooseStars = 'اختر عدد النجوم';
   static const rateLater = 'بعدين';
   static String ratePrompt(String name) => 'قيّم رحلتك مع $name';
+  static String rateCustomer(String name) => 'قيّم $name';
 
   // Route alerts
   static const alertsEmptyTitle = 'ما عندك تنبيهات';
@@ -455,7 +456,6 @@ class S {
   static const limitBanner = 'وصلت الحد الأعلى للمستحق. سدّد عشان تقدر تقبل طلبات جديدة.';
   static const noApprovedVehicle = 'ما عندك عربية معتمدة. أضف عربية أو انتظر مراجعتها.';
   static const payNow = 'سدّد';
-  static const paymentsSoon = 'السداد من التطبيق يجي في التحديث القادم. حالياً تواصل مع الدعم.';
   static const tripVehicle = 'العربية';
   static const departureDate = 'تاريخ الانطلاق';
   static const departureTime = 'ساعة الانطلاق';
@@ -511,8 +511,60 @@ class S {
   static const markNoShowConfirm = 'تسجّل إن الراكب ما حضر؟ العمولة بترجع ليك، والراكب يقدر يعترض.';
   static const noShowMarked = 'تم تسجيل عدم الحضور';
   static const hiddenByAdmin = 'الرحلة مخفية من البحث بواسطة الإدارة. تواصل مع الدعم.';
-  static String parcelsOnTrip(int n) => 'على الرحلة دي $n ارسالية — إدارتها تجي في التحديث القادم.';
   static String pendingCount(int n) => Fmt.count(n, one: 'طلب واحد بانتظارك', two: 'طلبين بانتظارك', few: 'طلبات بانتظارك', many: 'طلب بانتظارك');
+
+  // Driver parcels
+  static const parcelRequests = 'طلبات ارساليات';
+  static const parcelsOnThisTrip = 'الارساليات';
+  static const sender = 'المرسل';
+  static String toReceiver(String name, String city) => 'إلى $name في $city';
+  static const receiverPaysTag = 'المستلم يدفع';
+  static const senderPaysTag = 'المرسل يدفع';
+  static const confirmPickup = 'استلمت الارسالية — صوّرها';
+  static const pickupHelp = 'طابق الارسالية مع صورة المرسل قبل ما تستلمها. لو مختلفة أو مشكوك فيها، ارفض الاستلام.';
+  static const parcelPickedUpMsg = 'تم تسجيل استلام الارسالية';
+  static const refusePickup = 'ارفض الاستلام';
+  static const refuseReason = 'السبب (يظهر للمرسل)';
+  static const parcelRefusedMsg = 'تم رفض استلام الارسالية';
+  static const deliverParcel = 'سلّمت الارسالية — أدخل الرمز';
+  static const enterDeliveryCode = 'رمز التسليم من المستلم';
+  static const deliveryCodeHint = '4 أرقام';
+  static const confirmDelivery = 'أكّد التسليم';
+  static const parcelDeliveredMsg = 'تم تسليم الارسالية';
+  static String attemptsLeft(int n) => 'باقي $n محاولات لإدخال الرمز';
+  static const parcelAcceptedMsg = 'قبلت الارسالية';
+  static const parcelRejectedMsg = 'تم رفض الارسالية';
+  static const senderPhoto = 'صورة المرسل';
+
+  // Balance and payments
+  static const balanceTitle = 'الرصيد والسداد';
+  static const walletBalance = 'رصيد المحفظة';
+  static const nothingOwed = 'ما عليك مستحقات';
+  static String freezesOn(String date) => 'لو ما سدّدت، يتجمّد الحساب في $date';
+  static const overdue = 'فات موعد السداد';
+  static String pendingPayment(String amount) => 'دفعة $amount قيد المراجعة';
+  static String settleEvery(int days) => 'السداد كل $days أيام';
+  static const payBalance = 'سدّد المستحق';
+  static const ledger = 'كشف الحساب';
+  static const myPayments = 'دفعاتي';
+  static const noLedger = 'ما في حركات لسه';
+  static const payTitle = 'سداد المستحق';
+  static const choosePaymentMethod = 'اختر طريقة الدفع';
+  static const noPaymentMethods = 'ما في طرق دفع متاحة حالياً. تواصل مع الدعم.';
+  static const accountName = 'اسم الحساب';
+  static const accountNumber = 'رقم الحساب';
+  static const copyNumber = 'انسخ';
+  static const agentLocations = 'أماكن الدفع كاش';
+  static const amountPaid = 'المبلغ المدفوع (جنيه)';
+  static const amountRequired = 'اكتب المبلغ';
+  static const referenceNumber = 'رقم العملية';
+  static const referenceRequired = 'اكتب رقم العملية من الإشعار';
+  static const receiptPhoto = 'صورة الإشعار';
+  static const receiptHelp = 'لقطة شاشة من تطبيق البنك أو صورة الإيصال.';
+  static const receiptRequired = 'أرفق صورة الإشعار';
+  static const chooseMethodFirst = 'اختر طريقة الدفع';
+  static const sendPayment = 'أرسل الدفعة للمراجعة';
+  static const paymentSent = 'وصلتنا الدفعة — بنراجعها وبنحدّث رصيدك';
 
   // Connection and errors
   static const offline = 'ما في اتصال بالإنترنت — بنعرض آخر بيانات محفوظة';

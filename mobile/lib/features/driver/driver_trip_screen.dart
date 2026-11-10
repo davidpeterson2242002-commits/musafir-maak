@@ -10,6 +10,7 @@ import '../../core/widgets/common.dart';
 import '../../models/driver_trip.dart';
 import '../trips/trip_widgets.dart';
 import 'driver_booking_card.dart';
+import 'driver_parcel_card.dart';
 import 'driver_trip_repository.dart';
 
 /// Trip management (spec D9): who's on board, requests to answer, and the
@@ -129,14 +130,6 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                         child: Text(S.hiddenByAdmin, style: TextStyle(color: AppColors.danger, fontSize: 14.5)),
                       ),
                     ],
-                    if (trip.parcelsCount > 0) ...[
-                      const SizedBox(height: 12),
-                      Panel(
-                        color: AppColors.amberTint,
-                        padding: const EdgeInsets.all(12),
-                        child: Text(S.parcelsOnTrip(trip.parcelsCount), style: text.bodyMedium),
-                      ),
-                    ],
                     const SizedBox(height: 20),
                     Text(S.passengers, style: text.titleMedium),
                     const SizedBox(height: 10),
@@ -148,6 +141,16 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                           padding: const EdgeInsets.only(bottom: 10),
                           child: DriverBookingCard(booking: booking),
                         ),
+                    if (trip.parcels.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Text(S.parcelsOnThisTrip, style: text.titleMedium),
+                      const SizedBox(height: 10),
+                      for (final parcel in trip.parcels)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: DriverParcelCard(parcel: parcel),
+                        ),
+                    ],
                     const SizedBox(height: 10),
                     if (trip.canCancel)
                       TextButton(

@@ -363,6 +363,12 @@ class _Approved extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => context.push('/driver/balance'),
+          icon: const Icon(Icons.account_balance_wallet_outlined, size: 20),
+          label: const Text(S.balanceTitle),
+        ),
         const SizedBox(height: 20),
         Text(S.myVehicles, style: text.titleMedium),
         const SizedBox(height: 10),

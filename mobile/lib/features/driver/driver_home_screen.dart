@@ -7,7 +7,11 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/common.dart';
 import '../../models/driver.dart';
+import '../../models/driver_money.dart';
+import '../ratings/rating_repository.dart';
 import 'driver_booking_card.dart';
+import 'driver_money_repository.dart';
+import 'driver_parcel_card.dart';
 import 'driver_repository.dart';
 import 'driver_trip_repository.dart';
 
@@ -22,6 +26,8 @@ class DriverHomeScreen extends ConsumerWidget {
     final account = ref.watch(driverAccountProvider).valueOrNull;
     final requests = ref.watch(driverRequestsProvider);
     final trips = ref.watch(driverTripsProvider('upcoming'));
+    final parcelRequests = ref.watch(driverParcelRequestsProvider).valueOrNull ?? const <DriverParcel>[];
+    final toRate = ref.watch(pendingRatingsProvider).valueOrNull?.where((r) => !r.ratingDriver).firstOrNull;
     final canPost = account?.canOperate ?? false;
 
     return RefreshIndicator(
@@ -30,6 +36,8 @@ class DriverHomeScreen extends ConsumerWidget {
         ref.invalidate(driverAccountProvider);
         ref.invalidate(driverRequestsProvider);
         ref.invalidate(driverTripsProvider);
+        ref.invalidate(driverParcelRequestsProvider);
+        ref.invalidate(pendingRatingsProvider);
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -59,6 +67,39 @@ class DriverHomeScreen extends ConsumerWidget {
                 ? () => context.push('/driver/trips/new')
                 : () => showMessage(context, account?.isFrozen ?? false ? S.frozenBanner : S.noApprovedVehicle),
           ),
+          if (toRate != null) ...[
+            const SizedBox(height: 14),
+            // Rate the passenger or sender of a finished trip (spec D15).
+            Material(
+              color: AppColors.amberTint,
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () async {
+                  await context.push('/rate', extra: toRate);
+                  ref.invalidate(pendingRatingsProvider);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.star_rounded, color: AppColors.amber, size: 30),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(S.rateCustomer(toRate.rateeName), style: text.titleMedium),
+                            Text(toRate.summary, style: text.bodySmall),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 26),
           Text(S.newRequests, style: text.titleMedium),
           const SizedBox(height: 10),
@@ -78,6 +119,13 @@ class DriverHomeScreen extends ConsumerWidget {
                     ],
                   ),
           ),
+          if (parcelRequests.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            Text(S.parcelRequests, style: text.titleMedium),
+            const SizedBox(height: 10),
+            for (final parcel in parcelRequests)
+              Padding(padding: const EdgeInsets.only(bottom: 10), child: DriverParcelCard(parcel: parcel)),
+          ],
           const SizedBox(height: 22),
           Text(S.upcomingTrips, style: text.titleMedium),
           const SizedBox(height: 10),
@@ -114,7 +162,10 @@ class _BalanceCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final owes = account.balanceOwed > 0;
 
-    return Panel(
+    // The whole card opens the statement; the button is the shortcut when something is owed.
+    return GestureDetector(
+      onTap: () => context.push('/driver/balance'),
+      child: Panel(
       child: Row(
         children: [
           Expanded(
@@ -135,11 +186,14 @@ class _BalanceCard extends StatelessWidget {
           ),
           if (owes)
             OutlinedButton(
-              onPressed: () => showMessage(context, S.paymentsSoon),
+              onPressed: () => context.push('/driver/balance'),
               style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
               child: const Text(S.payNow),
-            ),
+            )
+          else
+            const Icon(Icons.chevron_left_rounded, color: AppColors.inkMuted, textDirection: TextDirection.ltr),
         ],
+      ),
       ),
     );
   }

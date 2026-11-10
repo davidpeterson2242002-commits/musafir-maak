@@ -1,5 +1,6 @@
 import '../core/utils/api_time.dart';
 import 'booking.dart';
+import 'driver_money.dart';
 import 'trip.dart';
 
 /// A booking as the trip's driver sees it (spec D9/D10).
@@ -123,7 +124,7 @@ class DriverTrip {
     this.canComplete = false,
     this.canCancel = false,
     this.bookings = const [],
-    this.parcelsCount = 0,
+    this.parcels = const [],
   });
 
   final int id;
@@ -163,7 +164,9 @@ class DriverTrip {
 
   /// Loaded on the trip page only; pending requests first.
   final List<DriverBooking> bookings;
-  final int parcelsCount;
+
+  /// Parcels on this trip (trip page only), excluding rejected and expired ones.
+  final List<DriverParcel> parcels;
 
   int get seatsBooked => seatsTotal - seatsAvailable;
 
@@ -219,7 +222,9 @@ class DriverTrip {
       bookings: (json['bookings'] as List? ?? const [])
           .map((e) => DriverBooking.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
-      parcelsCount: (json['parcels'] as List?)?.length ?? 0,
+      parcels: (json['parcels'] as List? ?? const [])
+          .map((e) => DriverParcel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
     );
   }
 }

@@ -12,6 +12,7 @@ import '../../features/alerts/route_alerts_screen.dart';
 import '../../features/bookings/booking_request_screen.dart';
 import '../../features/bookings/booking_status_screen.dart';
 import '../../features/chat/chat_screens.dart';
+import '../../features/driver/balance_screens.dart';
 import '../../features/driver/driver_registration_screen.dart';
 import '../../features/driver/driver_trip_screen.dart';
 import '../../features/driver/post_trip_screen.dart';
@@ -92,6 +93,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: 'alerts', builder: (context, state) => const RouteAlertsScreen()),
           GoRoute(path: 'driver/register', builder: (context, state) => const DriverRegistrationScreen()),
+          GoRoute(path: 'driver/balance', builder: (context, state) => const BalanceScreen()),
+          GoRoute(path: 'driver/pay', builder: (context, state) => const PayScreen()),
           // 'new' is listed before ':id' so it isn't read as a trip id.
           GoRoute(path: 'driver/trips/new', builder: (context, state) => const PostTripScreen()),
           GoRoute(
