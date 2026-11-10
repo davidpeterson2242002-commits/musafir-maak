@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/common.dart';
 import '../../models/trip.dart';
+import '../home/home_screen.dart';
 import 'trip_repository.dart';
 import 'trip_widgets.dart';
 
@@ -42,15 +43,35 @@ class TripDetailsScreen extends ConsumerWidget {
   }
 }
 
-class _BottomBar extends StatelessWidget {
+class _BottomBar extends ConsumerWidget {
   const _BottomBar({required this.details});
 
   final TripDetails details;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final text = Theme.of(context).textTheme;
     final trip = details.trip;
+    final canSendParcel = trip.acceptsParcels && details.parcelSlotsLeft > 0 && details.bookable;
+
+    // Arrived from a parcel search: sending a parcel is the main action.
+    if (ref.watch(searchQueryProvider).kind == SearchKind.parcel) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.line)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: SafeArea(
+          top: false,
+          child: FilledButton.icon(
+            onPressed: canSendParcel ? () => context.push('/trips/${trip.id}/parcel') : null,
+            icon: const Icon(Icons.inventory_2_outlined, size: 20),
+            label: Text(canSendParcel ? S.sendParcelWithTrip : S.noParcelSlots),
+          ),
+        ),
+      );
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -62,6 +83,20 @@ class _BottomBar extends StatelessWidget {
         top: false,
         child: Row(
           children: [
+            if (canSendParcel) ...[
+              IconButton(
+                tooltip: S.sendParcel,
+                onPressed: () => context.push('/trips/${trip.id}/parcel'),
+                style: IconButton.styleFrom(
+                  fixedSize: const Size(54, 54),
+                  side: const BorderSide(color: AppColors.green, width: 1.5),
+                  foregroundColor: AppColors.green,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.inventory_2_outlined),
+              ),
+              const SizedBox(width: 12),
+            ],
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -129,12 +164,16 @@ class TripBody extends StatelessWidget {
             children: [
               Text(S.driver, style: text.labelMedium),
               const SizedBox(height: 8),
-              DriverLine(
-                driver: trip.driver,
-                avatarSize: 52,
-                trailing: trip.driver.tripsCount == null
-                    ? null
-                    : Text(S.tripsDone(trip.driver.tripsCount!), style: text.labelMedium),
+              InkWell(
+                onTap: () => context.push('/users/${trip.driver.id}'),
+                borderRadius: BorderRadius.circular(10),
+                child: DriverLine(
+                  driver: trip.driver,
+                  avatarSize: 52,
+                  trailing: trip.driver.tripsCount == null
+                      ? null
+                      : Text(S.tripsDone(trip.driver.tripsCount!), style: text.labelMedium),
+                ),
               ),
               if (trip.driver.memberSince != null) ...[
                 const SizedBox(height: 8),

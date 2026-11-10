@@ -11,7 +11,11 @@ import '../../features/auth/splash_screen.dart';
 import '../../features/alerts/route_alerts_screen.dart';
 import '../../features/bookings/booking_request_screen.dart';
 import '../../features/bookings/booking_status_screen.dart';
+import '../../features/chat/chat_screens.dart';
 import '../../features/home/home_shell.dart';
+import '../../features/parcels/parcel_request_screen.dart';
+import '../../features/parcels/parcel_status_screen.dart';
+import '../../features/users/public_profile_screen.dart';
 import '../../features/identity/identity_screen.dart';
 import '../../features/ratings/rate_screen.dart';
 import '../../features/trips/search_results_screen.dart';
@@ -68,6 +72,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => TripDetailsScreen(tripId: _id(state)),
             routes: [
               GoRoute(path: 'book', builder: (context, state) => BookingRequestScreen(tripId: _id(state))),
+              GoRoute(path: 'parcel', builder: (context, state) => ParcelRequestScreen(tripId: _id(state))),
             ],
           ),
           GoRoute(path: 'bookings/:id', builder: (context, state) => BookingStatusScreen(bookingId: _id(state))),
@@ -77,6 +82,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => IdentityScreen(forBooking: state.extra == true),
           ),
           GoRoute(path: 'alerts', builder: (context, state) => const RouteAlertsScreen()),
+          GoRoute(path: 'parcels/:id', builder: (context, state) => ParcelStatusScreen(parcelId: _id(state))),
+          GoRoute(path: 'chats/:id', builder: (context, state) => ChatScreen(conversationId: _id(state))),
+          GoRoute(path: 'users/:id', builder: (context, state) => PublicProfileScreen(userId: _id(state))),
           GoRoute(
             path: 'rate',
             redirect: (context, state) => state.extra is PendingRating ? null : '/',

@@ -17,6 +17,7 @@ import '../../core/widgets/common.dart';
 import '../../models/booking.dart';
 import '../../models/misc.dart';
 import '../ratings/rating_repository.dart';
+import '../reports/report_sheet.dart';
 import '../trips/trip_details_screen.dart';
 import '../trips/trip_widgets.dart';
 import 'booking_repository.dart';
@@ -159,6 +160,19 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
         title: Text(S.bookingTitle, style: text.titleLarge),
         backgroundColor: AppColors.surface,
         scrolledUnderElevation: 0,
+        actions: [
+          if (booking.valueOrNull != null)
+            IconButton(
+              tooltip: S.report,
+              icon: const Icon(Icons.flag_outlined),
+              onPressed: () => showReportSheet(
+                context,
+                userId: booking.valueOrNull!.trip.driver.id,
+                subjectType: 'booking',
+                subjectId: widget.bookingId,
+              ),
+            ),
+        ],
       ),
       body: booking.when(
         skipLoadingOnRefresh: true,
@@ -189,7 +203,9 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
                         booking: booking,
                         onCall: () => _open('tel:${booking.contact!.driverPhone}'),
                         onWhatsapp: () => _open('https://wa.me/${booking.contact!.driverWhatsapp.replaceAll('+', '')}'),
-                        onChat: () => showMessage(context, S.chatSoon),
+                        onChat: booking.conversationId == null
+                            ? () => showMessage(context, S.chatSoon)
+                            : () => context.push('/chats/${booking.conversationId}'),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -199,7 +215,19 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
                     ),
                     if (booking.contact == null) ...[
                       const SizedBox(height: 12),
-                      Panel(child: DriverLine(driver: booking.trip.driver, avatarSize: 48)),
+                      Panel(
+                        child: DriverLine(
+                          driver: booking.trip.driver,
+                          avatarSize: 48,
+                          trailing: booking.conversationId == null || !booking.status.isActive
+                              ? null
+                              : IconButton(
+                                  tooltip: S.chat,
+                                  onPressed: () => context.push('/chats/${booking.conversationId}'),
+                                  icon: const Icon(Icons.forum_outlined, color: AppColors.green),
+                                ),
+                        ),
+                      ),
                     ],
                     if (booking.status.offersAlternatives && booking.alternatives.isNotEmpty) ...[
                       const SizedBox(height: 24),

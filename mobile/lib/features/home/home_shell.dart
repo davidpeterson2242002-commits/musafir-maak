@@ -6,6 +6,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/common.dart';
 import '../auth/session_controller.dart';
 import '../bookings/my_bookings_screen.dart';
+import '../chat/chat_repository.dart';
+import '../chat/chat_screens.dart';
 import '../profile/profile_screen.dart';
 import 'home_screen.dart';
 
@@ -20,6 +22,7 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tab = ref.watch(homeTabProvider);
     final suspended = ref.watch(currentUserProvider)?.isSuspended ?? false;
+    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
       body: SafeArea(
@@ -43,11 +46,7 @@ class HomeShell extends ConsumerWidget {
                 children: [
                   const HomeScreen(),
                   const MyBookingsScreen(),
-                  const EmptyState(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    title: S.noMessagesTitle,
-                    body: S.noMessagesBody,
-                  ),
+                  const ConversationsScreen(),
                   const ProfileScreen(),
                 ],
               ),
@@ -59,24 +58,34 @@ class HomeShell extends ConsumerWidget {
         decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.line))),
         child: NavigationBar(
           selectedIndex: tab,
-          onDestinationSelected: (index) => ref.read(homeTabProvider.notifier).state = index,
-          destinations: const [
-            NavigationDestination(
+          onDestinationSelected: (index) {
+            ref.read(homeTabProvider.notifier).state = index;
+            // Opening a tab is a good moment to refresh its list and the unread badge.
+            ref.invalidate(unreadCountProvider);
+            if (index == 2) ref.invalidate(conversationsProvider);
+          },
+          destinations: [
+            const NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
               label: S.tabHome,
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.confirmation_number_outlined),
               selectedIcon: Icon(Icons.confirmation_number_rounded),
               label: S.tabBookings,
             ),
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline_rounded),
-              selectedIcon: Icon(Icons.chat_bubble_rounded),
+              icon: Badge(
+                isLabelVisible: unread > 0,
+                label: Text('$unread'),
+                backgroundColor: AppColors.danger,
+                child: const Icon(Icons.chat_bubble_outline_rounded),
+              ),
+              selectedIcon: const Icon(Icons.chat_bubble_rounded),
               label: S.tabMessages,
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
               selectedIcon: Icon(Icons.person_rounded),
               label: S.tabProfile,

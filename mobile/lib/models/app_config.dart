@@ -7,6 +7,7 @@ class AppConfig {
     this.parcelSizes = const {},
     this.driverRatingTags = const {},
     this.passengerRatingTags = const {},
+    this.reportReasons = const {},
   });
 
   final Map<String, dynamic> settings;
@@ -16,6 +17,9 @@ class AppConfig {
   /// Quick tags when rating a driver / a passenger: key → Arabic label, in display order.
   final Map<String, String> driverRatingTags;
   final Map<String, String> passengerRatingTags;
+
+  /// Reasons a user can pick when reporting someone: key → Arabic label.
+  final Map<String, String> reportReasons;
 
   String get terms => _text('content.terms');
   String get privacy => _text('content.privacy');
@@ -39,6 +43,7 @@ class AppConfig {
     return AppConfig(
       driverRatingTags: labels(tags is Map ? tags['for_driver'] : null),
       passengerRatingTags: labels(tags is Map ? tags['for_passenger'] : null),
+      reportReasons: labels(json['report_reasons']),
       settings: settings is Map ? Map<String, dynamic>.from(settings) : const {},
       vehicleTypes: labels(json['vehicle_types']),
       parcelSizes: labels(json['parcel_sizes']),

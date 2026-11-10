@@ -13,6 +13,7 @@ Source of truth for the product: `claude/musafir-maak-spec.md`. This file tracks
 - 2026-11-10 (session 4): **M6 done.** 280 tests / 1270 assertions passing. Pushed to `main`. 
 - 2026-11-10 (session 4, cont.): **M7 code written, NOT yet compiled.** The workspace can't download the Flutter SDK or reach pub.dev, so `flutter analyze` / `flutter test` have never run on `mobile/`. The user is installing Flutter locally. **Next step: compile M7 on the user's machine (see "M7 — first compile checklist"), fix whatever the analyzer reports, then M8.**
 - 2026-11-10 (session 4, cont.): **M8 code written on top of M7, also NOT compiled** (the user asked to continue while Flutter downloads). `mobile/` is now ~9,000 lines of Dart that have never been through `flutter analyze`. **Next step: first compile of M7+M8 together (checklist below) before writing M9.**
+- 2026-11-10 (session 4, cont.): **M9 code written, also NOT compiled** (Flutter still downloading on the user's side). `mobile/` is ~12,000 lines of Dart (lib + tests) that have never been analysed or run. **Next step: first compile of M7+M8+M9 (checklist below). Strongly preferred before M10.**
 
 ### Where the code lives (important)
 **GitHub: `davidpeterson2242002-commits/musafir-maak` (private), branch `main`.** This is the source of truth for code; each chat's workspace is wiped.
@@ -41,7 +42,7 @@ Workspace setup that worked: `service postgresql start`; `su postgres -c "psql -
 | M6 | Real providers (FCM, WhatsApp Cloud API, mail), per-event channel matrix in admin, notification log, basic broadcast | **Done 2026-11-10** |
 | M7 | Flutter foundation: RTL Arabic theme, API client, auth/OTP, profile, offline cache | **Written 2026-11-10, awaiting first compile** |
 | M8 | Passenger flows: home, search, trip details, ID step, booking, status, my bookings, rating, alerts | **Written 2026-11-10, awaiting first compile** |
-| M9 | Parcels, chat, public profiles, reports | — |
+| M9 | Parcels, chat, public profiles, reports | **Written 2026-11-10, awaiting first compile** |
 | M10 | Driver mode: registration, post trip, requests, trip management, balance, payments | — |
 | M11 | Polish, low-bandwidth pass, release build | — |
 
@@ -224,6 +225,17 @@ No backend changes; everything uses the M3–M5 API as is.
 
 **Known gaps / to revisit after compiling**: bookings list loads the first page only (20); no map for pickup pins yet (label only); chat, reports, public profile page and parcels are M9; the search form keeps the previous user's "from" city after logout until the app restarts.
 
+## M9 — what was built (uncompiled)
+No backend changes.
+
+- **Parcels (sender side)**: `/trips/:id/parcel` request form (S2) — description, size tiles with the trip's price per size, photo (rear camera or gallery, resized), receiver name + phone, who pays, note, prohibited-items list from config + confirmation; same ID step as bookings. `/parcels/:id` status page (S3) — status banner with countdown, large delivery code with "receiver got it on WhatsApp" / "didn't — send it yourself", "send details to receiver" (opens the receiver's WhatsApp with the ready message, or copy), driver contact + plate after acceptance, call / chat, pickup photo, cancel before pickup, problem report (dispute). Refreshes every 30s while in progress; cached for offline. Parcels are a 4th tab in "حجوزاتي" (active first). Trip page: a parcel button beside "احجز مقعد" when the trip has free parcel slots; arriving from a parcel search makes "أرسل ارسالية مع الرحلة دي" the main action.
+- **Chat**: Messages tab = conversation list (other person, trip summary, last message, unread count); unread badge on the tab. `/chats/:id` — bubbles, polling every 6s with `after_id`, send keeps the text on failure, note under a message whose number was hidden, closed state with the reason, report button, tap the header for the profile. Opened from the booking page ("محادثة") and the parcel page.
+- **Public profile** `/users/:id` (P13): photo, verified mark, ratings as driver / as passenger, trips, member since, reviews with tags, report, block / unblock. Opened from the trip page's driver card and the chat header.
+- **Reports**: one bottom sheet (reasons from `GET config` → `report_reasons`, optional details) used from the booking page, parcel page, chat and profile, with the right subject attached. Shows the server's confirmation text.
+- Models: `models/parcel.dart`, `models/chat.dart` (Conversation, ChatMessage, ChatPage, Review, PublicProfile); repositories in `features/{parcels,chat,users}`; `AppConfig.reportReasons`.
+- Tests written (not run): `test/parcels_chat_test.dart`. Previews: `docs/design/m9-parcels-and-chat.png`, `docs/design/m9-profile-and-report.png` (HTML mock-ups).
+- Known gaps: receiver's web tracking link is Phase 2; chat loads the latest 50 messages only (no "load older"); conversation list first page (30); the blocked-users list (`GET me/blocks`) has no screen yet — unblock is on the profile page.
+
 ### M7 — first compile checklist
 1. `cd mobile && flutter create --platforms=android --org com.musafirmaak --project-name musafir_maak . && flutter pub get` (delete `test/widget_test.dart` if created).
 2. `flutter analyze` and `flutter test` — expect some errors on the first run (never compiled). Paste the output into the chat, or connect the project folder so Claude can run them.
@@ -368,3 +380,6 @@ Money = integer SDG (whole pounds). Statuses = PHP enums stored as strings.
 - 2026-11-10 (M8): "Share trip with family" uses WhatsApp (`wa.me/?text=`) or copy-to-clipboard instead of the system share sheet — no extra plugin, and WhatsApp is what people use.
 - 2026-11-10 (M8): The booking page polls every 30 seconds while pending (same no-websocket approach as chat); push will make it instant once Firebase is set up.
 - 2026-11-10 (M8): Filters include time of day, vehicle type, driver rating and women-only; a max-price filter is supported by the API but left out of the UI (the "cheapest" sort covers it).
+- 2026-11-10 (M9): Parcels live in a 4th tab of "حجوزاتي" rather than a separate bottom-nav item.
+- 2026-11-10 (M9): Chat polls every 6 seconds while a conversation is open and not at all otherwise (the unread badge refreshes when tabs are switched); push takes over once Firebase is configured.
+- 2026-11-10 (M9): "Send details to receiver" opens WhatsApp directly on the receiver's number with the server's ready-made message — the manual fallback the spec asks for when the automatic message doesn't arrive.

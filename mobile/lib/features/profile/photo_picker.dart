@@ -7,7 +7,7 @@ import '../../core/theme/app_colors.dart';
 /// Lets the user take or choose a profile photo. The image is shrunk and
 /// re-compressed on the phone first (≈100–200 KB) so the upload is quick on
 /// mobile data. Returns the file path, or null if cancelled.
-Future<String?> pickProfilePhoto(BuildContext context) async {
+Future<String?> pickProfilePhoto(BuildContext context, {bool preferFrontCamera = true}) async {
   final source = await showModalBottomSheet<ImageSource>(
     context: context,
     backgroundColor: AppColors.surface,
@@ -39,7 +39,7 @@ Future<String?> pickProfilePhoto(BuildContext context) async {
       maxWidth: 1080,
       maxHeight: 1080,
       imageQuality: 78,
-      preferredCameraDevice: CameraDevice.front,
+      preferredCameraDevice: preferFrontCamera ? CameraDevice.front : CameraDevice.rear,
     );
     return file?.path;
   } catch (_) {

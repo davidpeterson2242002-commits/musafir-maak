@@ -293,6 +293,91 @@ class S {
   static const alertEnded = 'انتهى';
   static const delete = 'حذف';
 
+  // Parcels (ارسالية)
+  static const sendParcel = 'أرسل ارسالية';
+  static const sendParcelWithTrip = 'أرسل ارسالية مع الرحلة دي';
+  static const parcelRequest = 'طلب ارسالية';
+  static const parcelDescription = 'شنو في الارسالية؟';
+  static const parcelDescriptionHint = 'مثلاً: ملابس وأحذية في كرتونة';
+  static const parcelDescriptionShort = 'اكتب وصف واضح للارسالية';
+  static const parcelSize = 'الحجم';
+  static const sizeSmallHelp = 'ظرف أو كيس صغير';
+  static const sizeMediumHelp = 'شنطة يد أو كرتونة صغيرة';
+  static const sizeLargeHelp = 'شنطة سفر أو كرتونة كبيرة';
+  static const parcelPhoto = 'صورة الارسالية';
+  static const parcelPhotoHelp = 'السائق يطابقها مع الارسالية عند الاستلام.';
+  static const parcelPhotoRequired = 'صوّر الارسالية';
+  static const receiverName = 'اسم المستلم';
+  static const receiverPhone = 'رقم المستلم';
+  static const receiverPhoneHelp = 'نرسل له رمز التسليم على واتساب.';
+  static const receiverNameRequired = 'اكتب اسم المستلم';
+  static const whoPays = 'منو يدفع للسائق؟';
+  static const iPay = 'أنا أدفع';
+  static const receiverPays = 'المستلم يدفع';
+  static const noteToDriver = 'ملاحظة للسائق (اختياري)';
+  static const prohibitedTitle = 'ممنوع إرسالها';
+  static const prohibitedConfirm = 'أؤكد إن الارسالية ما فيها ممنوعات وأنا مسؤول عن محتواها';
+  static const prohibitedRequired = 'أكّد إن الارسالية ما فيها ممنوعات';
+  static const sendParcelRequest = 'أرسل الطلب للسائق';
+  static const verifyThenSend = 'وثّق هويتك وأرسل الطلب';
+  static const parcelPrice = 'سعر التوصيل';
+  static const parcelTitle = 'الارسالية';
+  static const parcelWaiting = 'في انتظار رد السائق';
+  static const parcelAccepted = 'السائق قبل الارسالية';
+  static const parcelAcceptedBody = 'سلّم الارسالية للسائق في نقطة التحرك قبل موعد الرحلة.';
+  static const parcelPickedUp = 'الارسالية مع السائق';
+  static const parcelPickedUpBody = 'المستلم يدّي رمز التسليم للسائق لمّا يستلم الارسالية.';
+  static const parcelDelivered = 'تم تسليم الارسالية';
+  static const parcelRejected = 'السائق ما قبل الارسالية';
+  static const parcelExpired = 'انتهت مهلة الطلب بدون رد';
+  static const parcelRefused = 'السائق رفض يستلم الارسالية';
+  static const parcelCancelled = 'أُلغيت الارسالية';
+  static const parcelDisputed = 'المشكلة قيد المراجعة';
+  static const parcelDisputedBody = 'فريق الدعم بيراجع البلاغ وبيتواصل معاك.';
+  static const deliveryCode = 'رمز التسليم';
+  static const deliveryCodeHelp = 'المستلم يدّيه للسائق عند الاستلام فقط.';
+  static const receiverNotified = 'وصل الرمز للمستلم على واتساب';
+  static const receiverNotNotified = 'الرمز ما وصل للمستلم على واتساب — أرسله ليه إنت';
+  static const shareWithReceiver = 'أرسل التفاصيل للمستلم';
+  static const receiver = 'المستلم';
+  static const pickupPhoto = 'صورة الاستلام من السائق';
+  static const cancelParcel = 'ألغِ الارسالية';
+  static const cancelParcelConfirm = 'تلغي الارسالية دي؟';
+  static const reportProblem = 'بلّغ عن مشكلة في الارسالية';
+  static const parcelProblemHint = 'اكتب المشكلة: ما وصلت؟ ناقصة؟ تالفة؟';
+  static const sendReport = 'أرسل البلاغ';
+  static const parcelsTab = 'ارسالياتي';
+  static const noParcelsTitle = 'ما عندك ارساليات';
+  static const noParcelsBody = 'ابحث عن رحلة في الرئيسية واختر "ارسالية" عشان ترسل مع سائق مسافر.';
+  static const noParcelSlots = 'السائق ما بياخد ارساليات تانية في الرحلة دي';
+
+  // Chat
+  static const typeMessage = 'اكتب رسالة';
+  static const chatClosed = 'المحادثة مقفولة';
+  static const numberHidden = 'الأرقام تتخفى قبل قبول الحجز — بعد القبول يظهر رقم السائق في صفحة الحجز.';
+  static const noMessagesYet = 'ابدأ المحادثة — اسأل السائق عن أي تفصيل قبل الرحلة.';
+  static const you = 'إنت: ';
+  static const messageFailed = 'الرسالة ما اتبعتت. حاول تاني.';
+
+  // Public profile, report, block
+  static const profile = 'الملف الشخصي';
+  static const reviews = 'التقييمات';
+  static const noReviews = 'ما في تقييمات لسه';
+  static const asDriver = 'كسائق';
+  static const asPassenger = 'كراكب';
+  static const driverSince = 'سائق منذ';
+  static const report = 'بلاغ';
+  static const reportUser = 'بلّغ عن المستخدم';
+  static const reportReason = 'سبب البلاغ';
+  static const reportDetails = 'اكتب التفاصيل (اختياري)';
+  static const chooseReason = 'اختر سبب البلاغ';
+  static const block = 'حظر';
+  static const unblock = 'إلغاء الحظر';
+  static String blockConfirm(String name) => 'تحظر $name؟';
+  static const blockBody = 'ما بتظهر ليك رحلاته وما بيقدر يراسلك أو يحجز معاك.';
+  static const blocked = 'تم الحظر';
+  static const unblocked = 'تم إلغاء الحظر';
+
   // Connection and errors
   static const offline = 'ما في اتصال بالإنترنت — بنعرض آخر بيانات محفوظة';
   static const noConnection = 'ما في اتصال بالإنترنت. تأكد من الشبكة وحاول تاني.';
