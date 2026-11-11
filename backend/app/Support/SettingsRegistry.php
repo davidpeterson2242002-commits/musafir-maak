@@ -231,6 +231,11 @@ final class SettingsRegistry
                 'type' => SettingType::Integer, 'group' => 'otp', 'label' => 'أقصى عدد رموز لنفس الرقم في الساعة',
                 'default' => 5, 'min' => 1,
             ],
+            'otp.test_phones' => [
+                'type' => SettingType::List, 'group' => 'otp', 'label' => 'أرقام تجريبية: يظهر لها الرمز داخل التطبيق',
+                'default' => [],
+                'help' => 'للتجربة فقط قبل تفعيل واتساب. الرمز يُملأ تلقائياً لهذه الأرقام. احذفها كلها قبل الإطلاق.',
+            ],
 
             // ---------------- Routes ----------------
             'routes.auto_create' => [

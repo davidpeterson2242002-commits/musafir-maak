@@ -171,4 +171,21 @@ class OtpAuthTest extends TestCase
         $this->assertNotSame($code, $row->code_hash);
         $this->assertTrue(Hash::check($code, $row->code_hash));
     }
+
+    public function test_listed_test_phone_gets_the_code_in_the_response(): void
+    {
+        settings()->set('otp.test_phones', ['0912345678']);
+
+        $code = $this->postJson('/api/v1/auth/otp', ['phone' => '+249912345678'])
+            ->assertOk()->json('debug_code');
+
+        $this->assertSame($this->whatsapp()->last()['params']['code'], $code);
+
+        // Any other number stays protected.
+        $this->postJson('/api/v1/auth/otp', ['phone' => '0911111111'])
+            ->assertOk()->assertJsonMissingPath('debug_code');
+
+        // And the code works.
+        $this->postJson('/api/v1/auth/verify', ['phone' => '0912345678', 'code' => $code])->assertOk();
+    }
 }

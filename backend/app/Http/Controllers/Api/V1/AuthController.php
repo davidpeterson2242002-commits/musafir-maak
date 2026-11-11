@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\VerifyOtpRequest;
 use App\Http\Resources\V1\MeResource;
 use App\Models\User;
 use App\Services\OtpService;
+use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,8 +29,10 @@ class AuthController extends Controller
             'expires_at' => $result['code']->expires_at->toIso8601String(),
         ];
 
-        // Local development convenience only.
-        if (app()->environment('local') && config('services.otp.expose_in_response')) {
+        // Local development, or a number the admin listed as a test number
+        // (setting otp.test_phones) while WhatsApp isn't connected.
+        $localDebug = app()->environment('local') && config('services.otp.expose_in_response');
+        if ($localDebug || $this->isTestPhone($phone)) {
             $payload['debug_code'] = $result['plain'];
         }
 
@@ -77,5 +80,16 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'تم تسجيل الخروج.']);
+    }
+
+    private function isTestPhone(string $phone): bool
+    {
+        foreach (settings()->list('otp.test_phones') as $entry) {
+            if (Phone::normalize((string) $entry) === $phone) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
