@@ -1,0 +1,49 @@
+name: Server diagnostics
+
+# Manual: calls the public API endpoints and prints the tail of the Laravel
+# log from the Hostinger server. Read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: "API paths to request (space separated, relative to /api/v1/)"
+        default: "config cities routes?popular=1"
+      log_lines:
+        description: "Lines of laravel.log to show"
+        default: "80"
+
+env:
+  SSH_HOST: 194.164.74.72
+  SSH_PORT: "65002"
+  SSH_USER: u214835178
+  HOST_FINGERPRINT: "SHA256:5QLQTWZosryBAR8PaS3YdCRRyoVf2JHIh83I1RcR3dA"
+  APP_URL: https://musafir.statement-ds.com
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Request endpoints
+        run: |
+          for p in ${{ inputs.paths }}; do
+            echo "=== GET /api/v1/$p"
+            curl -s -o /tmp/r.json -w "status %{http_code}, %{size_download} bytes, %{time_total}s\n" \
+              -H "Accept: application/json" "$APP_URL/api/v1/$p" || true
+            head -c 1500 /tmp/r.json; echo; echo
+          done
+
+      - name: SSH setup (verify host key)
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          ssh-keyscan -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > /tmp/hostkey 2>/dev/null
+          got=$(ssh-keygen -lf /tmp/hostkey | awk '{print $2}')
+          [ "$got" = "$HOST_FINGERPRINT" ] || { echo "Host key fingerprint mismatch!"; exit 1; }
+          cat /tmp/hostkey >> ~/.ssh/known_hosts
+
+      - name: Server log tail
+        run: |
+          ssh -i ~/.ssh/deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "ls -la ~/musafir/shared/storage/logs/ | tail -5; echo; tail -n ${{ inputs.log_lines }} \$(ls -t ~/musafir/shared/storage/logs/laravel*.log 2>/dev/null | head -1) 2>/dev/null | cut -c1-600 || echo 'no laravel log'"
