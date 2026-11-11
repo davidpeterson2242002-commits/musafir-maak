@@ -98,3 +98,27 @@ Artisan::command('notifications:test {phone : Phone of a registered user, e.g. 0
 
     return $failed ? 1 : 0;
 })->purpose('Send a test notification to one user through the configured providers');
+
+Artisan::command('admin:bootstrap', function () {
+    $email = env('ADMIN_EMAIL');
+    $pass = env('ADMIN_PASSWORD');
+    if (blank($email) || blank($pass)) {
+        $this->line('ADMIN_EMAIL / ADMIN_PASSWORD not set — skipped.');
+
+        return 0;
+    }
+    if (Admin::where('email', $email)->exists()) {
+        $this->line("Admin $email already exists — skipped.");
+
+        return 0;
+    }
+    Admin::create(['name' => 'المدير', 'email' => $email, 'role' => AdminRole::SuperAdmin, 'password' => $pass]);
+    $this->info("Super admin $email created.");
+})->purpose('Create the first super admin from ADMIN_EMAIL / ADMIN_PASSWORD (non-interactive, for deploys)');
+
+// Shared hosting has no long-running worker: when QUEUE_VIA_SCHEDULER=true the cron-driven
+// scheduler drains the queue every minute instead (notifications go out within ~1 minute).
+if (env('QUEUE_VIA_SCHEDULER', false)) {
+    Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')
+        ->everyMinute()->withoutOverlapping(2);
+}

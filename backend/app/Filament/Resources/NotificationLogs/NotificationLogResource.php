@@ -90,7 +90,7 @@ class NotificationLogResource extends Resource
                     ->description(fn (NotificationLog $record) => Phone::displayLtr($record->phone ?? $record->user?->phone))
                     ->searchable(query: fn (Builder $query, string $search) => $query->where(fn (Builder $q) => $q
                         ->where('phone', 'like', '%'.ltrim($search, '0').'%')
-                        ->orWhereHas('user', fn (Builder $u) => $u->where('name', 'ilike', "%$search%")->orWhere('phone', 'like', '%'.ltrim($search, '0').'%')))),
+                        ->orWhereHas('user', fn (Builder $u) => $u->whereRaw('lower(name) like ?', ['%'.mb_strtolower($search).'%'])->orWhere('phone', 'like', '%'.ltrim($search, '0').'%')))),
                 TextColumn::make('event')->label('الإشعار')
                     ->formatStateUsing(fn (string $state) => NotificationEvent::labelFor($state))
                     ->description(fn (NotificationLog $record) => $record->title),

@@ -88,10 +88,18 @@ class SearchService
 
         if (! empty($params['time_of_day'])) {
             $tz = config('app.display_timezone');
-            $query->where(function ($q) use ($params, $tz) {
+            if ($query->getConnection()->getDriverName() === 'pgsql') {
+                $hourSql = "extract(hour from (trips.departs_at at time zone 'UTC' at time zone ?))";
+                $tzArg = $tz;
+            } else {
+                // MySQL / MariaDB: a numeric offset works even without the server's time-zone tables.
+                $hourSql = "hour(convert_tz(trips.departs_at, '+00:00', ?))";
+                $tzArg = now($tz)->format('P');
+            }
+            $query->where(function ($q) use ($params, $hourSql, $tzArg) {
                 foreach ((array) $params['time_of_day'] as $slot) {
                     [$from, $to] = self::TIMES_OF_DAY[$slot] ?? [0, 24];
-                    $q->orWhereRaw("extract(hour from (trips.departs_at at time zone 'UTC' at time zone ?)) >= ? and extract(hour from (trips.departs_at at time zone 'UTC' at time zone ?)) < ?", [$tz, $from, $tz, $to]);
+                    $q->orWhereRaw("$hourSql >= ? and $hourSql < ?", [$tzArg, $from, $tzArg, $to]);
                 }
             });
         }

@@ -1,0 +1,97 @@
+name: Deploy backend (Hostinger)
+
+# Builds the Laravel backend on GitHub (composer install, no dev packages)
+# and ships it to the Hostinger Business plan over SSH.
+#
+# Server layout (home = /home/u214835178):
+#   ~/musafir/app      current code (replaced on every deploy)
+#   ~/musafir/shared   .env + storage/ (kept between deploys)
+#   ~/domains/statement-ds.com/public_html/musafir -> ~/musafir/app/public
+#
+# Secrets the repo owner adds once (Settings → Secrets → Actions):
+#   DEPLOY_SSH_KEY   private deploy key (its public half is in hPanel → SSH keys)
+#   DB_PASSWORD      password of MySQL user u214835178_musafir
+#   ADMIN_PASSWORD   first admin panel password (optional; used once)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+env:
+  SSH_HOST: 194.164.74.72
+  SSH_PORT: "65002"
+  SSH_USER: u214835178
+  # Published in hPanel → SSH Access (ED25519 host key fingerprint).
+  HOST_FINGERPRINT: "SHA256:5QLQTWZosryBAR8PaS3YdCRRyoVf2JHIh83I1RcR3dA"
+  APP_URL: https://musafir.statement-ds.com
+  DB_NAME: u214835178_musafir
+  DB_USER: u214835178_musafir
+  ADMIN_EMAIL: gamarmohammed208@gmail.com
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, intl, pdo_mysql, zip, gd, bcmath
+          tools: composer:v2
+
+      - name: Composer install (production)
+        working-directory: backend
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts
+
+      - name: Package
+        run: |
+          tar -C backend -czf /tmp/backend.tgz \
+            --exclude=./.env --exclude=./storage --exclude=./tests --exclude=./node_modules \
+            --exclude=./phpunit.xml --exclude=./.git .
+          ls -lh /tmp/backend.tgz
+
+      - name: SSH setup (verify host key)
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          ssh-keyscan -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > /tmp/hostkey 2>/dev/null
+          got=$(ssh-keygen -lf /tmp/hostkey | awk '{print $2}')
+          echo "Host key: $got"
+          [ "$got" = "$HOST_FINGERPRINT" ] || { echo "Host key fingerprint mismatch!"; exit 1; }
+          cat /tmp/hostkey >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host prod
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy
+            ServerAliveInterval 30
+          EOF
+
+      - name: Upload
+        run: scp -q /tmp/backend.tgz prod:musafir-backend.tgz
+
+      - name: Install on server
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          ssh prod "DB_PASSWORD='$DB_PASSWORD' ADMIN_PASSWORD='$ADMIN_PASSWORD' APP_URL='$APP_URL' DB_NAME='$DB_NAME' DB_USER='$DB_USER' ADMIN_EMAIL='$ADMIN_EMAIL' bash -s" < deploy/hostinger-install.sh
+
+      - name: Smoke test
+        run: |
+          sleep 3
+          code=$(curl -s -o /tmp/config.json -w '%{http_code}' "$APP_URL/api/v1/config" || true)
+          echo "GET /api/v1/config -> $code"
+          head -c 300 /tmp/config.json; echo
+          [ "$code" = "200" ]
