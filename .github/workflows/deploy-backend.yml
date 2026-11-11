@@ -95,3 +95,6 @@ jobs:
           echo "GET /api/v1/config -> $code"
           head -c 300 /tmp/config.json; echo
           [ "$code" = "200" ]
+          css=$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL/css/filament/filament/app.css" || true)
+          echo "GET /css/filament/filament/app.css -> $css"
+          [ "$css" = "200" ]

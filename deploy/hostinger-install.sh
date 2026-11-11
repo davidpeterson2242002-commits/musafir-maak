@@ -94,6 +94,10 @@ fi
 "$PHP" artisan notifications:sync
 "$PHP" artisan admin:bootstrap
 "$PHP" artisan storage:link --force >/dev/null 2>&1 || true
+# Admin panel CSS/JS/fonts. They are gitignored and normally published by
+# composer's post-autoload-dump script, which CI skips (--no-scripts).
+"$PHP" artisan filament:assets
+ls public/css/filament >/dev/null || { echo "Filament assets missing"; exit 1; }
 "$PHP" artisan optimize:clear >/dev/null
 "$PHP" artisan filament:optimize >/dev/null 2>&1 || true
 
