@@ -36,8 +36,12 @@ class ChatRepository {
         await _api.get('conversations/$conversationId/messages', query: {if (afterId != null) 'after_id': afterId}),
       );
 
-  Future<ChatMessage> send(int conversationId, String body) async {
-    final json = await _api.post('conversations/$conversationId/messages', body: {'body': body});
+  /// [clientId] makes a retry safe: the server returns the first copy instead of a duplicate.
+  Future<ChatMessage> send(int conversationId, String body, {String? clientId}) async {
+    final json = await _api.post(
+      'conversations/$conversationId/messages',
+      body: {'body': body, if (clientId != null) 'client_id': clientId},
+    );
     return ChatMessage.fromJson(Map<String, dynamic>.from(json as Map));
   }
 

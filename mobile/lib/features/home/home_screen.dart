@@ -14,6 +14,8 @@ import '../bookings/booking_repository.dart';
 import '../bookings/booking_widgets.dart';
 import '../geo/city_picker.dart';
 import '../geo/geo_repository.dart';
+import '../live/live_updates.dart';
+import '../ratings/rating_cards.dart';
 import '../ratings/rating_repository.dart';
 import '../trips/trip_repository.dart';
 
@@ -74,7 +76,8 @@ class HomeScreen extends ConsumerWidget {
             Text(S.hello(firstName), style: text.bodyLarge?.copyWith(color: AppColors.inkMuted)),
           Text(S.whereTo, style: text.displaySmall),
           const SizedBox(height: 16),
-          const _RatePrompt(),
+          const _LiveNotices(),
+          const RatingCards(driverSide: false),
           const _NextTrip(),
           const _SearchCard(),
           const SizedBox(height: 28),
@@ -106,7 +109,8 @@ class _SearchCard extends ConsumerWidget {
       } else {
         // A new search starts without the previous search's filters.
         ref.read(searchFiltersProvider.notifier).state = const SearchFilters();
-        context.push('/search');
+        // Parcels: the details come first, then only the trips that can carry it.
+        context.push(isTrip ? '/search' : '/parcels/new');
       }
     }
 
@@ -477,46 +481,71 @@ class _NextTrip extends ConsumerWidget {
 }
 
 /// A finished trip waiting for a rating (spec P9).
-class _RatePrompt extends ConsumerWidget {
-  const _RatePrompt();
+/// "The driver accepted your booking" — changes the passenger hasn't opened yet,
+/// spotted by the live updates the moment the app is open.
+class _LiveNotices extends ConsumerWidget {
+  const _LiveNotices();
+
+  static String _title(LiveNotice n) => switch ((n.kind, n.status)) {
+        ('booking', 'accepted') => S.noticeBookingAccepted,
+        ('booking', 'rejected') => S.noticeBookingRejected,
+        ('booking', 'expired') => S.noticeBookingExpired,
+        ('booking', _) => S.noticeBookingCancelled,
+        ('parcel', 'accepted') => S.noticeParcelAccepted,
+        ('parcel', 'rejected') => S.noticeParcelRejected,
+        ('parcel', 'expired') => S.noticeParcelExpired,
+        ('parcel', 'picked_up') => S.noticeParcelPickedUp,
+        ('parcel', 'delivered') => S.noticeParcelDelivered,
+        _ => S.noticeParcelCancelled,
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pending = ref.watch(pendingRatingsProvider).valueOrNull?.firstOrNull;
-    if (pending == null) return const SizedBox.shrink();
+    final notices = ref.watch(liveUpdatesProvider.select((s) => s.notices));
+    if (notices.isEmpty) return const SizedBox.shrink();
+    final text = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Material(
-        color: AppColors.amberTint,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () async {
-            await context.push('/rate', extra: pending);
-            ref.invalidate(pendingRatingsProvider);
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                const Icon(Icons.star_rounded, color: AppColors.amber, size: 30),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        for (final n in notices)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Material(
+              color: n.status == 'accepted' || n.status == 'delivered' || n.status == 'picked_up'
+                  ? AppColors.greenTint
+                  : AppColors.dangerTint,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  ref.read(liveUpdatesProvider.notifier).dismiss(n);
+                  context.push(n.route);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+                  child: Row(
                     children: [
-                      Text(S.ratePrompt(pending.rateeName), style: Theme.of(context).textTheme.titleMedium),
-                      Text(pending.summary, style: Theme.of(context).textTheme.bodySmall),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(_title(n), style: text.titleMedium),
+                            Text(S.noticeOpen, style: text.bodySmall?.copyWith(color: AppColors.greenDark)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: S.close,
+                        icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.inkMuted),
+                        onPressed: () => ref.read(liveUpdatesProvider.notifier).dismiss(n),
+                      ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_left_rounded, color: AppColors.ink, textDirection: TextDirection.ltr),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+      ],
     );
   }
 }

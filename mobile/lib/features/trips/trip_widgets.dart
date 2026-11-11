@@ -126,7 +126,7 @@ class DriverLine extends StatelessWidget {
 
 /// One search result (spec P4): time, driver, vehicle, price, seats, badges.
 class TripCard extends StatelessWidget {
-  const TripCard({super.key, required this.trip, required this.onTap, this.parcelMode = false});
+  const TripCard({super.key, required this.trip, required this.onTap, this.parcelMode = false, this.parcelSize});
 
   final Trip trip;
   final VoidCallback onTap;
@@ -134,10 +134,15 @@ class TripCard extends StatelessWidget {
   /// Searching for a parcel carrier: show parcel prices instead of the seat price.
   final bool parcelMode;
 
+  /// The size chosen in the parcel draft: its price is shown instead of "from".
+  final String? parcelSize;
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final parcelFrom = trip.parcelPrices.values.isEmpty ? null : trip.parcelPrices.values.reduce((a, b) => a < b ? a : b);
+    final sizePrice = parcelSize == null ? null : trip.parcelPrices[parcelSize];
+    final parcelFrom = sizePrice ??
+        (trip.parcelPrices.values.isEmpty ? null : trip.parcelPrices.values.reduce((a, b) => a < b ? a : b));
 
     return Material(
       color: AppColors.surface,
@@ -178,7 +183,7 @@ class TripCard extends StatelessWidget {
                         Fmt.money(parcelMode ? (parcelFrom ?? 0) : trip.pricePerSeat),
                         style: text.titleLarge?.copyWith(color: AppColors.green),
                       ),
-                      Text(parcelMode ? S.parcelFrom : S.perSeat, style: text.bodySmall),
+                      Text(parcelMode ? (sizePrice != null ? S.parcelPrice : S.parcelFrom) : S.perSeat, style: text.bodySmall),
                     ],
                   ),
                 ],

@@ -6,22 +6,28 @@ import '../../models/driver_trip.dart';
 import '../auth/session_controller.dart';
 
 /// Whether the app shows the driver side (spec: one app, switch between
-/// passenger and driver mode). Only approved drivers can turn it on; the
-/// choice is remembered on the phone.
+/// passenger and driver mode). Only approved drivers can turn it on.
+///
+/// The choice is the driver's: it stays on this phone through restarts and
+/// logging out and back in (kept per account, outside the `user.` cache that
+/// logout wipes), and changes only when they switch it themselves.
 final driverModeProvider = NotifierProvider<DriverModeController, bool>(DriverModeController.new);
 
 class DriverModeController extends Notifier<bool> {
-  static const _key = '${CacheKeys.user}driver_mode';
+  static String _key(int userId) => 'driver_mode.$userId';
 
   @override
   bool build() {
-    final isDriver = ref.watch(currentUserProvider.select((user) => user?.isDriver ?? false));
-    return isDriver && ref.read(cacheStoreProvider).read(_key)?.data == true;
+    final user = ref.watch(currentUserProvider.select((u) => u == null ? null : (id: u.id, isDriver: u.isDriver)));
+    if (user == null || !user.isDriver) return false;
+    return ref.read(cacheStoreProvider).read(_key(user.id))?.data == true;
   }
 
   void set(bool driverMode) {
-    state = driverMode;
-    ref.read(cacheStoreProvider).write(_key, driverMode);
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+    state = driverMode && user.isDriver;
+    ref.read(cacheStoreProvider).write(_key(user.id), state);
   }
 }
 

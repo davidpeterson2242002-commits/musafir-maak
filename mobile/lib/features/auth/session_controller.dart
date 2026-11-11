@@ -103,11 +103,15 @@ class SessionController extends Notifier<SessionState> {
   Future<void> updateFromJson(Map<String, dynamic> json) => _apply(json);
 
   Future<void> signOut() async {
+    // Tell the server, but never make the person wait on a bad connection:
+    // after a few seconds we log out on the phone anyway.
     try {
-      await ref.read(pushServiceProvider).unregister();
-      await ref.read(authRepositoryProvider).logout();
-    } on ApiException {
-      // Offline or already invalid: logging out locally is what matters.
+      await Future.wait([
+        ref.read(pushServiceProvider).unregister(),
+        ref.read(authRepositoryProvider).logout(),
+      ]).timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Offline, slow or already invalid: logging out locally is what matters.
     }
     await _clear();
     state = const SessionState.signedOut();
@@ -128,7 +132,16 @@ class SessionController extends Notifier<SessionState> {
 
   Future<void> _apply(Map<String, dynamic> json) async {
     await _cache.write(CacheKeys.me, json);
-    state = SessionState.signedIn(User.fromJson(json));
+    final user = User.fromJson(json);
+    _rememberLogin(user);
+    state = SessionState.signedIn(user);
+  }
+
+  /// Kept after logout (outside the `user.` cache) so the next visit shows
+  /// "welcome back" with the number filled in instead of the sign-up screen.
+  void _rememberLogin(User user) {
+    if (!user.profileCompleted) return;
+    _cache.write(CacheKeys.lastLogin, {'phone': user.phone, 'name': user.name, 'photo_url': user.photoUrl});
   }
 
   Future<void> _clear() async {

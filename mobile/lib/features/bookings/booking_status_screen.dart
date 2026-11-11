@@ -20,6 +20,7 @@ import '../ratings/rating_repository.dart';
 import '../reports/report_sheet.dart';
 import '../trips/trip_details_screen.dart';
 import '../trips/trip_widgets.dart';
+import '../live/live_updates.dart';
 import 'booking_repository.dart';
 import 'booking_widgets.dart';
 
@@ -41,6 +42,8 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
   @override
   void initState() {
     super.initState();
+    // Opening it clears its "accepted / rejected…" notice on home.
+    Future.microtask(() => ref.read(liveUpdatesProvider.notifier).opened('booking', widget.bookingId));
     // Keeps the countdown moving and picks up the driver's answer without websockets.
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/config/env.dart';
 import '../../core/strings.dart';
+import '../../core/storage/cache_store.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
@@ -29,9 +30,17 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
   String? _error;
   bool _busy = false;
 
+  /// The account that last logged in on this phone: "welcome back" mode.
+  Map<String, dynamic>? _returning;
+
   @override
   void initState() {
     super.initState();
+    final last = ref.read(cacheStoreProvider).read(CacheKeys.lastLogin)?.data;
+    if (last is Map && last['phone'] is String) {
+      _returning = Map<String, dynamic>.from(last);
+      _controller.text = Phone.local(_returning!['phone'] as String);
+    }
     // "Your session expired" and similar, shown once.
     final notice = ref.read(sessionProvider).notice;
     if (notice != null) {
@@ -89,16 +98,31 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 48),
-              Text(S.phoneTitle, style: text.displaySmall),
-              const SizedBox(height: 6),
-              Text(S.phoneBody, style: text.bodyLarge?.copyWith(color: AppColors.inkMuted)),
+              if (_returning != null) ...[
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: AppAvatar(
+                    photoUrl: _returning!['photo_url'] as String?,
+                    name: _returning!['name'] as String?,
+                    size: 64,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(S.welcomeBack(_returning!['name'] as String? ?? ''), style: text.displaySmall),
+                const SizedBox(height: 6),
+                Text(S.loginBody, style: text.bodyLarge?.copyWith(color: AppColors.inkMuted)),
+              ] else ...[
+                Text(S.phoneTitle, style: text.displaySmall),
+                const SizedBox(height: 6),
+                Text(S.phoneBody, style: text.bodyLarge?.copyWith(color: AppColors.inkMuted)),
+              ],
               const SizedBox(height: 28),
               // Digits are typed and read left-to-right.
               Directionality(
                 textDirection: TextDirection.ltr,
                 child: TextField(
                   controller: _controller,
-                  autofocus: true,
+                  autofocus: _returning == null,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.done,
                   autofillHints: const [AutofillHints.telephoneNumber],
@@ -125,7 +149,15 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                 Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 14.5)),
               ],
               const Spacer(),
-              PrimaryButton(label: S.sendCode, onPressed: _submit, busy: _busy),
+              PrimaryButton(label: _returning != null ? S.login : S.sendCode, onPressed: _submit, busy: _busy),
+              if (_returning != null)
+                TextButton(
+                  onPressed: () => setState(() {
+                    _returning = null;
+                    _controller.clear();
+                  }),
+                  child: const Text(S.otherNumber),
+                ),
               const SizedBox(height: 16),
             ],
           ),

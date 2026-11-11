@@ -17,6 +17,7 @@ import '../../models/parcel.dart';
 import '../reports/report_sheet.dart';
 import '../trips/trip_details_screen.dart';
 import '../trips/trip_widgets.dart';
+import '../live/live_updates.dart';
 import 'parcel_repository.dart';
 
 /// Colours and wording for each parcel state.
@@ -116,6 +117,8 @@ class _ParcelStatusScreenState extends ConsumerState<ParcelStatusScreen> {
   @override
   void initState() {
     super.initState();
+    // Opening it clears its "accepted / rejected…" notice on home.
+    Future.microtask(() => ref.read(liveUpdatesProvider.notifier).opened('parcel', widget.parcelId));
     // Picks up the driver's answer, pickup and delivery while the page is open.
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;

@@ -12,6 +12,7 @@ import '../../core/utils/formatters.dart';
 import '../../core/widgets/common.dart';
 import '../../models/chat.dart';
 import '../reports/report_sheet.dart';
+import 'chat_outbox.dart';
 import 'chat_repository.dart';
 
 /// "الرسائل" tab (spec P10): one conversation per booking or parcel.
@@ -159,7 +160,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Timer? _poller;
   Object? _loadError;
   bool _loading = true;
-  bool _sending = false;
   bool _polling = false;
 
   @override
@@ -224,25 +224,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  Future<void> _send() async {
+  /// WhatsApp-style: the text leaves the box at once and waits in the outbox
+  /// with a clock until the server has it.
+  void _send() {
     final body = _input.text.trim();
-    if (body.isEmpty || _sending) return;
+    if (body.isEmpty) return;
+    ref.read(chatOutboxProvider.notifier).enqueue(widget.conversationId, body);
+    _input.clear();
+    _jumpToEnd();
+  }
 
-    setState(() => _sending = true);
-    try {
-      final message = await ref.read(chatRepositoryProvider).send(widget.conversationId, body);
-      if (!mounted) return;
-      _input.clear();
-      setState(() {
-        if (!_messages.any((m) => m.id == message.id)) _messages.add(message);
-      });
-      _jumpToEnd();
-    } on ApiException catch (e) {
-      // The text stays in the box so nothing typed is lost.
-      if (mounted) showMessage(context, e.isOffline ? S.messageFailed : (e.fieldError('body') ?? e.message));
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
+  /// Server messages, then the ones confirmed by the outbox but not polled yet,
+  /// then the ones still waiting (clock) — without duplicates.
+  List<({ChatMessage? message, OutboxItem? pending})> _items() {
+    final outbox = ref.watch(chatOutboxProvider);
+    final ids = _messages.map((m) => m.id).toSet();
+    final clientIds = _messages.map((m) => m.clientId).whereType<String>().toSet();
+    final confirmed = outbox
+        .sentIn(widget.conversationId)
+        .where((m) => !ids.contains(m.id) && !(m.clientId != null && clientIds.contains(m.clientId)))
+        .toList();
+    final waiting = outbox
+        .forConversation(widget.conversationId)
+        .where((p) => !clientIds.contains(p.clientId))
+        .toList();
+    return [
+      for (final m in _messages) (message: m, pending: null),
+      for (final m in confirmed) (message: m, pending: null),
+      for (final p in waiting) (message: null, pending: p),
+    ];
+  }
+
+  /// ✓ on the server, ✓✓ the other person's app has checked in since, blue ✓✓ read.
+  _Ticks _ticks(ChatMessage m) {
+    if (!m.mine) return _Ticks.none;
+    final at = m.sentAt;
+    final c = _conversation;
+    if (at == null || c == null) return _Ticks.sent;
+    if (c.otherLastReadAt != null && !c.otherLastReadAt!.isBefore(at)) return _Ticks.read;
+    if (c.otherLastSeenAt != null && !c.otherLastSeenAt!.isBefore(at)) return _Ticks.delivered;
+    return _Ticks.sent;
   }
 
   void _jumpToEnd() {
@@ -261,6 +282,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final conversation = _conversation;
+    final items = _items();
 
     return Scaffold(
       appBar: AppBar(
@@ -309,7 +331,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _loadError != null
                     ? LoadError(error: _loadError!, onRetry: _load)
-                    : _messages.isEmpty
+                    : items.isEmpty
                         ? Center(
                             child: Padding(
                               padding: const EdgeInsets.all(32),
@@ -323,8 +345,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         : ListView.builder(
                             controller: _scroll,
                             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                            itemCount: _messages.length,
-                            itemBuilder: (context, index) => _Bubble(message: _messages[index]),
+                            itemCount: items.length,
+                            itemBuilder: (context, index) {
+                              final item = items[index];
+                              return item.pending != null
+                                  ? _PendingBubble(item: item.pending!)
+                                  : _Bubble(message: item.message!, ticks: _ticks(item.message!));
+                            },
                           ),
           ),
           if (conversation != null && !conversation.open)
@@ -365,7 +392,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      onPressed: _sending ? null : _send,
+                      onPressed: _send,
                       style: IconButton.styleFrom(
                         backgroundColor: AppColors.green,
                         foregroundColor: Colors.white,
@@ -385,10 +412,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
+enum _Ticks { none, sent, delivered, read }
+
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message});
+  const _Bubble({required this.message, this.ticks = _Ticks.none});
 
   final ChatMessage message;
+  final _Ticks ticks;
 
   @override
   Widget build(BuildContext context) {
@@ -416,11 +446,94 @@ class _Bubble extends StatelessWidget {
               Text(S.numberHidden, style: TextStyle(fontSize: 12, height: 1.4, color: Colors.white.withValues(alpha: 0.85))),
             ],
             if (message.createdAt != null)
-              Text(
-                Fmt.time(message.createdAt!),
-                style: TextStyle(fontSize: 11.5, color: mine ? Colors.white.withValues(alpha: 0.8) : AppColors.inkMuted),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    Fmt.time(message.createdAt!),
+                    style: TextStyle(fontSize: 11.5, color: mine ? Colors.white.withValues(alpha: 0.8) : AppColors.inkMuted),
+                  ),
+                  if (ticks != _Ticks.none) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      ticks == _Ticks.sent ? Icons.done_rounded : Icons.done_all_rounded,
+                      size: 16,
+                      color: ticks == _Ticks.read ? const Color(0xFF9EE6FF) : Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ],
+                ],
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A message still in the outbox: clock while waiting; red mark with
+/// try-again / delete when the server refused it.
+class _PendingBubble extends ConsumerWidget {
+  const _PendingBubble({required this.item});
+
+  final OutboxItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: GestureDetector(
+        // Failed: tap to try again; long-press (any time) to delete it.
+        onTap: item.failed
+            ? () async {
+                final retry = await confirmSheet(
+                  context,
+                  title: S.messageNotSent,
+                  body: item.error,
+                  confirmLabel: S.tryAgain,
+                );
+                if (retry) ref.read(chatOutboxProvider.notifier).retry(item);
+              }
+            : null,
+        onLongPress: () async {
+          final delete = await confirmSheet(
+            context,
+            title: S.deleteUnsentMessage,
+            confirmLabel: S.delete,
+            destructive: true,
+          );
+          if (delete) ref.read(chatOutboxProvider.notifier).remove(item);
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.fromLTRB(14, 9, 14, 7),
+          constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
+          decoration: BoxDecoration(
+            color: AppColors.green.withValues(alpha: item.failed ? 0.55 : 0.85),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.body, style: text.bodyLarge?.copyWith(color: Colors.white, height: 1.5)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    Fmt.time(item.createdAt),
+                    style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.8)),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    item.failed ? Icons.error_rounded : Icons.schedule_rounded,
+                    size: 15,
+                    color: item.failed ? const Color(0xFFFFD2CC) : Colors.white.withValues(alpha: 0.8),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -11,22 +11,54 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/phone.dart';
 import '../../core/widgets/common.dart';
+import '../../models/app_config.dart';
 import '../../models/parcel.dart';
 import '../../models/trip.dart';
 import '../../models/user.dart';
 import '../auth/session_controller.dart';
 import '../config/config_repository.dart';
+import '../home/home_screen.dart';
 import '../profile/photo_picker.dart';
 import '../trips/trip_repository.dart';
 import '../trips/trip_widgets.dart';
 import 'parcel_repository.dart';
 
+/// What the sender filled in before choosing a trip (parcel-first flow):
+/// home → details → trips that can take it → confirm on the chosen trip.
+class ParcelDraft {
+  const ParcelDraft({
+    required this.description,
+    required this.size,
+    required this.photoPath,
+    required this.receiverName,
+    required this.receiverPhone,
+    required this.senderPays,
+    required this.message,
+    required this.confirmed,
+  });
+
+  final String description;
+  final String size;
+  final String photoPath;
+  final String receiverName;
+  final String receiverPhone;
+  final bool senderPays;
+  final String message;
+  final bool confirmed;
+}
+
+final parcelDraftProvider = StateProvider<ParcelDraft?>((ref) => null);
+
 /// Parcel request (spec S2): what it is, how big, a photo, who receives it,
 /// who pays, and the prohibited-items confirmation.
+///
+/// Without [tripId] it is the first step of sending a parcel: the details are
+/// kept as a draft and the search shows only trips with room for parcels. With
+/// a [tripId] the form opens already filled from that draft, to confirm.
 class ParcelRequestScreen extends ConsumerStatefulWidget {
-  const ParcelRequestScreen({super.key, required this.tripId});
+  const ParcelRequestScreen({super.key, this.tripId});
 
-  final int tripId;
+  final int? tripId;
 
   @override
   ConsumerState<ParcelRequestScreen> createState() => _ParcelRequestScreenState();
@@ -45,6 +77,39 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
   bool _confirmed = false;
   bool _busy = false;
   Map<String, String> _errors = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final draft = ref.read(parcelDraftProvider);
+    if (draft != null) {
+      _description.text = draft.description;
+      _size = draft.size;
+      _photoPath = draft.photoPath;
+      _receiverName.text = draft.receiverName;
+      _receiverPhone.text = draft.receiverPhone;
+      _senderPays = draft.senderPays;
+      _message.text = draft.message;
+      _confirmed = draft.confirmed;
+    }
+  }
+
+  /// Draft step: keep the details and show the trips that can carry this parcel.
+  void _toSearch(String size) {
+    FocusScope.of(context).unfocus();
+    if (!_validate(size)) return;
+    ref.read(parcelDraftProvider.notifier).state = ParcelDraft(
+      description: _description.text,
+      size: size,
+      photoPath: _photoPath!,
+      receiverName: _receiverName.text,
+      receiverPhone: _receiverPhone.text,
+      senderPays: _senderPays,
+      message: _message.text,
+      confirmed: _confirmed,
+    );
+    context.push('/search');
+  }
 
   @override
   void dispose() {
@@ -85,7 +150,8 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
 
       if (!mounted) return;
       ref.invalidate(parcelsProvider);
-      ref.invalidate(tripDetailsProvider(widget.tripId));
+      ref.invalidate(tripDetailsProvider(trip.id));
+      ref.read(parcelDraftProvider.notifier).state = null;
       showMessage(context, S.requestSent);
       context.pushReplacement('/parcels/${parcel.id}');
     } on ApiException catch (e) {
@@ -116,7 +182,7 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final details = ref.watch(tripDetailsProvider(widget.tripId));
+    final tripId = widget.tripId;
     final config = ref.watch(appConfigProvider).valueOrNull;
     final user = ref.watch(currentUserProvider);
 
@@ -127,18 +193,27 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
         backgroundColor: AppColors.surface,
         scrolledUnderElevation: 0,
       ),
-      body: details.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => LoadError(error: error, onRetry: () => ref.invalidate(tripDetailsProvider(widget.tripId))),
-        data: (details) {
-          final trip = details.trip;
-          final sizes = trip.parcelPrices.keys.toList();
-          if (sizes.isEmpty || details.parcelSlotsLeft < 1) {
-            return const EmptyState(icon: Icons.inventory_2_outlined, title: S.noParcelSlots, body: '');
-          }
+      body: tripId == null
+          ? _form(context, null, config, user)
+          : ref.watch(tripDetailsProvider(tripId)).when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => LoadError(error: error, onRetry: () => ref.invalidate(tripDetailsProvider(tripId))),
+                data: (details) {
+                  if (details.trip.parcelPrices.isEmpty || details.parcelSlotsLeft < 1) {
+                    return const EmptyState(icon: Icons.inventory_2_outlined, title: S.noParcelSlots, body: '');
+                  }
+                  return _form(context, details.trip, config, user);
+                },
+              ),
+    );
+  }
 
-          final size = _size ?? sizes.first;
-          final price = trip.parcelPrices[size] ?? 0;
+  Widget _form(BuildContext context, Trip? trip, AppConfig? config, User? user) {
+    final text = Theme.of(context).textTheme;
+    final query = ref.read(searchQueryProvider);
+          final sizes = trip?.parcelPrices.keys.toList() ?? (config?.parcelSizes.keys.toList() ?? const ['small', 'medium', 'large']);
+          final size = (_size != null && sizes.contains(_size)) ? _size! : sizes.first;
+          final price = trip?.parcelPrices[size] ?? 0;
           final sizeLabels = config?.parcelSizes ?? const <String, String>{};
           final prohibited = config?.prohibitedItems ?? const <String>[];
           final idMissing = user?.idStatus == IdStatus.none || user?.idStatus == IdStatus.rejected;
@@ -150,9 +225,13 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     children: [
-                      RouteTitle(from: trip.originName, to: trip.destinationName, style: text.headlineSmall),
+                      RouteTitle(
+                        from: trip?.originName ?? query.from?.name ?? '',
+                        to: trip?.destinationName ?? query.to?.name ?? '',
+                        style: text.headlineSmall,
+                      ),
                       Text(
-                        '${Fmt.dayTime(trip.departsAt)} — ${trip.driver.name}',
+                        trip == null ? S.parcelDraftHint : '${Fmt.dayTime(trip.departsAt)} — ${trip.driver.name}',
                         style: text.bodyMedium?.copyWith(color: AppColors.inkMuted),
                       ),
                       const SizedBox(height: 20),
@@ -175,7 +254,7 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
                           child: _SizeTile(
                             label: sizeLabels[key] ?? key,
                             help: _sizeHelp[key] ?? '',
-                            price: Fmt.money(trip.parcelPrices[key] ?? 0),
+                            price: trip == null ? '' : Fmt.money(trip.parcelPrices[key] ?? 0),
                             selected: key == size,
                             onTap: () => setState(() => _size = key),
                           ),
@@ -284,31 +363,35 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: Text(S.parcelPrice, style: text.titleMedium)),
-                          Text(Fmt.money(price), style: text.titleLarge?.copyWith(color: AppColors.green)),
-                        ],
-                      ),
-                      Text(
-                        _senderPays ? S.payDriverDirectly : '${S.receiverPays} عند الاستلام.',
-                        style: text.bodySmall,
-                      ),
-                      const SizedBox(height: 10),
-                      PrimaryButton(
-                        label: idMissing ? S.verifyThenSend : S.sendParcelRequest,
-                        busy: _busy,
-                        onPressed: () => _submit(trip, size),
-                      ),
+                      if (trip != null) ...[
+                        Row(
+                          children: [
+                            Expanded(child: Text(S.parcelPrice, style: text.titleMedium)),
+                            Text(Fmt.money(price), style: text.titleLarge?.copyWith(color: AppColors.green)),
+                          ],
+                        ),
+                        Text(
+                          _senderPays ? S.payDriverDirectly : '${S.receiverPays} عند الاستلام.',
+                          style: text.bodySmall,
+                        ),
+                        const SizedBox(height: 10),
+                        PrimaryButton(
+                          label: idMissing ? S.verifyThenSend : S.sendParcelRequest,
+                          busy: _busy,
+                          onPressed: () => _submit(trip, size),
+                        ),
+                      ] else
+                        PrimaryButton(
+                          label: S.findTripsForParcel,
+                          icon: Icons.search_rounded,
+                          onPressed: () => _toSearch(size),
+                        ),
                     ],
                   ),
                 ),
               ],
             ),
           );
-        },
-      ),
-    );
   }
 }
 

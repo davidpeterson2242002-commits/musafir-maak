@@ -8,7 +8,10 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/common.dart';
 import '../../models/driver_trip.dart';
+import '../../models/parcel.dart';
 import '../trips/trip_widgets.dart';
+import '../ratings/rating_repository.dart';
+import '../home/home_shell.dart';
 import 'driver_booking_card.dart';
 import 'driver_parcel_card.dart';
 import 'driver_trip_repository.dart';
@@ -27,7 +30,8 @@ class DriverTripScreen extends ConsumerStatefulWidget {
 class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
   bool _busy = false;
 
-  Future<void> _run(Future<DriverTrip> Function() action, String success) async {
+  /// Returns true when the action went through.
+  Future<bool> _run(Future<DriverTrip> Function() action, String success) async {
     setState(() => _busy = true);
     try {
       await action();
@@ -35,8 +39,10 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
       ref.invalidate(driverTripsProvider);
       ref.invalidate(driverRequestsProvider);
       if (mounted) showMessage(context, success);
+      return true;
     } on ApiException catch (e) {
       if (mounted) showMessage(context, e.fieldError('reason') ?? e.message);
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -187,6 +193,14 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                     icon: trip.canComplete ? Icons.flag_rounded : Icons.play_arrow_rounded,
                     busy: _busy,
                     onPressed: () async {
+                      // A parcel still in the car: deliver it (with the code) before ending the trip.
+                      final undelivered = trip.parcels
+                          .where((p) => p.status == ParcelStatus.accepted || p.status == ParcelStatus.pickedUp)
+                          .length;
+                      if (trip.canComplete && undelivered > 0) {
+                        showMessage(context, S.parcelsNotDelivered(undelivered));
+                        return;
+                      }
                       final ok = await confirmSheet(
                         context,
                         title: trip.canComplete ? S.finishTrip : S.startTrip,
@@ -194,10 +208,18 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                         confirmLabel: trip.canComplete ? S.finishTrip : S.startTrip,
                       );
                       if (!ok) return;
-                      await _run(
-                        () => trip.canComplete ? repo.complete(trip.id) : repo.depart(trip.id),
-                        trip.canComplete ? S.tripCompleted : S.tripStarted,
+                      final finishing = trip.canComplete;
+                      final done = await _run(
+                        () => finishing ? repo.complete(trip.id) : repo.depart(trip.id),
+                        finishing ? S.tripCompleted : S.tripStarted,
                       );
+                      // Trip over: straight to the driver home, where the passengers to
+                      // rate wait in one swipeable card.
+                      if (done && finishing && context.mounted) {
+                        ref.invalidate(pendingRatingsProvider);
+                        ref.read(homeTabProvider.notifier).state = 0;
+                        context.go('/');
+                      }
                     },
                   ),
                 ),

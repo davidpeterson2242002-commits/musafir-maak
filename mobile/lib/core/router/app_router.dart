@@ -68,37 +68,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(path: '/setup', builder: (context, state) => const ProfileSetupScreen()),
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const HomeShell(),
+      ShellRoute(
+        // Every signed-in page shares the bottom bar (AppFrame).
+        builder: (context, state, child) => AppFrame(location: state.matchedLocation, child: child),
         routes: [
-          GoRoute(path: 'profile/edit', builder: (context, state) => const EditProfileScreen()),
-          GoRoute(path: 'search', builder: (context, state) => const SearchResultsScreen()),
+          GoRoute(path: '/', builder: (context, state) => const HomeShell()),
+          GoRoute(path: '/profile/edit', builder: (context, state) => const EditProfileScreen()),
+          GoRoute(path: '/search', builder: (context, state) => const SearchResultsScreen()),
           GoRoute(
-            path: 'trips/:id',
+            path: '/trips/:id',
             builder: (context, state) => TripDetailsScreen(tripId: _id(state)),
             routes: [
               GoRoute(path: 'book', builder: (context, state) => BookingRequestScreen(tripId: _id(state))),
               GoRoute(path: 'parcel', builder: (context, state) => ParcelRequestScreen(tripId: _id(state))),
             ],
           ),
-          GoRoute(path: 'bookings/:id', builder: (context, state) => BookingStatusScreen(bookingId: _id(state))),
+          GoRoute(path: '/bookings/:id', builder: (context, state) => BookingStatusScreen(bookingId: _id(state))),
           GoRoute(
-            path: 'identity',
+            path: '/identity',
             // extra == true when opened from the booking form.
             builder: (context, state) => IdentityScreen(
               forBooking: state.extra == true,
               collectOnly: state.extra == 'driver',
             ),
           ),
-          GoRoute(path: 'alerts', builder: (context, state) => const RouteAlertsScreen()),
-          GoRoute(path: 'driver/register', builder: (context, state) => const DriverRegistrationScreen()),
-          GoRoute(path: 'driver/balance', builder: (context, state) => const BalanceScreen()),
-          GoRoute(path: 'driver/pay', builder: (context, state) => const PayScreen()),
+          GoRoute(path: '/alerts', builder: (context, state) => const RouteAlertsScreen()),
+          GoRoute(path: '/driver/register', builder: (context, state) => const DriverRegistrationScreen()),
+          GoRoute(path: '/driver/balance', builder: (context, state) => const BalanceScreen()),
+          GoRoute(path: '/driver/pay', builder: (context, state) => const PayScreen()),
           // 'new' is listed before ':id' so it isn't read as a trip id.
-          GoRoute(path: 'driver/trips/new', builder: (context, state) => const PostTripScreen()),
+          GoRoute(path: '/driver/trips/new', builder: (context, state) => const PostTripScreen()),
           GoRoute(
-            path: 'driver/trips/:id',
+            path: '/driver/trips/:id',
             builder: (context, state) => DriverTripScreen(tripId: _id(state)),
             routes: [
               GoRoute(
@@ -111,15 +112,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: 'driver/vehicle',
+            path: '/driver/vehicle',
             // extra: the Vehicle to edit, or nothing for a new one.
             builder: (context, state) => VehicleFormScreen(vehicle: state.extra is Vehicle ? state.extra! as Vehicle : null),
           ),
-          GoRoute(path: 'parcels/:id', builder: (context, state) => ParcelStatusScreen(parcelId: _id(state))),
-          GoRoute(path: 'chats/:id', builder: (context, state) => ChatScreen(conversationId: _id(state))),
-          GoRoute(path: 'users/:id', builder: (context, state) => PublicProfileScreen(userId: _id(state))),
+          // 'new' before ':id': the parcel-first form (details before choosing a trip).
+          GoRoute(path: '/parcels/new', builder: (context, state) => const ParcelRequestScreen()),
+          GoRoute(path: '/parcels/:id', builder: (context, state) => ParcelStatusScreen(parcelId: _id(state))),
+          GoRoute(path: '/chats/:id', builder: (context, state) => ChatScreen(conversationId: _id(state))),
+          GoRoute(path: '/users/:id', builder: (context, state) => PublicProfileScreen(userId: _id(state))),
           GoRoute(
-            path: 'rate',
+            path: '/rate',
             redirect: (context, state) => state.extra is PendingRating ? null : '/',
             builder: (context, state) => RateScreen(subject: state.extra! as PendingRating),
           ),

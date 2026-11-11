@@ -11,6 +11,7 @@ import '../../core/widgets/common.dart';
 import '../../models/trip.dart';
 import '../alerts/route_alert_repository.dart';
 import '../home/home_screen.dart';
+import '../parcels/parcel_request_screen.dart';
 import 'filters_sheet.dart';
 import 'trip_repository.dart';
 import 'trip_widgets.dart';
@@ -33,6 +34,8 @@ class SearchResultsScreen extends ConsumerWidget {
     }
 
     final parcelMode = query.kind == SearchKind.parcel;
+    // Parcel-first flow: only trips that take the size chosen in the draft.
+    final draftSize = parcelMode ? ref.watch(parcelDraftProvider)?.size : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,6 +62,9 @@ class SearchResultsScreen extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => LoadError(error: error, onRetry: () => ref.invalidate(searchResultsProvider)),
               data: (result) {
+                final trips = draftSize == null
+                    ? result.trips
+                    : result.trips.where((t) => (t.parcelPrices[draftSize] ?? 0) > 0).toList();
                 if (result.closed) {
                   return EmptyState(
                     icon: Icons.block_rounded,
@@ -66,7 +72,7 @@ class SearchResultsScreen extends ConsumerWidget {
                     body: result.closureMessage ?? S.routeClosed,
                   );
                 }
-                if (result.trips.isEmpty) {
+                if (trips.isEmpty) {
                   return _NoTrips(result: result, filtered: filters.activeCount > 0);
                 }
 
@@ -75,19 +81,20 @@ class SearchResultsScreen extends ConsumerWidget {
                   onRefresh: () async => ref.invalidate(searchResultsProvider),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    itemCount: result.trips.length + 1,
+                    itemCount: trips.length + 1,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(S.tripsFound(result.trips.length), style: text.labelMedium),
+                          child: Text(S.tripsFound(trips.length), style: text.labelMedium),
                         );
                       }
-                      final trip = result.trips[index - 1];
+                      final trip = trips[index - 1];
                       return TripCard(
                         trip: trip,
                         parcelMode: parcelMode,
+                        parcelSize: parcelMode ? draftSize : null,
                         onTap: () => context.push('/trips/${trip.id}'),
                       );
                     },

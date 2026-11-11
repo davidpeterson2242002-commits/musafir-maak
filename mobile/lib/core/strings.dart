@@ -23,6 +23,10 @@ class S {
 
   // Phone + OTP
   static const phoneTitle = 'رقم هاتفك';
+  static String welcomeBack(String name) => name.isEmpty ? 'أهلاً بيك تاني' : 'أهلاً بيك تاني، ${name.split(' ').first}';
+  static const loginBody = 'سجّل دخولك برقمك. حنرسل ليك رمز تأكيد.';
+  static const login = 'تسجيل الدخول';
+  static const otherNumber = 'الدخول برقم تاني';
   static const phoneBody = 'نرسل لك رمز التحقق على واتساب.';
   static const phoneHint = '0912345678';
   static const phoneInvalid = 'أدخل رقم سوداني صحيح مثل 0912345678';
@@ -284,6 +288,32 @@ class S {
   static const rateLater = 'بعدين';
   static String ratePrompt(String name) => 'قيّم رحلتك مع $name';
   static String rateCustomer(String name) => 'قيّم $name';
+  static const rateTitleOne = 'قيّم رحلتك';
+  static String rateTitleMany(int i, int n) => 'التقييمات ($i من $n)';
+  static const tapToRate = 'اضغط للتقييم';
+  static const close = 'قفل';
+  static const messageNotSent = 'الرسالة ما اترسلت';
+  static const tryAgain = 'جرّب تاني';
+  static const deleteUnsentMessage = 'تمسح الرسالة دي؟ لسه ما اترسلت.';
+  static const parcelDraftHint = 'اكتب تفاصيل الارسالية، وبعدها نوريك الرحلات العندها مكان ليها.';
+  static const findTripsForParcel = 'شوف الرحلات الممكن تشيلها';
+  static const loggingOut = 'جاري تسجيل الخروج…';
+  static String parcelsNotDelivered(int n) => n == 1
+      ? 'في ارسالية لسه ما اتسلّمت. سلّمها بالرمز قبل ما تنهي الرحلة.'
+      : 'في $n ارساليات لسه ما اتسلّمت. سلّمها بالرمز قبل ما تنهي الرحلة.';
+
+  // Live notices on home (a booking / parcel changed while away).
+  static const noticeBookingAccepted = 'السائق قبل حجزك 🎉';
+  static const noticeBookingRejected = 'السائق اعتذر عن حجزك';
+  static const noticeBookingExpired = 'انتهت مهلة طلب الحجز';
+  static const noticeBookingCancelled = 'السائق ألغى الرحلة';
+  static const noticeParcelAccepted = 'السائق قبل ارساليتك';
+  static const noticeParcelRejected = 'السائق اعتذر عن ارساليتك';
+  static const noticeParcelExpired = 'انتهت مهلة طلب الارسالية';
+  static const noticeParcelPickedUp = 'السائق استلم ارساليتك';
+  static const noticeParcelDelivered = 'ارساليتك اتسلّمت ✅';
+  static const noticeParcelCancelled = 'ارساليتك اتلغت';
+  static const noticeOpen = 'افتح التفاصيل';
 
   // Route alerts
   static const alertsEmptyTitle = 'ما عندك تنبيهات';
@@ -441,6 +471,11 @@ class S {
   // Driver mode
   static const passengerMode = 'راكب';
   static const driverMode = 'سائق';
+  static const switchToDriverTitle = 'تبدّل لوضع السائق؟';
+  static const switchToPassengerTitle = 'تبدّل لوضع الراكب؟';
+  static const switchModeBody = 'التطبيق حيفضل في الوضع ده لحدي ما تغيّره إنت، حتى لو قفلته أو طلعت من حسابك.';
+  static const switchToDriver = 'أيوه، وضع السائق';
+  static const switchToPassenger = 'أيوه، وضع الراكب';
   static const tabMyTrips = 'رحلاتي';
   static const driverHomeTitle = 'رحلاتك وطلباتك';
   static const postTrip = 'انشر رحلة';

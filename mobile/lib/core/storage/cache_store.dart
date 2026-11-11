@@ -36,6 +36,8 @@ class CacheKeys {
   static const user = 'user.';
   static const me = '${user}me';
   static const config = 'config';
+  /// Last account that logged in on this phone (survives logout): {phone, name, photo_url}.
+  static const lastLogin = 'last_login';
   static const cities = 'cities';
   static const popularRoutes = 'routes.popular';
   static const onboardingSeen = 'onboarding_seen';

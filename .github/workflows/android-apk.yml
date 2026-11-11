@@ -2,8 +2,8 @@ name: Android APK
 
 # Builds the Flutter app in the cloud and publishes the APKs as a
 # GitHub (pre)release, so they can be downloaded straight to a phone.
-# Run it from the Actions tab ("Run workflow"), or push to main with
-# changes under mobile/.
+# Manual only (Actions tab → "Run workflow", or gh workflow run): fixes are
+# collected and built once per test round.
 
 on:
   workflow_dispatch:
@@ -12,11 +12,6 @@ on:
         description: "API base URL baked into the app (leave empty for the app's default)"
         required: false
         default: ""
-  push:
-    branches: [main]
-    paths:
-      - "mobile/**"
-      - ".github/workflows/android-apk.yml"
 
 permissions:
   contents: write

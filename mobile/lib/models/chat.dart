@@ -16,6 +16,8 @@ class Conversation {
     this.lastAt,
     this.unread = 0,
     this.open = true,
+    this.otherLastSeenAt,
+    this.otherLastReadAt,
   });
 
   final int id;
@@ -39,6 +41,11 @@ class Conversation {
   /// Messages can still be sent (closed after rejection, cancellation, or a few days after the trip).
   final bool open;
 
+  /// For the ticks on my messages: the other person's app checked in (delivered) /
+  /// they opened this chat (read). Exact instants, not wall-clock minutes.
+  final DateTime? otherLastSeenAt;
+  final DateTime? otherLastReadAt;
+
   bool get isParcel => subjectType == 'parcel';
 
   factory Conversation.fromJson(Map<String, dynamic> json) {
@@ -58,6 +65,8 @@ class Conversation {
       lastAt: ApiTime.wall(last is Map ? last['created_at'] : json['last_message_at']),
       unread: (json['unread'] as num?)?.toInt() ?? 0,
       open: json['open'] as bool? ?? true,
+      otherLastSeenAt: ApiTime.instant(json['other_last_seen_at']),
+      otherLastReadAt: ApiTime.instant(json['other_last_read_at']),
     );
   }
 }
@@ -69,11 +78,19 @@ class ChatMessage {
     required this.body,
     this.wasMasked = false,
     this.createdAt,
+    this.sentAt,
+    this.clientId,
   });
 
   final int id;
   final bool mine;
   final String body;
+
+  /// Exact time the server stored it (for the delivered / read ticks).
+  final DateTime? sentAt;
+
+  /// The app's id for it, so a retried send isn't shown twice.
+  final String? clientId;
 
   /// A phone number in this message was hidden (sent before the booking was accepted).
   final bool wasMasked;
@@ -85,6 +102,8 @@ class ChatMessage {
         body: json['body'] as String? ?? '',
         wasMasked: json['was_masked'] as bool? ?? false,
         createdAt: ApiTime.wall(json['created_at']),
+        sentAt: ApiTime.instant(json['created_at']),
+        clientId: json['client_id'] as String?,
       );
 }
 

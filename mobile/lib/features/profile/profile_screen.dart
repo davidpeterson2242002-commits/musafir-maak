@@ -106,7 +106,34 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     final ok = await confirmSheet(context, title: S.logoutConfirm, confirmLabel: S.logout);
-    if (ok) await ref.read(sessionProvider.notifier).signOut();
+    if (!ok || !context.mounted) return;
+
+    // Spinner right away, even offline (sign-out waits at most a few seconds for the server).
+    final navigator = Navigator.of(context, rootNavigator: true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)),
+                  SizedBox(width: 14),
+                  Text(S.loggingOut),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await ref.read(sessionProvider.notifier).signOut();
+    navigator.pop();
   }
 
   Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
