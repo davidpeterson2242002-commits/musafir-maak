@@ -51,6 +51,7 @@ class ConversationController extends Controller
             ->orderByDesc('id')->limit(50)->get()->reverse()->values();
 
         $chat->markRead($conversation, $request->user());
+        $request->user()->touchSeen();
 
         return MessageResource::collection($messages)->additional([
             'conversation' => (new ConversationResource($conversation->load($this->with())))->resolve($request),
@@ -61,9 +62,12 @@ class ConversationController extends Controller
     public function send(Request $request, Conversation $conversation, ChatService $chat): MessageResource
     {
         $this->authorizeParticipant($request, $conversation);
-        $data = $request->validate(['body' => ['required', 'string', 'max:2000']], [], ['body' => 'الرسالة']);
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:2000'],
+            'client_id' => ['nullable', 'string', 'max:64'],
+        ], [], ['body' => 'الرسالة']);
 
-        return new MessageResource($chat->send($conversation->load('subject.trip'), $request->user(), $data['body']));
+        return new MessageResource($chat->send($conversation->load('subject.trip'), $request->user(), $data['body'], $data['client_id'] ?? null));
     }
 
     /** GET /conversations/unread-count — badge for the Messages tab. */

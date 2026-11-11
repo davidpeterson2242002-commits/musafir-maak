@@ -191,7 +191,30 @@ class _DriverRegistrationScreenState extends ConsumerState<DriverRegistrationScr
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 11),
-                      child: Text(S.acceptDriverTerms, style: text.bodyMedium),
+                      child: Text.rich(
+                        TextSpan(
+                          style: text.bodyMedium,
+                          children: [
+                            const TextSpan(text: S.acceptDriverTermsPrefix),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: () => context.push('/page/driver-terms'),
+                                child: Text(
+                                  S.driverTerms,
+                                  style: text.bodyMedium?.copyWith(
+                                    color: AppColors.green,
+                                    fontWeight: FontWeight.w700,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const TextSpan(text: S.acceptDriverTermsSuffix),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],

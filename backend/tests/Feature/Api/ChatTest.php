@@ -119,4 +119,48 @@ class ChatTest extends TestCase
         $this->postJson("/api/v1/conversations/{$booking->conversation->id}/messages", ['body' => 'لماذا؟'])->assertJsonPath('code', 'conversation_closed');
         $this->getJson("/api/v1/conversations/{$booking->conversation->id}/messages")->assertOk()->assertJsonPath('conversation.open', false);
     }
+
+    public function test_retried_send_with_same_client_id_is_not_duplicated(): void
+    {
+        $booking = $this->requested();
+        $c = $booking->conversation;
+
+        $first = $this->postJson("/api/v1/conversations/{$c->id}/messages", ['body' => 'السلام عليكم', 'client_id' => 'abc-1'])
+            ->assertCreated()->assertJsonPath('data.client_id', 'abc-1')->json('data.id');
+        $again = $this->postJson("/api/v1/conversations/{$c->id}/messages", ['body' => 'السلام عليكم', 'client_id' => 'abc-1'])->json('data.id');
+
+        $this->assertSame($first, $again);
+        $this->assertSame(1, Message::count());
+    }
+
+    public function test_conversation_reports_when_the_other_side_was_seen_and_read(): void
+    {
+        $booking = $this->requested();
+        $c = $booking->conversation;
+        $this->postJson("/api/v1/conversations/{$c->id}/messages", ['body' => 'مرحبا'])->assertCreated();
+        $this->getJson('/api/v1/conversations')->assertJsonPath('data.0.other_last_read_at', null);
+
+        $this->travel(1)->minutes();
+        $passenger = $booking->passenger;
+        Sanctum::actingAs($booking->trip->driverProfile->user);
+        $this->getJson('/api/v1/me/badges')->assertOk()->assertJsonPath('unread_messages', 1);
+        $this->getJson("/api/v1/conversations/{$c->id}/messages")->assertOk();
+
+        Sanctum::actingAs($passenger);
+        $row = $this->getJson('/api/v1/conversations')->json('data.0');
+        $this->assertNotNull($row['other_last_seen_at']);
+        $this->assertNotNull($row['other_last_read_at']);
+    }
+
+    public function test_badges_show_driver_requests_and_passenger_booking_statuses(): void
+    {
+        $booking = $this->requested();
+        $this->getJson('/api/v1/me/badges')->assertOk()
+            ->assertJsonPath('driver', null)
+            ->assertJsonPath('bookings.0.id', $booking->id)
+            ->assertJsonPath('bookings.0.status', 'pending');
+
+        Sanctum::actingAs($booking->trip->driverProfile->user);
+        $this->getJson('/api/v1/me/badges')->assertJsonPath('driver.pending_requests', 1)->assertJsonPath('driver.pending_parcels', 0);
+    }
 }

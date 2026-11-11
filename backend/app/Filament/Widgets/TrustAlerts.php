@@ -27,7 +27,7 @@ class TrustAlerts extends StatsOverviewWidget
 
     protected ?string $heading = 'تنبيهات الدعم والسلامة';
 
-    protected ?string $pollingInterval = '60s';
+    protected ?string $pollingInterval = '15s';
 
     public static function canView(): bool
     {

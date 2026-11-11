@@ -41,8 +41,16 @@ class ChatService
         );
     }
 
-    public function send(Conversation $conversation, User $sender, string $body): Message
+    public function send(Conversation $conversation, User $sender, string $body, ?string $clientId = null): Message
     {
+        // A retried send (the app's outbox after a dropped connection) returns the first copy.
+        if ($clientId !== null) {
+            $existing = $conversation->messages()->where('sender_id', $sender->id)->where('client_id', $clientId)->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
         $body = trim($body);
         if ($body === '') {
             throw new BusinessRuleException('اكتب رسالة.', 'empty_message');
@@ -65,6 +73,7 @@ class ChatService
 
         $message = $conversation->messages()->create([
             'sender_id' => $sender->id,
+            'client_id' => $clientId,
             'body' => $shown,
             'original_body' => $masked ? $body : null,
             'was_masked' => $masked,

@@ -204,10 +204,28 @@ class TripService
     }
 
     /** "وصلت" — completes the trip and its accepted bookings. */
-    public function complete(Trip $trip): Trip
+    /**
+     * Driver ends the trip. Refused while a parcel is still in the driver's hands
+     * (accepted or picked up): deliver it with the code, or refuse it at pickup.
+     * The 48h auto-complete timer passes $force (support sorts out such parcels).
+     */
+    public function complete(Trip $trip, bool $force = false): Trip
     {
         if ($trip->status !== TripStatus::Departed) {
             throw new BusinessRuleException('سجّل الانطلاق أولاً.', 'not_departed');
+        }
+
+        if (! $force) {
+            $open = $trip->parcels()->whereIn('status', [ParcelStatus::Accepted, ParcelStatus::PickedUp])->count();
+            if ($open > 0) {
+                throw new BusinessRuleException(
+                    $open === 1
+                        ? 'في ارسالية لسه ما اتسلّمت. سلّمها بالرمز قبل ما تنهي الرحلة.'
+                        : "في $open ارساليات لسه ما اتسلّمت. سلّمها بالرمز قبل ما تنهي الرحلة.",
+                    'parcels_not_delivered',
+                    ['open_parcels' => $open],
+                );
+            }
         }
 
         return DB::transaction(function () use ($trip) {

@@ -67,11 +67,13 @@ class SearchService
     private function query(TravelRoute $route, array $params, ?User $user): Builder
     {
         $seats = max(1, (int) ($params['seats'] ?? 1));
+        $isParcel = ($params['kind'] ?? 'trip') === 'parcel';
 
         $query = Trip::query()
             ->bookable()
             ->where('trips.route_id', $route->id)
-            ->where('trips.seats_available', '>=', $seats)
+            // A trip with every seat taken can still carry parcels.
+            ->when(! $isParcel, fn ($q) => $q->where('trips.seats_available', '>=', $seats))
             ->with(['driverProfile.user', 'vehicle', 'route.origin', 'route.destination'])
             ->select('trips.*');
 

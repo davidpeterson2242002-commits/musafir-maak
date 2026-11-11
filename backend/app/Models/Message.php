@@ -9,7 +9,7 @@ class Message extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['conversation_id', 'sender_id', 'body', 'original_body', 'was_masked', 'flagged', 'flag_reason'];
+    protected $fillable = ['conversation_id', 'sender_id', 'client_id', 'body', 'original_body', 'was_masked', 'flagged', 'flag_reason'];
 
     protected $hidden = ['original_body'];
 

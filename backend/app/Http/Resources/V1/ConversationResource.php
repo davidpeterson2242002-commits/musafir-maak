@@ -35,6 +35,10 @@ class ConversationResource extends JsonResource
                 'created_at' => local_iso($this->latestMessage->created_at),
             ] : null),
             'unread' => $chat->unreadCount($this->resource, $me),
+            // Ticks on my messages: delivered once the other person's app checked in after
+            // the message, read once they opened the chat after it.
+            'other_last_seen_at' => local_iso($other?->last_seen_at),
+            'other_last_read_at' => local_iso($me->id === $this->customer_id ? $this->driver_last_read_at : $this->customer_last_read_at),
             'open' => $chat->isOpen($subject),
             'last_message_at' => local_iso($this->last_message_at),
         ];

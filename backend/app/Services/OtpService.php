@@ -30,14 +30,20 @@ class OtpService
     {
         $resendSeconds = $this->settings->int('otp.resend_seconds');
         $latest = OtpCode::where('phone', $phone)->latest('id')->first();
+        // Admin-listed test numbers skip the resend wait and the hourly cap,
+        // so testers can log in and out repeatedly.
+        $isTest = $this->isTestPhone($phone);
+        if ($isTest) {
+            $resendSeconds = 0;
+        }
 
-        if ($latest && $latest->created_at->gt(now()->subSeconds($resendSeconds))) {
+        if (! $isTest && $latest && $latest->created_at->gt(now()->subSeconds($resendSeconds))) {
             $wait = (int) ceil($resendSeconds - $latest->created_at->diffInSeconds(now()));
             throw new HttpException(429, "انتظر $wait ثانية قبل طلب رمز جديد.", null, ['Retry-After' => max($wait, 1)]);
         }
 
         $sentLastHour = OtpCode::where('phone', $phone)->where('created_at', '>', now()->subHour())->count();
-        if ($sentLastHour >= $this->settings->int('otp.max_per_hour')) {
+        if (! $isTest && $sentLastHour >= $this->settings->int('otp.max_per_hour')) {
             throw new HttpException(429, 'طلبت رموزاً كثيرة. حاول مرة أخرى بعد ساعة.', null, ['Retry-After' => 3600]);
         }
 
@@ -95,5 +101,17 @@ class OtpService
         }
 
         $code->update(['consumed_at' => now()]);
+    }
+
+    /** Numbers listed in setting otp.test_phones (testing before WhatsApp is connected). */
+    public function isTestPhone(string $phone): bool
+    {
+        foreach ($this->settings->list('otp.test_phones') as $entry) {
+            if (\App\Support\Phone::normalize((string) $entry) === $phone) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

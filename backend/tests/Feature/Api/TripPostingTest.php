@@ -184,6 +184,30 @@ class TripPostingTest extends TestCase
         $this->assertSame('completed', $accepted->fresh()->status->value);
     }
 
+    public function test_cannot_complete_with_undelivered_parcels(): void
+    {
+        $trip = $this->trip(['driver_profile_id' => $this->driver->id, 'vehicle_id' => $this->vehicle->id, 'accepts_parcels' => true]);
+        $trip->forceFill(['status' => 'departed', 'departed_at' => now()])->save();
+        $parcel = \App\Models\Parcel::factory()->create(['trip_id' => $trip->id, 'status' => 'picked_up']);
+
+        $this->postJson("/api/v1/driver/trips/{$trip->id}/complete")
+            ->assertStatus(422)->assertJsonPath('code', 'parcels_not_delivered')->assertJsonPath('open_parcels', 1);
+
+        $parcel->forceFill(['status' => 'delivered', 'delivered_at' => now()])->save();
+        $this->postJson("/api/v1/driver/trips/{$trip->id}/complete")->assertOk()->assertJsonPath('data.status', 'completed');
+    }
+
+    public function test_auto_complete_ignores_open_parcels(): void
+    {
+        $trip = $this->trip(['driver_profile_id' => $this->driver->id, 'vehicle_id' => $this->vehicle->id, 'accepts_parcels' => true]);
+        $trip->forceFill(['status' => 'departed', 'departed_at' => now()])->save();
+        \App\Models\Parcel::factory()->create(['trip_id' => $trip->id, 'status' => 'picked_up']);
+
+        $this->travel(49)->hours();
+        $this->artisan('musafir:tick');
+        $this->assertSame('completed', $trip->fresh()->status->value);
+    }
+
     public function test_departed_trip_auto_completes(): void
     {
         $trip = $this->trip(['driver_profile_id' => $this->driver->id, 'vehicle_id' => $this->vehicle->id]);

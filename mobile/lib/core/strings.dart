@@ -402,6 +402,9 @@ class S {
   static const stepTodo = 'ناقص';
   static const licencePhoto = 'صورة رخصة القيادة';
   static const acceptDriverTerms = 'أوافق على شروط السائقين (العمولة وقواعد السلوك)';
+  static const acceptDriverTermsPrefix = 'أوافق على ';
+  static const driverTerms = 'شروط السائقين';
+  static const acceptDriverTermsSuffix = ' (العمولة وقواعد السلوك)';
   static const driverTermsRequired = 'وافق على شروط السائقين عشان ترسل الطلب';
   static const submitApplication = 'أرسل الطلب للمراجعة';
   static const completeStepsFirst = 'كمّل الخطوات الثلاث أول';

@@ -133,6 +133,15 @@ class TripSearchTest extends TestCase
             ->assertJsonPath('data.0.id', $parcels->id)->assertJsonPath('data.0.parcel_prices.medium', 5000);
     }
 
+    public function test_full_trip_still_shows_in_parcel_search(): void
+    {
+        $full = $this->tripAt('09:00', ['accepts_parcels' => true, 'max_parcels' => 2, 'seats_available' => 0,
+            'parcel_price_small' => 3000, 'parcel_price_medium' => 5000, 'parcel_price_large' => 8000]);
+
+        $this->search([])->assertJsonCount(0, 'data');
+        $this->search(['kind' => 'parcel'])->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $full->id);
+    }
+
     public function test_trip_details_show_points_and_safe_vehicle_photos(): void
     {
         $trip = $this->tripAt('08:00');

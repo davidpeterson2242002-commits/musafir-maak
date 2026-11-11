@@ -162,7 +162,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     _startCountdown(widget.ticket.resendAfter);
     // Local development backend returns the code; fill it to save typing.
     final debug = widget.ticket.debugCode;
-    if (debug != null) _controller.text = debug;
+    if (debug != null) {
+      _controller.text = debug;
+      // Test numbers: confirm straight away, no extra tap.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _verify();
+      });
+    }
   }
 
   @override
@@ -216,7 +222,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       final ticket = await ref.read(authRepositoryProvider).requestOtp(widget.ticket.phone);
       if (!mounted) return;
       _startCountdown(ticket.resendAfter);
-      if (ticket.debugCode != null) _controller.text = ticket.debugCode!;
+      if (ticket.debugCode != null) {
+        _controller.text = ticket.debugCode!;
+        _verify();
+      }
       showMessage(context, S.codeResent);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);

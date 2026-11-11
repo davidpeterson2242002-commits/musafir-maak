@@ -188,4 +188,18 @@ class OtpAuthTest extends TestCase
         // And the code works.
         $this->postJson('/api/v1/auth/verify', ['phone' => '0912345678', 'code' => $code])->assertOk();
     }
+
+    public function test_test_phone_skips_resend_wait_and_hourly_cap(): void
+    {
+        settings()->set('otp.test_phones', ['912345678']);
+
+        for ($i = 0; $i < 7; $i++) {
+            $this->postJson('/api/v1/auth/otp', ['phone' => '0912345678'])
+                ->assertOk()->assertJsonStructure(['debug_code']);
+        }
+
+        // A normal number still waits.
+        $this->postJson('/api/v1/auth/otp', ['phone' => '0911111111'])->assertOk();
+        $this->postJson('/api/v1/auth/otp', ['phone' => '0911111111'])->assertStatus(429);
+    }
 }

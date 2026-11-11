@@ -84,6 +84,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Model::preventLazyLoading(! $this->app->isProduction());
 
+        // Admin lists refresh themselves while open (no manual reload after each change).
+        \Filament\Tables\Table::configureUsing(fn (\Filament\Tables\Table $table) => $table->poll('15s'));
+
         // Short, stable type names in polymorphic columns (documents, reviews, audit log, tokens).
         Relation::enforceMorphMap([
             'user' => User::class,

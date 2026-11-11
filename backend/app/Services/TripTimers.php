@@ -102,7 +102,7 @@ class TripTimers
         Trip::where('status', TripStatus::Departed)
             ->where('departed_at', '<=', now()->subHours(settings()->int('trips.auto_complete_hours')))
             ->each(function (Trip $trip) use (&$count) {
-                app(TripService::class)->complete($trip);
+                app(TripService::class)->complete($trip, force: true);
                 $count++;
             });
 

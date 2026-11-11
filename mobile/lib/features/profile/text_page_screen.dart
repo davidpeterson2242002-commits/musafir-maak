@@ -11,7 +11,7 @@ import '../config/config_repository.dart';
 class TextPageScreen extends ConsumerWidget {
   const TextPageScreen({super.key, required this.page});
 
-  /// `terms`, `privacy` or `prohibited`.
+  /// `terms`, `privacy`, `prohibited` or `driver-terms`.
   final String page;
 
   @override
@@ -22,6 +22,7 @@ class TextPageScreen extends ConsumerWidget {
     final title = switch (page) {
       'privacy' => S.privacy,
       'prohibited' => S.prohibitedItems,
+      'driver-terms' => S.driverTerms,
       _ => S.terms,
     };
 
@@ -56,7 +57,11 @@ class TextPageScreen extends ConsumerWidget {
             );
           }
 
-          final body = page == 'privacy' ? config.privacy : config.terms;
+          final body = switch (page) {
+            'privacy' => config.privacy,
+            'driver-terms' => config.driverTerms,
+            _ => config.terms,
+          };
           if (body.trim().isEmpty) {
             return LoadError(error: Object(), onRetry: () => ref.invalidate(appConfigProvider));
           }

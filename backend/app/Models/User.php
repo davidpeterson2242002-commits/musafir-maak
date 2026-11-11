@@ -157,4 +157,12 @@ class User extends Authenticatable
 
         return true;
     }
+
+    /** Marks the user as online now (at most every 20 seconds, no model events). */
+    public function touchSeen(): void
+    {
+        if (! $this->last_seen_at || $this->last_seen_at->lt(now()->subSeconds(20))) {
+            $this->forceFill(['last_seen_at' => now()])->saveQuietly();
+        }
+    }
 }
