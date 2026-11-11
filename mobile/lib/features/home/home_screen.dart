@@ -425,18 +425,26 @@ class _PopularRoutes extends ConsumerWidget {
                   ref.read(searchQueryProvider.notifier).state =
                       current.copyWith(from: route.origin, to: route.destination);
                 },
-                child: RoadSign(
-                  compact: true,
+                // Light chip (user feedback 2026-11-11: the solid green signs were too heavy).
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.line),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(route.origin.name),
+                      Text(route.origin.name,
+                          style: text.bodyMedium?.copyWith(color: AppColors.greenDark, fontWeight: FontWeight.w500)),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
                         // Mirrors in RTL, so it points from the origin (right) to the destination (left).
                         child: Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.amber),
                       ),
-                      Text(route.destination.name),
+                      Text(route.destination.name,
+                          style: text.bodyMedium?.copyWith(color: AppColors.greenDark, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
