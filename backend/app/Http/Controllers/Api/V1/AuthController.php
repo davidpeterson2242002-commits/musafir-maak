@@ -25,6 +25,8 @@ class AuthController extends Controller
             'message' => 'تم إرسال رمز التحقق إلى واتساب.',
             'phone' => $phone,
             'resend_after' => $result['resend_after'],
+            // The app sizes its code boxes from this (admin setting otp.length, 4–8).
+            'code_length' => strlen($result['plain']),
             'expires_at' => $result['code']->expires_at->toIso8601String(),
         ];
 

@@ -202,4 +202,13 @@ class OtpAuthTest extends TestCase
         $this->postJson('/api/v1/auth/otp', ['phone' => '0911111111'])->assertOk();
         $this->postJson('/api/v1/auth/otp', ['phone' => '0911111111'])->assertStatus(429);
     }
+
+    public function test_response_says_how_many_digits_the_code_has(): void
+    {
+        settings()->set('otp.length', 8);
+        settings()->set('otp.test_phones', ['0912345678']);
+
+        $res = $this->postJson('/api/v1/auth/otp', ['phone' => '0912345678'])->assertOk()->assertJsonPath('code_length', 8);
+        $this->assertSame(8, strlen($res->json('debug_code')));
+    }
 }

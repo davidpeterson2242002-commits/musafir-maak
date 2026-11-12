@@ -203,7 +203,8 @@ class OtpScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
-  static const _length = 6;
+  /// Number of digits, from the server (it can be changed in the dashboard).
+  late int _length = widget.ticket.codeLength;
 
   final _controller = TextEditingController();
   final _focus = FocusNode();
@@ -248,7 +249,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _verify() async {
     final code = Phone.westernDigits(_controller.text);
-    if (code.length != _length || _busy) return;
+    if (code.length < 4 || _busy) return;
 
     setState(() {
       _busy = true;
@@ -279,6 +280,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       final ticket = await ref.read(authRepositoryProvider).requestOtp(widget.ticket.phone);
       if (!mounted) return;
       _startCountdown(ticket.resendAfter);
+      setState(() => _length = ticket.codeLength);
       if (ticket.debugCode != null) {
         _controller.text = ticket.debugCode!;
         _verify();
@@ -376,7 +378,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               const Spacer(),
               PrimaryButton(
                 label: S.verify,
-                onPressed: code.length == _length ? _verify : null,
+                // Enabled from 4 digits: the server says if the code is wrong or short.
+                onPressed: code.length >= 4 ? _verify : null,
                 busy: _busy,
               ),
               TextButton(onPressed: () => context.pop(), child: const Text(S.changeNumber)),

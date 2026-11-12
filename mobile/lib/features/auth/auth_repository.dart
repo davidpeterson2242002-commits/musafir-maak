@@ -7,7 +7,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository(
 
 /// Answer to "send me a code".
 class OtpTicket {
-  const OtpTicket({required this.phone, required this.resendAfter, this.debugCode});
+  const OtpTicket({required this.phone, required this.resendAfter, this.debugCode, this.codeLength = 6});
 
   /// The number as the server normalised it (+249…).
   final String phone;
@@ -17,6 +17,9 @@ class OtpTicket {
 
   /// Only returned by a local development backend (OTP_EXPOSE_IN_RESPONSE).
   final String? debugCode;
+
+  /// How many digits the code has (admin setting, 4–8). The code boxes follow it.
+  final int codeLength;
 }
 
 class VerifiedSession {
@@ -48,6 +51,7 @@ class AuthRepository {
       phone: json['phone'] as String? ?? phone,
       resendAfter: (json['resend_after'] as num?)?.toInt() ?? 60,
       debugCode: json['debug_code'] as String?,
+      codeLength: ((json['code_length'] as num?)?.toInt() ?? (json['debug_code'] as String?)?.length ?? 6).clamp(4, 8),
     );
   }
 
