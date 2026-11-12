@@ -51,6 +51,7 @@ class EnforcementService
         $action = DB::transaction(function () use ($user, $reason, $admin, $report) {
             $user->forceFill(['status' => UserStatus::Banned, 'suspended_until' => null])->save();
             $user->tokens()->delete();
+            app(\App\Services\TrustedDeviceService::class)->forgetAll($user);
 
             if ($driver = $user->driverProfile()->first()) {
                 Trip::where('driver_profile_id', $driver->id)->where('status', TripStatus::Scheduled)->get()

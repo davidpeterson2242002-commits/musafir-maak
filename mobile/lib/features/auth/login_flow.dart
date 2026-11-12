@@ -9,6 +9,7 @@ import '../../core/api/api_exception.dart';
 import '../../core/config/env.dart';
 import '../../core/strings.dart';
 import '../../core/storage/cache_store.dart';
+import '../../core/storage/token_store.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
@@ -67,6 +68,30 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
       _error = null;
       _busy = true;
     });
+
+    // Trusted phone: this number verified a code on this phone before → log
+    // straight in. If the server says the trust ran out, fall back to a code.
+    final tokens = ref.read(tokenStoreProvider);
+    final deviceToken = await tokens.readDevice(phone);
+    if (deviceToken != null) {
+      try {
+        final session = await ref.read(authRepositoryProvider).deviceLogin(phone, deviceToken);
+        await ref.read(sessionProvider.notifier).signIn(session);
+        return; // the router takes it from here
+      } on ApiException catch (e) {
+        if (e.code == 'device_not_trusted') {
+          await tokens.clearDevice(phone);
+        } else {
+          if (mounted) {
+            setState(() {
+              _error = e.message;
+              _busy = false;
+            });
+          }
+          return;
+        }
+      }
+    }
 
     try {
       final ticket = await ref.read(authRepositoryProvider).requestOtp(phone);

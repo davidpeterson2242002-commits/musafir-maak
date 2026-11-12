@@ -127,8 +127,21 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
-        // Per-IP cap on OTP requests, on top of the per-phone limits in settings.
-        RateLimiter::for('otp', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        // Login endpoints (code request, code check, trusted-phone login). Counted per phone
+        // number and, more loosely, per connection — a family or office shares one IP.
+        // Admin-listed test numbers are not limited. The per-phone code limits in settings
+        // (resend wait, hourly cap, attempts) apply on top.
+        RateLimiter::for('otp', function (Request $request) {
+            $phone = \App\Support\Phone::normalize((string) $request->input('phone')) ?? (string) $request->input('phone');
+            if ($phone !== '' && app(\App\Services\OtpService::class)->isTestPhone($phone)) {
+                return Limit::none();
+            }
+
+            return [
+                Limit::perMinute(10)->by('phone:'.$phone),
+                Limit::perMinute(40)->by('ip:'.$request->ip()),
+            ];
+        });
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
     }
 }

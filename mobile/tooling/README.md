@@ -1,0 +1,1 @@
+`test-debug.keystore` — shared signing key for **test APKs only** (alias `androiddebugkey`, passwords `android`, the standard debug-key settings). The CI build copies it to `~/.android/debug.keystore`, so every test build has the same signature and installs over the previous one. Never use it for the Play Store: the release build gets its own upload key, kept out of the repo.

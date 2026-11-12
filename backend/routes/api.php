@@ -29,6 +29,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     Route::post('auth/otp', [AuthController::class, 'requestOtp'])->middleware('throttle:otp');
     Route::post('auth/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:otp');
+    Route::post('auth/device-login', [AuthController::class, 'deviceLogin'])->middleware('throttle:otp');
 
     // Authenticated
     Route::middleware(['auth:sanctum', EnsureUserNotBanned::class])->group(function () {

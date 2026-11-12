@@ -93,6 +93,9 @@ class SessionController extends Notifier<SessionState> {
   /// After a correct OTP.
   Future<void> signIn(VerifiedSession session) async {
     await _tokens.write(session.token);
+    // Trusted phone: next time this number logs in here, no code is needed.
+    final deviceToken = session.deviceToken;
+    if (deviceToken != null) await _tokens.writeDevice(session.user.phone, deviceToken);
     state = SessionState.signedIn(session.user);
     ref.read(pushServiceProvider).register();
     // The verify response has no city/state objects cached yet; store the full profile.

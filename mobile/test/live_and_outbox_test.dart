@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:musafir_maak/core/storage/token_store.dart';
+import 'package:musafir_maak/features/auth/auth_repository.dart';
 import 'package:musafir_maak/features/chat/chat_outbox.dart';
 import 'package:musafir_maak/features/live/live_updates.dart';
 import 'package:musafir_maak/models/chat.dart';
@@ -39,5 +41,24 @@ void main() {
     final m = ChatMessage.fromJson({'id': 1, 'mine': true, 'body': 'x', 'created_at': '2026-11-12T10:05:30+02:00', 'client_id': 'c1'});
     expect(m.clientId, 'c1');
     expect(m.sentAt, DateTime.utc(2026, 11, 12, 8, 5, 30));
+  });
+
+  test('verify response carries the trusted-phone token', () {
+    final session = VerifiedSession.fromJson({
+      'token': 't',
+      'device_token': 'd',
+      'is_new': false,
+      'user': {'id': 1, 'phone': '+249912345678'},
+    });
+    expect(session.deviceToken, 'd');
+  });
+
+  test('device tokens are kept per number and survive clearing the API token', () async {
+    final store = MemoryTokenStore('api');
+    await store.writeDevice('+249912345678', 'd1');
+    await store.clear();
+    expect(await store.read(), isNull);
+    expect(await store.readDevice('+249912345678'), 'd1');
+    expect(await store.readDevice('+249911111111'), isNull);
   });
 }

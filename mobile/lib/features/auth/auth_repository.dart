@@ -20,11 +20,21 @@ class OtpTicket {
 }
 
 class VerifiedSession {
-  const VerifiedSession({required this.token, required this.user, required this.isNew});
+  const VerifiedSession({required this.token, required this.user, required this.isNew, this.deviceToken});
 
   final String token;
   final User user;
   final bool isNew;
+
+  /// Trusted-phone token for logging back in without a code (null when the server has it off).
+  final String? deviceToken;
+
+  factory VerifiedSession.fromJson(Map<String, dynamic> json) => VerifiedSession(
+        token: json['token'] as String,
+        user: User.fromJson(Map<String, dynamic>.from(json['user'] as Map)),
+        isNew: json['is_new'] as bool? ?? false,
+        deviceToken: json['device_token'] as String?,
+      );
 }
 
 class AuthRepository {
@@ -45,11 +55,17 @@ class AuthRepository {
     final json = Map<String, dynamic>.from(
       await _api.post('auth/verify', body: {'phone': phone, 'code': code, 'device_name': 'android'}) as Map,
     );
-    return VerifiedSession(
-      token: json['token'] as String,
-      user: User.fromJson(Map<String, dynamic>.from(json['user'] as Map)),
-      isNew: json['is_new'] as bool? ?? false,
+    return VerifiedSession.fromJson(json);
+  }
+
+  /// Logs back in on a trusted phone. Throws [ApiException] with code
+  /// `device_not_trusted` when a code is needed instead.
+  Future<VerifiedSession> deviceLogin(String phone, String deviceToken) async {
+    final json = Map<String, dynamic>.from(
+      await _api.post('auth/device-login', body: {'phone': phone, 'device_token': deviceToken, 'device_name': 'android'})
+          as Map,
     );
+    return VerifiedSession.fromJson(json);
   }
 
   Future<void> logout() => _api.post('auth/logout');

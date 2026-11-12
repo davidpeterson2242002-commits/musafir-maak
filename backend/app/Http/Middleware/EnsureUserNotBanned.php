@@ -18,6 +18,7 @@ class EnsureUserNotBanned
 
         if ($user?->isBanned()) {
             $user->tokens()->delete();
+            app(\App\Services\TrustedDeviceService::class)->forgetAll($user);
 
             return response()->json(['message' => 'تم حظر هذا الحساب. للاستفسار تواصل مع الدعم.', 'code' => 'account_banned'], 403);
         }

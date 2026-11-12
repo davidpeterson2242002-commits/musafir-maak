@@ -24,6 +24,8 @@ class BadgesController extends Controller
     {
         $user = $request->user();
         $user->touchSeen();
+        // App open on this phone: keep it trusted for login without a code.
+        app(\App\Services\TrustedDeviceService::class)->touch($user->currentAccessToken());
 
         $unread = Conversation::where(fn ($q) => $q->where('customer_id', $user->id)->orWhere('driver_user_id', $user->id))
             ->where('last_message_at', '>=', now()->subDays(60))->get()

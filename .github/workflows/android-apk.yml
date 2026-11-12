@@ -74,6 +74,13 @@ jobs:
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
 
+      - name: Use the shared test signing key
+        # Same key on every build, so a new APK installs over the old one.
+        # Test builds only: the Play Store release gets its own upload key.
+        run: |
+          mkdir -p ~/.android
+          cp tooling/test-debug.keystore ~/.android/debug.keystore
+
       - name: Build APKs (release, signed with the debug key)
         run: |
           DEFINE=""

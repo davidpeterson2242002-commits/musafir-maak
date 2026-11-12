@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    public function __construct(private OtpService $otp) {}
+    public function __construct(private OtpService $otp, private \App\Services\TrustedDeviceService $devices) {}
 
     /** POST /api/v1/auth/otp — send a code via WhatsApp. */
     public function requestOtp(RequestOtpRequest $request): JsonResponse
@@ -64,11 +64,46 @@ class AuthController extends Controller
 
         $user->forceFill(['phone_verified_at' => $user->phone_verified_at ?? now(), 'last_seen_at' => now()])->save();
 
-        $token = $user->createToken($request->validated('device_name') ?: 'mobile')->plainTextToken;
+        $newToken = $user->createToken($request->validated('device_name') ?: 'mobile');
+        $deviceToken = $this->devices->trust($user, $newToken->accessToken, $request->validated('device_name'));
 
         return response()->json([
-            'token' => $token,
+            'token' => $newToken->plainTextToken,
+            'device_token' => $deviceToken,
             'is_new' => $isNew,
+            'user' => new MeResource($user->load(['city.state', 'driverProfile'])),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/auth/device-login — log back in on a trusted phone without a code.
+     * 422 `device_not_trusted` → the app asks for a code instead.
+     */
+    public function deviceLogin(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'phone' => ['required', 'string'],
+            'device_token' => ['required', 'string', 'max:100'],
+            'device_name' => ['nullable', 'string', 'max:100'],
+        ]);
+        $phone = \App\Support\Phone::normalize($data['phone']) ?? $data['phone'];
+        $device = $this->devices->login($phone, $data['device_token']);
+        $user = $device->user;
+
+        if ($user->isBanned()) {
+            $this->devices->forgetAll($user);
+
+            return response()->json(['message' => 'تم حظر هذا الحساب. للاستفسار تواصل مع الدعم.', 'code' => 'account_banned'], 403);
+        }
+
+        $user->forceFill(['last_seen_at' => now()])->save();
+        $newToken = $user->createToken($data['device_name'] ?? 'mobile');
+        $this->devices->used($device, $newToken->accessToken);
+
+        return response()->json([
+            'token' => $newToken->plainTextToken,
+            'device_token' => $data['device_token'],
+            'is_new' => false,
             'user' => new MeResource($user->load(['city.state', 'driverProfile'])),
         ]);
     }

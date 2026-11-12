@@ -10,6 +10,14 @@ abstract class TokenStore {
   Future<void> write(String token);
 
   Future<void> clear();
+
+  /// "Trusted phone" token per number (+249…): logs back in without a code.
+  /// Survives logout on purpose.
+  Future<String?> readDevice(String phone);
+
+  Future<void> writeDevice(String phone, String token);
+
+  Future<void> clearDevice(String phone);
 }
 
 /// Android Keystore-backed storage; the token is also kept in memory so each
@@ -54,6 +62,29 @@ class SecureTokenStore implements TokenStore {
       // Nothing useful to do; the in-memory token is already gone.
     }
   }
+
+  static String _deviceKey(String phone) => 'device_token_${phone.replaceAll('+', '')}';
+
+  @override
+  Future<String?> readDevice(String phone) async {
+    try {
+      return await _storage.read(key: _deviceKey(phone));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> writeDevice(String phone, String token) => _storage.write(key: _deviceKey(phone), value: token);
+
+  @override
+  Future<void> clearDevice(String phone) async {
+    try {
+      await _storage.delete(key: _deviceKey(phone));
+    } catch (_) {
+      // Already gone or unreadable: nothing to do.
+    }
+  }
 }
 
 class MemoryTokenStore implements TokenStore {
@@ -69,4 +100,15 @@ class MemoryTokenStore implements TokenStore {
 
   @override
   Future<void> clear() async => _token = null;
+
+  final Map<String, String> _devices = {};
+
+  @override
+  Future<String?> readDevice(String phone) async => _devices[phone];
+
+  @override
+  Future<void> writeDevice(String phone, String token) async => _devices[phone] = token;
+
+  @override
+  Future<void> clearDevice(String phone) async => _devices.remove(phone);
 }

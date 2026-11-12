@@ -74,6 +74,7 @@ class ProfileController extends Controller
         }
 
         $user->tokens()->delete();
+        app(\App\Services\TrustedDeviceService::class)->forgetAll($user);
         $user->deviceTokens()->delete();
         $user->delete();
 
