@@ -45,6 +45,12 @@ jobs:
             echo "Process limit (ulimit -u): $(ulimit -u)"
             cd ~/musafir/app && '"$PHP"' artisan server:info --no-ansi 2>&1 | cut -c1-300'
 
+      - name: PHP on the web server (opcache, processes)
+        run: |
+          for i in 1 2 3 4 5 6; do
+            curl -s -o /dev/null -D - -H 'X-Probe: 1' "$APP_URL/api/v1/config" | grep -i '^server-timing' || true
+          done
+
       - name: Create test accounts
         run: |
           ssh -i ~/.ssh/deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
@@ -58,7 +64,8 @@ jobs:
           cat > /tmp/test.js <<'JS'
           import http from 'k6/http';
           import { check } from 'k6';
-          import { Counter } from 'k6/metrics';
+          import { Counter, Trend } from 'k6/metrics';
+          const appMs = new Trend('app_ms');
           const byStatus = { s2xx: new Counter('s_2xx'), s429: new Counter('s_429'), s5xx: new Counter('s_5xx'), s0: new Counter('s_timeout'), sOther: new Counter('s_other') };
           let shown = 0;
           const d = JSON.parse(open('/tmp/lt.json'));
@@ -82,6 +89,8 @@ jobs:
             else url = 'me/notifications';
             const res = http.get(base + url, h);
             const c = res.status;
+            const st = /app;dur=([0-9.]+)/.exec(res.headers['Server-Timing'] || '');
+            if (st) appMs.add(Number(st[1]));
             (c >= 200 && c < 400 ? byStatus.s2xx : c === 429 ? byStatus.s429 : c >= 500 ? byStatus.s5xx : c === 0 ? byStatus.s0 : byStatus.sOther).add(1);
             if ((c === 0 || c >= 400) && shown < 3) {
               shown++;
@@ -90,8 +99,8 @@ jobs:
             check(res, { ok: (x) => x.status >= 200 && x.status < 400 });
           }
           JS
-          echo "| req/s asked | req/s done | avg ms | median | p95 ms | max ms | failed | 429 / 5xx / timeout / other |" > /tmp/table.md
-          echo "|---|---|---|---|---|---|---|---|" >> /tmp/table.md
+          echo "| req/s asked | req/s done | avg ms | median | p95 ms | max ms | failed | 429 / 5xx / timeout / other | server ms med / p95 |" > /tmp/table.md
+          echo "|---|---|---|---|---|---|---|---|---|" >> /tmp/table.md
           for rate in ${{ inputs.levels }}; do
             echo "::group::$rate req/s"
             k6 run --quiet -e RATE=$rate -e SECONDS=${{ inputs.seconds }} -e APP_URL=$APP_URL \
@@ -104,7 +113,8 @@ jobs:
           d = s['http_req_duration']; f = s.get('http_req_failed', {}).get('value', 0)
           reqs = s['http_reqs']
           n = lambda k: int(s.get(k, {}).get('count', 0))
-          print(f"| {sys.argv[1]} | {reqs['rate']:.1f} | {d['avg']:.0f} | {d['med']:.0f} | {d['p(95)']:.0f} | {d['max']:.0f} | {f*100:.1f}% | {n('s_429')} / {n('s_5xx')} / {n('s_timeout')} / {n('s_other')} |")
+          a = s.get('app_ms', {})
+          print(f"| {sys.argv[1]} | {reqs['rate']:.1f} | {d['avg']:.0f} | {d['med']:.0f} | {d['p(95)']:.0f} | {d['max']:.0f} | {f*100:.1f}% | {n('s_429')} / {n('s_5xx')} / {n('s_timeout')} / {n('s_other')} | {a.get('med', 0):.0f} / {a.get('p(95)', 0):.0f} |")
           print("STOP" if f > 0.05 or d['p(95)'] > 4000 else "GO", file=sys.stderr)
           PY
           )

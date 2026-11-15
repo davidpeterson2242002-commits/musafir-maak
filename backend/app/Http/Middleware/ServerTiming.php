@@ -28,9 +28,13 @@ class ServerTiming
 
         $ms = (microtime(true) - $start) * 1000;
         $request->attributes->set('server_ms', (int) round($ms));
-        $response->headers->set('Server-Timing', sprintf(
-            'app;dur=%.0f, db;dur=%.0f;desc="%d queries"', $ms, $dbMs, $queries,
-        ));
+        $timing = sprintf('app;dur=%.0f, db;dur=%.0f;desc="%d queries"', $ms, $dbMs, $queries);
+        if ($request->hasHeader('X-Probe')) {
+            // Capacity test only: is the PHP bytecode cache on for web requests?
+            $op = function_exists('opcache_get_status') ? @opcache_get_status(false) : false;
+            $timing .= sprintf(', php;desc="opcache=%s pid=%d sapi=%s"', ($op['opcache_enabled'] ?? false) ? 'on' : 'off', getmypid(), PHP_SAPI);
+        }
+        $response->headers->set('Server-Timing', $timing);
 
         return $response;
     }
