@@ -308,15 +308,15 @@ final class SettingsRegistry
             ],
             'content.terms' => [
                 'type' => SettingType::Text, 'group' => 'content', 'label' => 'الشروط والأحكام', 'public' => true,
-                'default' => "الشروط والأحكام — نص مبدئي يُستبدل قبل الإطلاق.\n\nباستخدامك للتطبيق توافق على أن المحادثات قد تُراجع لأغراض السلامة عند وجود بلاغ.",
+                'default' => LegalTexts::TERMS,
             ],
             'content.privacy' => [
                 'type' => SettingType::Text, 'group' => 'content', 'label' => 'سياسة الخصوصية', 'public' => true,
-                'default' => 'سياسة الخصوصية — نص مبدئي يُستبدل قبل الإطلاق.',
+                'default' => LegalTexts::PRIVACY,
             ],
             'content.driver_terms' => [
                 'type' => SettingType::Text, 'group' => 'content', 'label' => 'شروط السائقين', 'public' => true,
-                'default' => 'شروط السائقين (العمولة والسلوك) — نص مبدئي يُستبدل قبل الإطلاق.',
+                'default' => LegalTexts::DRIVER_TERMS,
             ],
             'content.support_whatsapp' => [
                 'type' => SettingType::String, 'group' => 'content', 'label' => 'رقم واتساب الدعم', 'public' => true,
