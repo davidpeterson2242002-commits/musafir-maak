@@ -58,6 +58,9 @@ jobs:
           cat > /tmp/test.js <<'JS'
           import http from 'k6/http';
           import { check } from 'k6';
+          import { Counter } from 'k6/metrics';
+          const byStatus = { s2xx: new Counter('s_2xx'), s429: new Counter('s_429'), s5xx: new Counter('s_5xx'), s0: new Counter('s_timeout'), sOther: new Counter('s_other') };
+          let shown = 0;
           const d = JSON.parse(open('/tmp/lt.json'));
           const base = __ENV.APP_URL + '/api/v1/';
           export const options = {
@@ -78,23 +81,30 @@ jobs:
             else if (r < 0.95) url = 'bookings';
             else url = 'me/notifications';
             const res = http.get(base + url, h);
+            const c = res.status;
+            (c >= 200 && c < 400 ? byStatus.s2xx : c === 429 ? byStatus.s429 : c >= 500 ? byStatus.s5xx : c === 0 ? byStatus.s0 : byStatus.sOther).add(1);
+            if ((c === 0 || c >= 400) && shown < 3) {
+              shown++;
+              console.log(`FAIL ${c} ${url.split('?')[0]} server=${res.headers['Server'] || ''} platform=${res.headers['Platform'] || ''} retry-after=${res.headers['Retry-After'] || ''} ratelimit-remaining=${res.headers['X-Ratelimit-Remaining'] || ''} err=${res.error || ''}`);
+            }
             check(res, { ok: (x) => x.status >= 200 && x.status < 400 });
           }
           JS
-          echo "| req/s asked | req/s done | avg ms | median | p95 ms | max ms | failed |" > /tmp/table.md
-          echo "|---|---|---|---|---|---|---|" >> /tmp/table.md
+          echo "| req/s asked | req/s done | avg ms | median | p95 ms | max ms | failed | 429 / 5xx / timeout / other |" > /tmp/table.md
+          echo "|---|---|---|---|---|---|---|---|" >> /tmp/table.md
           for rate in ${{ inputs.levels }}; do
             echo "::group::$rate req/s"
             k6 run --quiet -e RATE=$rate -e SECONDS=${{ inputs.seconds }} -e APP_URL=$APP_URL \
               --summary-export=/tmp/s.json /tmp/test.js > /tmp/k6.log 2>&1 || true
-            tail -25 /tmp/k6.log
+            grep -E "FAIL|http_req_duration|http_req_failed" /tmp/k6.log | head -8
             echo "::endgroup::"
             row=$(python3 - "$rate" 2>/tmp/verdict <<'PY'
           import json, sys
           s = json.load(open('/tmp/s.json'))['metrics']
           d = s['http_req_duration']; f = s.get('http_req_failed', {}).get('value', 0)
           reqs = s['http_reqs']
-          print(f"| {sys.argv[1]} | {reqs['rate']:.1f} | {d['avg']:.0f} | {d['med']:.0f} | {d['p(95)']:.0f} | {d['max']:.0f} | {f*100:.1f}% |")
+          n = lambda k: int(s.get(k, {}).get('count', 0))
+          print(f"| {sys.argv[1]} | {reqs['rate']:.1f} | {d['avg']:.0f} | {d['med']:.0f} | {d['p(95)']:.0f} | {d['max']:.0f} | {f*100:.1f}% | {n('s_429')} / {n('s_5xx')} / {n('s_timeout')} / {n('s_other')} |")
           print("STOP" if f > 0.05 or d['p(95)'] > 4000 else "GO", file=sys.stderr)
           PY
           )
