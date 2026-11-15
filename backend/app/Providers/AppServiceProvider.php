@@ -13,6 +13,9 @@ use App\Gateways\FakeWhatsAppGateway;
 use App\Gateways\FcmPushGateway;
 use App\Models\AppSecret;
 use App\Services\MailSetup;
+use App\Support\PrivateFiles;
+use DateTimeInterface;
+use Illuminate\Support\Facades\Storage;
 use App\Gateways\LogPushGateway;
 use App\Gateways\LogWhatsAppGateway;
 use App\Gateways\MetaWhatsAppGateway;
@@ -96,6 +99,15 @@ class AppServiceProvider extends ServiceProvider
     {
         // SMTP mailbox saved in the admin panel (login codes by email).
         app(MailSetup::class)->apply();
+
+        // Private files on local disks get our own expiring encrypted links (see PrivateFiles).
+        foreach (config('filesystems.disks') as $name => $disk) {
+            if (($disk['driver'] ?? null) === 'local' && $name !== 'public') {
+                Storage::disk($name)->buildTemporaryUrlsUsing(
+                    fn (string $path, DateTimeInterface $expiration) => PrivateFiles::url($name, $path, $expiration)
+                );
+            }
+        }
 
         Model::preventLazyLoading(! $this->app->isProduction());
 

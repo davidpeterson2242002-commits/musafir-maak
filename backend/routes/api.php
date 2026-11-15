@@ -126,3 +126,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('route-alerts/{alert}', [RouteAlertController::class, 'destroy']);
     });
 });
+
+// Private uploads through expiring encrypted links (PrivateFiles). Outside the API rate limit:
+// a screen can show many photos at once.
+Route::get('v1/files/{token}', \App\Http\Controllers\PrivateFileController::class)
+    ->where('token', '[A-Za-z0-9_-]+')
+    ->name('files.show');
