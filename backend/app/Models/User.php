@@ -22,7 +22,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'phone', 'whatsapp_phone', 'email', 'gender', 'city_id', 'photo_path',
-        'status', 'suspended_until', 'booking_restricted_until', 'id_verification_status', 'phone_verified_at',
+        'status', 'suspended_until', 'booking_restricted_until', 'id_verification_status', 'phone_verified_at', 'email_verified_at',
         'terms_accepted_at', 'last_seen_at',
     ];
 
@@ -40,6 +40,7 @@ class User extends Authenticatable
             'suspended_until' => 'datetime',
             'booking_restricted_until' => 'datetime',
             'phone_verified_at' => 'datetime',
+            'email_verified_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'rating_avg' => 'decimal:2',

@@ -27,17 +27,24 @@ class S {
   static const loginBody = 'سجّل دخولك برقمك. حنرسل ليك رمز تأكيد.';
   static const login = 'تسجيل الدخول';
   static const otherNumber = 'الدخول برقم تاني';
-  static const phoneBody = 'نرسل لك رمز التحقق على واتساب.';
+  static const phoneBody = 'نرسل لك رمز الدخول، وبعدها تدخل طوالي من الجوال ده.';
   static const phoneHint = '0912345678';
   static const phoneInvalid = 'أدخل رقم سوداني صحيح مثل 0912345678';
-  static const sendCode = 'أرسل الرمز على واتساب';
+  static const sendCode = 'متابعة';
   static const otpTitle = 'أدخل رمز التحقق';
   static String otpBody(String phone) => 'أرسلنا الرمز على واتساب للرقم $phone';
+  static String otpBodyEmail(String email) => 'أرسلنا الرمز إلى بريدك $email\nلو ما لقيته في الوارد، شوف مجلد Spam (الرسائل غير المرغوبة).';
+  static const otpBodyGeneric = 'اكتب الرمز اللي وصلك. لو ما لقيته في بريدك، شوف مجلد Spam.';
+  static const otpBodyTest = 'رقم تجريبي: الرمز اتملى براهو.';
+  static const emailTitle = 'بريدك الإلكتروني';
+  static const emailBody = 'أول مرة بس: اكتب بريدك عشان نرسل ليك عليه رمز الدخول. بعد كده الرموز تجي على البريد ده.';
+  static const emailHintLogin = 'name@gmail.com';
+  static const emailInvalid = 'البريد غير صحيح. مثال: name@gmail.com';
   static const verify = 'تأكيد الرمز';
   static const changeNumber = 'تغيير الرقم';
   static const resendCode = 'أعد إرسال الرمز';
   static String resendIn(String time) => 'تقدر تطلب رمز جديد بعد $time';
-  static const codeResent = 'أرسلنا رمز جديد على واتساب';
+  static const codeResent = 'أرسلنا رمز جديد';
 
   // Profile setup
   static const setupTitle = 'عرّفنا بيك';

@@ -20,6 +20,13 @@ use Tests\TestCase;
 
 class NotificationDeliveryTest extends TestCase
 {
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These tests cover the WhatsApp code channel; email codes are in EmailOtpTest.
+        settings()->set('otp.channel', 'whatsapp');
+    }
     private function userWithDevice(array $attributes = []): User
     {
         $user = User::factory()->create($attributes);

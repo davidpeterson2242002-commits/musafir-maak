@@ -11,6 +11,13 @@ class TrustedDeviceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These tests cover the WhatsApp code channel; email codes are in EmailOtpTest.
+        settings()->set('otp.channel', 'whatsapp');
+    }
+
     private function signUp(string $phone = '0912345678'): array
     {
         settings()->set('otp.test_phones', [$phone]);

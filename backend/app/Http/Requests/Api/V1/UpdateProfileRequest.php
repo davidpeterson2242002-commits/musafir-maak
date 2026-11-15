@@ -19,6 +19,9 @@ class UpdateProfileRequest extends FormRequest
         if ($this->filled('whatsapp_phone')) {
             $this->merge(['whatsapp_phone' => Phone::normalize($this->input('whatsapp_phone')) ?? $this->input('whatsapp_phone')]);
         }
+        if ($this->filled('email')) {
+            $this->merge(['email' => mb_strtolower(trim((string) $this->input('email')))]);
+        }
     }
 
     public function rules(): array
@@ -39,7 +42,10 @@ class UpdateProfileRequest extends FormRequest
                 }]
                 : [$firstSetup ? 'required' : 'sometimes', Rule::enum(Gender::class)],
             'city_id' => [$firstSetup ? 'required' : 'sometimes', 'integer', Rule::exists('cities', 'id')->where('enabled', true)],
-            'email' => ['sometimes', 'nullable', 'email:rfc', 'max:150'],
+            // Login codes go to this address, so once an account has one it can be changed but not removed,
+            // and two accounts can't share it.
+            'email' => ['sometimes', filled($user?->email) ? 'required' : 'nullable', 'email:rfc', 'max:150',
+                Rule::unique('users', 'email')->ignore($user?->id)->whereNull('deleted_at')],
             'whatsapp_phone' => ['sometimes', 'nullable', 'string', function ($attr, $value, $fail) {
                 if ($value !== null && ! Phone::isValid($value)) {
                     $fail('رقم الواتساب غير صحيح.');
@@ -54,6 +60,9 @@ class UpdateProfileRequest extends FormRequest
         return [
             'accept_terms.required' => 'يجب الموافقة على الشروط وسياسة الخصوصية.',
             'accept_terms.accepted' => 'يجب الموافقة على الشروط وسياسة الخصوصية.',
+            'email.required' => 'رموز الدخول تصل على بريدك، فما ممكن تمسحه. تقدر تغيّره لبريد تاني.',
+            'email.unique' => 'البريد ده مستخدم في حساب تاني.',
+            'email.email' => 'البريد الإلكتروني غير صحيح.',
         ];
     }
 }

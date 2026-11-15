@@ -9,6 +9,13 @@ use Tests\TestCase;
 
 class OtpAuthTest extends TestCase
 {
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These tests cover the WhatsApp code channel; email codes are in EmailOtpTest.
+        settings()->set('otp.channel', 'whatsapp');
+    }
     private function requestCode(string $phone = '0912345678'): string
     {
         $this->postJson('/api/v1/auth/otp', ['phone' => $phone])->assertOk();

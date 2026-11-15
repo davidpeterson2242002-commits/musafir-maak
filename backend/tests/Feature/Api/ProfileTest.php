@@ -11,6 +11,13 @@ use Tests\TestCase;
 
 class ProfileTest extends TestCase
 {
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These tests cover the WhatsApp code channel; email codes are in EmailOtpTest.
+        settings()->set('otp.channel', 'whatsapp');
+    }
     public function test_first_profile_setup_requires_name_gender_city_and_terms(): void
     {
         Sanctum::actingAs(User::factory()->fresh()->create());

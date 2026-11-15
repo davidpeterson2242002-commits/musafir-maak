@@ -11,6 +11,8 @@ use App\Models\NotificationLog;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\FirebaseSetup;
+use App\Services\MailSetup;
+use Filament\Forms\Components\Select;
 use App\Support\Phone;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -57,6 +59,40 @@ class ManageNotificationChannels extends ManageRecords
                         })
                         ->cancelParentActions(),
                 ] : []),
+            Action::make('mail')
+                ->label(fn () => app(MailSetup::class)->current() ? 'البريد: مفعّل ✓' : 'إعداد البريد (رموز الدخول)')
+                ->icon('heroicon-o-envelope')
+                ->color(fn () => app(MailSetup::class)->current() ? 'success' : 'warning')
+                ->modalHeading('البريد الصادر (SMTP)')
+                ->modalDescription('رموز الدخول والكشوفات تُرسل من هذا البريد. في Hostinger: hPanel → Emails → أنشئ بريد مثل noreply@statement-ds.com ثم اكتب بياناته هنا. كلمة المرور تُحفظ مشفّرة.')
+                ->fillForm(fn () => array_merge(
+                    ['host' => 'smtp.hostinger.com', 'port' => 465, 'encryption' => 'ssl', 'from_name' => 'مسافر معاك'],
+                    collect(app(MailSetup::class)->current() ?? [])->except('password')->all(),
+                ))
+                ->schema([
+                    TextInput::make('host')->label('خادم SMTP')->required()->extraInputAttributes(['dir' => 'ltr']),
+                    TextInput::make('port')->label('المنفذ')->numeric()->required(),
+                    Select::make('encryption')->label('التشفير')->options(['ssl' => 'SSL (منفذ 465)', 'tls' => 'TLS (منفذ 587)'])->required(),
+                    TextInput::make('username')->label('البريد (اسم المستخدم)')->email()->required()->extraInputAttributes(['dir' => 'ltr']),
+                    TextInput::make('password')->label('كلمة المرور')->password()->revealable()
+                        ->helperText(fn () => app(MailSetup::class)->current() ? 'اتركها فارغة للإبقاء على الحالية.' : null),
+                    TextInput::make('from_address')->label('عنوان المرسل (اختياري)')->email()->extraInputAttributes(['dir' => 'ltr']),
+                    TextInput::make('from_name')->label('اسم المرسل'),
+                ])
+                ->modalSubmitActionLabel('حفظ')
+                ->action(function (array $data) {
+                    app(MailSetup::class)->save($data);
+                    Notification::make()->title('تم حفظ إعدادات البريد')->body('جرّب «بريد تجريبي» للتأكد.')->success()->send();
+                }),
+            Action::make('testMail')
+                ->label('بريد تجريبي')->icon('heroicon-o-envelope-open')->color('gray')
+                ->schema([TextInput::make('to')->label('أرسل إلى')->email()->required()->extraInputAttributes(['dir' => 'ltr'])])
+                ->action(function (array $data) {
+                    $error = app(MailSetup::class)->test($data['to']);
+                    $error === null
+                        ? Notification::make()->title('تم الإرسال')->body('افحص صندوق الوارد (وأيضاً Spam).')->success()->send()
+                        : Notification::make()->title('فشل الإرسال')->body(mb_substr($error, 0, 300))->danger()->persistent()->send();
+                }),
             Action::make('testPush')
                 ->label('إشعار تجريبي')->icon('heroicon-o-paper-airplane')->color('gray')
                 ->modalDescription('يُرسل إشعاراً فورياً لكل أجهزة هذا المستخدم. يجب أن يكون قد سجّل الدخول في التطبيق من نسخة تدعم الإشعارات.')

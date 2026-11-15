@@ -7,7 +7,15 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository(
 
 /// Answer to "send me a code".
 class OtpTicket {
-  const OtpTicket({required this.phone, required this.resendAfter, this.debugCode, this.codeLength = 6});
+  const OtpTicket({
+    required this.phone,
+    required this.resendAfter,
+    this.debugCode,
+    this.codeLength = 6,
+    this.channel = 'email',
+    this.sentTo,
+    this.email,
+  });
 
   /// The number as the server normalised it (+249…).
   final String phone;
@@ -20,6 +28,15 @@ class OtpTicket {
 
   /// How many digits the code has (admin setting, 4–8). The code boxes follow it.
   final int codeLength;
+
+  /// `email` or `whatsapp` (admin setting).
+  final String channel;
+
+  /// Masked address the code went to (m•••@gmail.com), when sent by email.
+  final String? sentTo;
+
+  /// The email the user typed (new accounts), sent again on "resend".
+  final String? email;
 }
 
 class VerifiedSession {
@@ -45,9 +62,16 @@ class AuthRepository {
 
   final ApiClient _api;
 
-  Future<OtpTicket> requestOtp(String phone) async {
-    final json = Map<String, dynamic>.from(await _api.post('auth/otp', body: {'phone': phone}) as Map);
+  /// Throws [ApiException] with code `email_required` when this number has no account email
+  /// yet: ask for one and call again with [email].
+  Future<OtpTicket> requestOtp(String phone, {String? email}) async {
+    final json = Map<String, dynamic>.from(
+      await _api.post('auth/otp', body: {'phone': phone, if (email != null) 'email': email}) as Map,
+    );
     return OtpTicket(
+      channel: json['channel'] as String? ?? 'email',
+      sentTo: json['sent_to'] as String?,
+      email: email,
       phone: json['phone'] as String? ?? phone,
       resendAfter: (json['resend_after'] as num?)?.toInt() ?? 60,
       debugCode: json['debug_code'] as String?,

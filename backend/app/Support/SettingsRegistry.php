@@ -211,6 +211,12 @@ final class SettingsRegistry
             ],
 
             // ---------------- OTP ----------------
+            'otp.channel' => [
+                'type' => SettingType::Select, 'group' => 'otp', 'label' => 'طريقة إرسال رمز الدخول',
+                'default' => 'email', 'public' => true,
+                'options' => ['email' => 'البريد الإلكتروني', 'whatsapp' => 'واتساب'],
+                'help' => 'البريد: الحساب الجديد يكتب بريده مرة واحدة، والرموز بعدها تُرسل لبريد الحساب. واتساب يحتاج إعداد WhatsApp Business API.',
+            ],
             'otp.length' => [
                 'type' => SettingType::Integer, 'group' => 'otp', 'label' => 'عدد أرقام رمز التحقق',
                 'default' => 6, 'min' => 4, 'max' => 8,

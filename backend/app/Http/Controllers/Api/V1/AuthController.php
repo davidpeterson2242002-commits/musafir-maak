@@ -19,10 +19,17 @@ class AuthController extends Controller
     public function requestOtp(RequestOtpRequest $request): JsonResponse
     {
         $phone = $request->validated('phone');
-        $result = $this->otp->issue($phone, $request->ip());
+        $result = $this->otp->issue($phone, $request->ip(), $request->validated('email'));
+        $email = $result['email'];
 
         $payload = [
-            'message' => 'تم إرسال رمز التحقق إلى واتساب.',
+            'message' => match (true) {
+                $result['channel'] === 'whatsapp' => 'تم إرسال رمز التحقق إلى واتساب.',
+                $email !== null => 'أرسلنا رمز الدخول إلى بريدك '.self::maskEmail($email),
+                default => 'رقم تجريبي: الرمز يظهر في التطبيق.',
+            },
+            'channel' => $result['channel'],
+            'sent_to' => $email !== null ? self::maskEmail($email) : null,
             'phone' => $phone,
             'resend_after' => $result['resend_after'],
             // The app sizes its code boxes from this (admin setting otp.length, 4–8).
@@ -44,7 +51,7 @@ class AuthController extends Controller
     public function verifyOtp(VerifyOtpRequest $request): JsonResponse
     {
         $phone = $request->validated('phone');
-        $this->otp->verify($phone, $request->validated('code'));
+        $otp = $this->otp->verify($phone, $request->validated('code'));
 
         $user = User::withTrashed()->where('phone', $phone)->first();
 
@@ -64,7 +71,14 @@ class AuthController extends Controller
             return response()->json(['message' => 'تم حظر هذا الحساب. للاستفسار تواصل مع الدعم.', 'code' => 'account_banned'], 403);
         }
 
-        $user->forceFill(['phone_verified_at' => $user->phone_verified_at ?? now(), 'last_seen_at' => now()])->save();
+        $verified = ['last_seen_at' => now()];
+        if ($otp->email !== null) {
+            // The code reached this inbox: it becomes (or confirms) the account's email.
+            $verified += ['email' => $user->email ?: $otp->email, 'email_verified_at' => now()];
+        } else {
+            $verified['phone_verified_at'] = $user->phone_verified_at ?? now();
+        }
+        $user->forceFill($verified)->save();
 
         $newToken = $user->createToken($request->validated('device_name') ?: 'mobile');
         $deviceToken = $this->devices->trust($user, $newToken->accessToken, $request->validated('device_name'));
@@ -116,5 +130,13 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'تم تسجيل الخروج.']);
+    }
+
+    /** m•••@gmail.com — enough to recognise the address without exposing it. */
+    private static function maskEmail(string $email): string
+    {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+
+        return mb_substr($local, 0, 1).'•••@'.$domain;
     }
 }

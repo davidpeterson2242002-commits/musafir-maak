@@ -12,6 +12,7 @@ use App\Gateways\FakePushGateway;
 use App\Gateways\FakeWhatsAppGateway;
 use App\Gateways\FcmPushGateway;
 use App\Models\AppSecret;
+use App\Services\MailSetup;
 use App\Gateways\LogPushGateway;
 use App\Gateways\LogWhatsAppGateway;
 use App\Gateways\MetaWhatsAppGateway;
@@ -93,6 +94,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // SMTP mailbox saved in the admin panel (login codes by email).
+        app(MailSetup::class)->apply();
+
         Model::preventLazyLoading(! $this->app->isProduction());
 
         // Admin lists refresh themselves while open (no manual reload after each change).

@@ -17,6 +17,11 @@ class RequestOtpRequest extends FormRequest
         $this->merge(['phone' => Phone::normalize($this->input('phone')) ?? $this->input('phone')]);
     }
 
+    public function messages(): array
+    {
+        return ['email.email' => 'البريد الإلكتروني غير صحيح. مثال: name@gmail.com'];
+    }
+
     public function rules(): array
     {
         return [
@@ -25,6 +30,7 @@ class RequestOtpRequest extends FormRequest
                     $fail('رقم الهاتف غير صحيح. أدخل رقم سوداني مثل 0912345678.');
                 }
             }],
+            'email' => ['nullable', 'string', 'email:rfc', 'max:191'],
         ];
     }
 }

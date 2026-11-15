@@ -18,7 +18,7 @@ import '../../core/widgets/common.dart';
 import 'auth_repository.dart';
 import 'session_controller.dart';
 
-/// Step 1: phone number → WhatsApp code (spec P2).
+/// Step 1: phone number (+ email the first time) → login code (spec P2).
 class PhoneScreen extends ConsumerStatefulWidget {
   const PhoneScreen({super.key});
 
@@ -28,8 +28,16 @@ class PhoneScreen extends ConsumerStatefulWidget {
 
 class _PhoneScreenState extends ConsumerState<PhoneScreen> {
   final _controller = TextEditingController();
+  final _emailController = TextEditingController();
+  final _emailFocus = FocusNode();
   String? _error;
+  String? _emailError;
   bool _busy = false;
+
+  /// The server asked for an email (new account, codes go by email).
+  bool _needEmail = false;
+
+  static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');
 
   /// The account that last logged in on this phone: "welcome back" mode.
   Map<String, dynamic>? _returning;
@@ -54,6 +62,8 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _emailController.dispose();
+    _emailFocus.dispose();
     super.dispose();
   }
 
@@ -63,9 +73,15 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
       setState(() => _error = S.phoneInvalid);
       return;
     }
+    final email = _needEmail ? _emailController.text.trim().toLowerCase() : null;
+    if (email != null && !_emailPattern.hasMatch(email)) {
+      setState(() => _emailError = S.emailInvalid);
+      return;
+    }
 
     setState(() {
       _error = null;
+      _emailError = null;
       _busy = true;
     });
 
@@ -94,14 +110,20 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
     }
 
     try {
-      final ticket = await ref.read(authRepositoryProvider).requestOtp(phone);
+      final ticket = await ref.read(authRepositoryProvider).requestOtp(phone, email: email);
       if (mounted) context.push('/login/code', extra: ticket);
     } on ApiException catch (e) {
       if (!mounted) return;
-      if (e.kind == ApiErrorKind.rateLimited) {
+      if (e.code == 'email_required') {
+        // New account: one-time email step, the code goes there.
+        setState(() => _needEmail = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) => _emailFocus.requestFocus());
+      } else if (e.code == 'email_taken' || e.fieldError('email') != null) {
+        setState(() => _emailError = e.fieldError('email') ?? e.message);
+      } else if (e.kind == ApiErrorKind.rateLimited) {
         // A code was sent less than a minute ago: let them type it instead of blocking here.
         showMessage(context, e.message);
-        context.push('/login/code', extra: OtpTicket(phone: phone, resendAfter: 60));
+        context.push('/login/code', extra: OtpTicket(phone: phone, resendAfter: 60, email: email));
       } else {
         setState(() => _error = e.fieldError('phone') ?? e.message);
       }
@@ -117,7 +139,12 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
-        child: Padding(
+        // Scrolls when the keyboard and the email field don't fit; the Spacer still works.
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
           padding: AppTheme.screenPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -154,7 +181,12 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                   inputFormatters: [LengthLimitingTextInputFormatter(16)],
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: 1.5),
                   onChanged: (_) {
-                    if (_error != null) setState(() => _error = null);
+                    if (_error != null || _needEmail) {
+                      setState(() {
+                        _error = null;
+                        _needEmail = false; // another number: ask the server again
+                      });
+                    }
                   },
                   onSubmitted: (_) => _submit(),
                   decoration: AppTheme.input(
@@ -173,6 +205,33 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                 const SizedBox(height: 8),
                 Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 14.5)),
               ],
+              if (_needEmail) ...[
+                const SizedBox(height: 24),
+                Text(S.emailTitle, style: text.titleLarge),
+                const SizedBox(height: 4),
+                Text(S.emailBody, style: text.bodyMedium?.copyWith(color: AppColors.inkMuted)),
+                const SizedBox(height: 12),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: TextField(
+                    controller: _emailController,
+                    focusNode: _emailFocus,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.done,
+                    autocorrect: false,
+                    autofillHints: const [AutofillHints.email],
+                    onChanged: (_) {
+                      if (_emailError != null) setState(() => _emailError = null);
+                    },
+                    onSubmitted: (_) => _submit(),
+                    decoration: AppTheme.input(hint: S.emailHintLogin, prefixIcon: const Icon(Icons.mail_outline_rounded)),
+                  ),
+                ),
+                if (_emailError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_emailError!, style: const TextStyle(color: AppColors.danger, fontSize: 14.5)),
+                ],
+              ],
               const Spacer(),
               PrimaryButton(label: _returning != null ? S.login : S.sendCode, onPressed: _submit, busy: _busy),
               if (_returning != null)
@@ -186,6 +245,9 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
               const SizedBox(height: 16),
             ],
           ),
+        ),
+            ),
+          ],
         ),
       ),
     );
@@ -277,7 +339,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     });
 
     try {
-      final ticket = await ref.read(authRepositoryProvider).requestOtp(widget.ticket.phone);
+      final ticket = await ref.read(authRepositoryProvider).requestOtp(widget.ticket.phone, email: widget.ticket.email);
       if (!mounted) return;
       _startCountdown(ticket.resendAfter);
       setState(() => _length = ticket.codeLength);
@@ -310,7 +372,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               Text(S.otpTitle, style: text.displaySmall),
               const SizedBox(height: 6),
               Text(
-                S.otpBody(Phone.local(widget.ticket.phone)),
+                switch (widget.ticket) {
+                  OtpTicket(debugCode: final String _) => S.otpBodyTest,
+                  OtpTicket(sentTo: final String to) => S.otpBodyEmail(to),
+                  OtpTicket(channel: 'whatsapp') => S.otpBody(Phone.local(widget.ticket.phone)),
+                  _ => S.otpBodyGeneric,
+                },
                 style: text.bodyLarge?.copyWith(color: AppColors.inkMuted),
               ),
               const SizedBox(height: 28),
