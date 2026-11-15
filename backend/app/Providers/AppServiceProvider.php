@@ -11,6 +11,7 @@ use App\Events\TripCancelled;
 use App\Gateways\FakePushGateway;
 use App\Gateways\FakeWhatsAppGateway;
 use App\Gateways\FcmPushGateway;
+use App\Models\AppSecret;
 use App\Gateways\LogPushGateway;
 use App\Gateways\LogWhatsAppGateway;
 use App\Gateways\MetaWhatsAppGateway;
@@ -70,14 +71,24 @@ class AppServiceProvider extends ServiceProvider
             default => throw new InvalidArgumentException('Unknown WhatsApp driver: '.config('services.whatsapp.driver')),
         });
 
-        $this->app->singleton(PushGateway::class, fn () => match (config('services.push.driver')) {
+        $this->app->singleton(PushGateway::class, fn () => match (true) {
+            // A Firebase key uploaded in the admin panel switches push on without touching .env.
+            config('services.push.driver') !== 'fake' && ($fcm = AppSecret::read(AppSecret::FCM_CREDENTIALS)) !== null
+                => FcmPushGateway::fromJson($fcm, (int) config('services.push.timeout', 15)),
+            default => $this->pushFromConfig(),
+        });
+
+        $this->app->singleton(OtpSender::class, WhatsAppOtpSender::class);
+    }
+
+    private function pushFromConfig(): PushGateway
+    {
+        return match (config('services.push.driver')) {
             'log' => new LogPushGateway,
             'fake' => new FakePushGateway,
             'fcm' => FcmPushGateway::fromConfig(config('services.push')),
             default => throw new InvalidArgumentException('Unknown push driver: '.config('services.push.driver')),
-        });
-
-        $this->app->singleton(OtpSender::class, WhatsAppOtpSender::class);
+        };
     }
 
     public function boot(): void

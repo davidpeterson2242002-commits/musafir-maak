@@ -38,12 +38,23 @@ class FcmPushGateway implements PushGateway
             default => throw new GatewayException('FCM is not configured: set FCM_CREDENTIALS (path to the service-account JSON) or FCM_CREDENTIALS_BASE64.'),
         };
 
-        $credentials = json_decode((string) $json, true);
+        return self::fromJson((string) $json, (int) ($config['timeout'] ?? 15));
+    }
+
+    /** From the service-account JSON itself (uploaded in the admin panel). */
+    public static function fromJson(string $json, int $timeout = 15): self
+    {
+        $credentials = json_decode($json, true);
         if (! is_array($credentials)) {
             throw new GatewayException('FCM credentials are not valid JSON.');
         }
 
-        return new self($credentials, (int) ($config['timeout'] ?? 15));
+        return new self($credentials, $timeout);
+    }
+
+    public function projectId(): string
+    {
+        return $this->credentials['project_id'];
     }
 
     public function send(array $tokens, string $title, string $body, array $data = []): array
