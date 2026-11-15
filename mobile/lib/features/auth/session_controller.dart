@@ -67,12 +67,14 @@ class SessionController extends Notifier<SessionState> {
     if (cached?.data is Map) {
       state = SessionState.signedIn(User.fromJson(Map<String, dynamic>.from(cached!.data as Map)));
       refresh(); // …and update it in the background.
+      ref.read(pushServiceProvider).register(); // the push token can change between launches
       return;
     }
 
     // Token but no saved profile (first run after an update): we need the server.
     try {
       await refresh(rethrowErrors: true);
+      ref.read(pushServiceProvider).register();
     } on ApiException catch (e) {
       if (state.status == SessionStatus.unknown) {
         // Offline with nothing cached: ask to log in again rather than hang on the splash.

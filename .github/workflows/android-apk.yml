@@ -12,6 +12,11 @@ on:
         description: "API base URL baked into the app (leave empty for the app's default)"
         required: false
         default: ""
+      publish:
+        description: "Publish the APKs as a GitHub pre-release (off = compile check only)"
+        type: boolean
+        required: false
+        default: true
 
 permissions:
   contents: write
@@ -66,9 +71,27 @@ jobs:
               s = s.replace("<queries>", "<queries>\n" + extra, 1)
           else:
               s = s.replace("</manifest>", "    <queries>\n" + extra + "    </queries>\n</manifest>", 1)
+          # Push notifications: small icon, accent colour, default channel (created in MainActivity).
+          meta = (
+              '        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_notify"/>\n'
+              '        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/notify_accent"/>\n'
+              '        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="default"/>\n'
+          )
+          if "default_notification_icon" not in s:
+              s = s.replace("</application>", meta + "    </application>", 1)
           p.write_text(s)
           print(s)
           EOF
+
+      - name: Android push files (channel, icon)
+        run: |
+          cp tooling/android/MainActivity.kt android/app/src/main/kotlin/com/musafirmaak/musafir_maak/MainActivity.kt
+          mkdir -p android/app/src/main/res/drawable android/app/src/main/res/values
+          cp tooling/android/ic_stat_notify.xml android/app/src/main/res/drawable/ic_stat_notify.xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources><color name="notify_accent">#0B6E5B</color></resources>\n' > android/app/src/main/res/values/notify_colors.xml
+          # Firebase needs Android 6.0+ (API 23).
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = maxOf(flutter.minSdkVersion, 23)/' android/app/build.gradle.kts
+          grep -n "minSdk" android/app/build.gradle.kts
 
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
@@ -91,12 +114,14 @@ jobs:
           ls -la build/app/outputs/flutter-apk/
 
       - name: Rename APKs
+        if: ${{ inputs.publish }}
         run: |
           cd build/app/outputs/flutter-apk
           cp app-arm64-v8a-release.apk     musafir-maak-${{ github.run_number }}-arm64.apk
           cp app-armeabi-v7a-release.apk   musafir-maak-${{ github.run_number }}-arm32-old-phones.apk
 
       - name: Publish as a GitHub pre-release
+        if: ${{ inputs.publish }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
