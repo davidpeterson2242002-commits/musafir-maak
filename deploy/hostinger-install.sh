@@ -37,7 +37,8 @@ BCRYPT_ROUNDS=12
 LOG_CHANNEL=daily
 LOG_LEVEL=info
 DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
+DB_HOST=localhost
+DB_SOCKET=/var/lib/mysql/mysql.sock
 DB_PORT=3306
 DB_DATABASE=$DB_NAME
 DB_USERNAME=$DB_USER
@@ -71,6 +72,15 @@ fi
 if grep -q '^CACHE_STORE=database' "$SHARED/.env"; then
   sed -i 's/^CACHE_STORE=database/CACHE_STORE=file/' "$SHARED/.env"
   echo "CACHE_STORE switched to file"
+fi
+
+# MySQL over the local unix socket instead of TCP 127.0.0.1. Measured 2026-11-15: under load
+# (~20 req/s) new TCP connections to MySQL failed with "Operation not permitted" (the hosting
+# account's connection limit) and the API answered 500. The socket has no such limit.
+if grep -q '^DB_HOST=127.0.0.1' "$SHARED/.env" && [ -S /var/lib/mysql/mysql.sock ]; then
+  sed -i 's/^DB_HOST=127.0.0.1/DB_HOST=localhost/' "$SHARED/.env"
+  grep -q '^DB_SOCKET=' "$SHARED/.env" || echo 'DB_SOCKET=/var/lib/mysql/mysql.sock' >> "$SHARED/.env"
+  echo "MySQL switched to the unix socket"
 fi
 
 # --- unpack new release -----------------------------------------------------
