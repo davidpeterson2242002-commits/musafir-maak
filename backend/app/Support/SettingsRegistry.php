@@ -258,12 +258,12 @@ final class SettingsRegistry
             // ---------------- Server capacity (live dashboard) ----------------
             'ops.capacity_rps' => [
                 'type' => SettingType::Decimal, 'group' => 'ops', 'label' => 'أقصى طلبات في الثانية يتحملها السيرفر (من اختبار الضغط)',
-                'default' => 0, 'min' => 0,
+                'default' => 50, 'min' => 0,
                 'help' => 'تُقاس باختبار الضغط (GitHub → Actions → Capacity test). 0 = غير مقاس. لوحة "الآن" تقارن الحمل الحالي بهذا الرقم.',
             ],
             'ops.requests_per_user_per_second' => [
                 'type' => SettingType::Decimal, 'group' => 'ops', 'label' => 'متوسط طلبات المستخدم الواحد في الثانية (قيمة احتياطية)',
-                'default' => 0.12, 'min' => 0.01,
+                'default' => 0.1, 'min' => 0.01,
                 'help' => 'يُستعمل لحساب عدد المستخدمين الممكن حتى تتوفر أرقام حقيقية. التطبيق المفتوح يرسل طلباً كل ~12 ثانية + الشاشات التي يفتحها.',
             ],
 
