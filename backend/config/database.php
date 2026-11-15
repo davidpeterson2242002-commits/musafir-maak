@@ -61,6 +61,10 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                // Keep one MySQL connection per PHP worker instead of opening one per request.
+                // Measured 2026-11-15 on Hostinger: new connections fail with "Operation not
+                // permitted" above ~15 per second, while the PHP side stays at ~30 ms.
+                PDO::ATTR_PERSISTENT => (bool) env('DB_PERSISTENT', false),
             ]) : [],
         ],
 

@@ -109,16 +109,32 @@ class LiveUpdates extends Notifier<LiveState> with WidgetsBindingObserver {
       _timer?.cancel();
       WidgetsBinding.instance.removeObserver(this);
     });
+    _signedIn = signedIn;
     if (signedIn) {
-      _timer = Timer.periodic(interval, (_) => refresh());
+      _start();
       Future.microtask(refresh);
     }
     return const LiveState();
   }
 
+  bool _signedIn = false;
+
+  void _start() {
+    _timer?.cancel();
+    _timer = Timer.periodic(interval, (_) => refresh());
+  }
+
+  /// Polls only while the app is on screen: a phone with the app in the background
+  /// costs the server nothing (push notifications cover that time).
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
-    if (lifecycle == AppLifecycleState.resumed) refresh();
+    if (lifecycle == AppLifecycleState.resumed) {
+      if (_signedIn) _start();
+      refresh();
+    } else if (lifecycle == AppLifecycleState.paused || lifecycle == AppLifecycleState.hidden) {
+      _timer?.cancel();
+      _timer = null;
+    }
   }
 
   Future<void> refresh() async {

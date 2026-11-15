@@ -39,6 +39,7 @@ LOG_LEVEL=info
 DB_CONNECTION=mysql
 DB_HOST=localhost
 DB_SOCKET=/var/lib/mysql/mysql.sock
+DB_PERSISTENT=true
 DB_PORT=3306
 DB_DATABASE=$DB_NAME
 DB_USERNAME=$DB_USER
@@ -82,6 +83,10 @@ if grep -q '^DB_HOST=127.0.0.1' "$SHARED/.env" && [ -S /var/lib/mysql/mysql.sock
   grep -q '^DB_SOCKET=' "$SHARED/.env" || echo 'DB_SOCKET=/var/lib/mysql/mysql.sock' >> "$SHARED/.env"
   echo "MySQL switched to the unix socket"
 fi
+
+# Reuse MySQL connections across requests (see config/database.php: the host refuses
+# opening more than ~15 new connections per second).
+grep -q '^DB_PERSISTENT=' "$SHARED/.env" || { echo 'DB_PERSISTENT=true' >> "$SHARED/.env"; echo "DB_PERSISTENT enabled"; }
 
 # --- unpack new release -----------------------------------------------------
 rm -rf "$BASE/app_new"
