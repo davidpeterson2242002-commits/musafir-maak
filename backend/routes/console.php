@@ -262,3 +262,24 @@ Artisan::command('log:summary {--lines=40}', function () {
         $this->line(sprintf('%6d  last %s  %s', $c['n'], $c['last'], $msg));
     }
 })->purpose('Count distinct errors in the newest Laravel log (read-only)');
+
+Artisan::command('db:probe', function () {
+    $cfg = config('database.connections.mysql');
+    $socket = ini_get('pdo_mysql.default_socket') ?: ini_get('mysqli.default_socket');
+    $this->line('configured host='.$cfg['host'].' socket='.($cfg['unix_socket'] ?: '-').' php default socket='.($socket ?: '-'));
+    foreach (array_filter([$socket, '/var/lib/mysql/mysql.sock', '/tmp/mysql.sock', '/run/mysqld/mysqld.sock']) as $path) {
+        $this->line(sprintf('  %s %s', $path, file_exists($path) ? 'exists' : 'missing'));
+    }
+    $try = function (string $dsn, string $label) use ($cfg) {
+        $t = microtime(true);
+        try {
+            $pdo = new PDO($dsn, $cfg['username'], $cfg['password']);
+            $pdo->query('select 1');
+            $this->line(sprintf('  %-8s OK %.1f ms', $label, (microtime(true) - $t) * 1000));
+        } catch (Throwable $e) {
+            $this->line(sprintf('  %-8s FAIL %s', $label, mb_substr($e->getMessage(), 0, 120)));
+        }
+    };
+    $try("mysql:host=127.0.0.1;port={$cfg['port']};dbname={$cfg['database']}", 'tcp');
+    $try("mysql:host=localhost;dbname={$cfg['database']}", 'socket');
+})->purpose('Check how PHP can reach MySQL (TCP vs unix socket), read-only');
