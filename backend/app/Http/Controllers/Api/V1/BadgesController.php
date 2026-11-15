@@ -12,6 +12,7 @@ use App\Models\Parcel;
 use App\Services\ChatService;
 use App\Services\RatingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * GET /me/badges — one small response the app polls every few seconds while open:
@@ -40,6 +41,13 @@ class BadgesController extends Controller
                     ->where('status', BookingStatus::Pending)->where('expires_at', '>', now())->count(),
                 'pending_parcels' => Parcel::whereIn('trip_id', $tripIds)
                     ->where('status', ParcelStatus::Pending)->where('expires_at', '>', now())->count(),
+                // Changes whenever money moves or a payment is reviewed, so the app refreshes the
+                // balance screens by itself (payment confirmed, freeze lifted…).
+                'money_version' => implode(':', [
+                    $profile->status->value,
+                    (int) $profile->ledgerEntries()->max('id'),
+                    (string) $profile->settlementRequests()->max('updated_at'),
+                ]),
             ];
         }
 
@@ -54,7 +62,10 @@ class BadgesController extends Controller
             'parcels' => Parcel::where('sender_id', $user->id)->where('updated_at', '>=', $since)
                 ->orderByDesc('updated_at')->limit(20)->get(['id', 'status'])
                 ->map(fn (Parcel $p) => ['id' => $p->id, 'status' => $p->status->value])->values(),
-            'pending_ratings' => $ratings->pendingFor($user)->count(),
+            // Home rating cards: closed ones don't count.
+            'pending_ratings' => $ratings->pendingFor($user)
+                ->reject(fn ($s) => DB::table('rating_dismissals')->where(['user_id' => $user->id, 'subject_type' => $s->getMorphClass(), 'subject_id' => $s->id])->exists())
+                ->count(),
         ];
     }
 }

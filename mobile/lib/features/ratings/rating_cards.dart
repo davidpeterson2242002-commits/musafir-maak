@@ -22,8 +22,11 @@ class DismissedRatings extends Notifier<Set<String>> {
   }
 
   void dismissAll(Iterable<PendingRating> ratings) {
-    state = {...state, ...ratings.map(keyOf)};
+    final list = ratings.toList();
+    state = {...state, ...list.map(keyOf)};
     ref.read(cacheStoreProvider).write(_key, state.toList());
+    // Also on the server, so a reinstall or another phone doesn't bring it back.
+    ref.read(ratingRepositoryProvider).dismiss(list).catchError((_) {});
   }
 
   static String keyOf(PendingRating r) => '${r.subjectType}:${r.subjectId}:${r.rateAs}';
@@ -58,7 +61,7 @@ class _RatingCardsState extends ConsumerState<RatingCards> {
     final all = ref.watch(pendingRatingsProvider).valueOrNull ?? const <PendingRating>[];
     final list = all
         .where((r) => widget.driverSide ? !r.ratingDriver : r.ratingDriver)
-        .where((r) => !dismissed.contains(DismissedRatings.keyOf(r)))
+        .where((r) => !r.dismissed && !dismissed.contains(DismissedRatings.keyOf(r)))
         .toList();
     if (list.isEmpty) return const SizedBox.shrink();
     final page = _page.clamp(0, list.length - 1);

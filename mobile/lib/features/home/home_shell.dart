@@ -54,7 +54,6 @@ class _BottomBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final onHome = location == '/';
     final tab = ref.watch(homeTabProvider);
     final driverMode = ref.watch(driverModeProvider);
     final live = ref.watch(liveUpdatesProvider);
@@ -78,7 +77,11 @@ class _BottomBar extends ConsumerWidget {
         selectedIndex: tab,
         onDestinationSelected: (index) {
           ref.read(homeTabProvider.notifier).state = index;
-          if (!onHome) context.go('/');
+          // Pages opened with push() don't change the shell's location, so ask the router what
+          // is really on screen; anything but home goes back to it (clearing the pushed pages).
+          final router = GoRouter.of(context);
+          final reallyOnHome = router.routerDelegate.currentConfiguration.uri.path == '/' && !router.canPop();
+          if (!reallyOnHome) router.go('/');
           // Opening a tab is a good moment to refresh its list and the badges.
           ref.read(liveUpdatesProvider.notifier).refresh();
           if (index == 2) ref.invalidate(conversationsProvider);

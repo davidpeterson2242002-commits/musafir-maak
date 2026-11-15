@@ -34,4 +34,13 @@ class RatingRepository {
         if (comment != null && comment.trim().isNotEmpty) 'comment': comment.trim(),
         if (tags.isNotEmpty) 'tags': tags,
       });
+
+  /// The ✕ on the home rating card, saved on the server so it never comes back for that trip.
+  Future<void> dismiss(Iterable<PendingRating> ratings) => _api.post(
+        'ratings/dismiss',
+        body: {
+          'items': [for (final r in ratings) {'subject_type': r.subjectType, 'subject_id': r.subjectId}],
+        },
+        silent: true, // the card disappears at once; this just records it
+      );
 }

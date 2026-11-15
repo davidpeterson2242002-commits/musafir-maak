@@ -87,7 +87,9 @@ class TripService
         return DB::transaction(function () use ($trip, $data) {
             $trip = Trip::whereKey($trip->id)->lockForUpdate()->first();
 
-            if ($trip->hasActiveBookings()) {
+            $locked = $trip->hasActiveBookings();
+            $notesChanged = array_key_exists('notes', $data) && (string) $data['notes'] !== (string) $trip->notes;
+            if ($locked) {
                 $forbidden = array_diff(array_keys($data), ['notes', 'seats_total']);
                 if ($forbidden !== []) {
                     throw new BusinessRuleException('الرحلة عليها حجوزات؛ يمكنك فقط زيادة المقاعد أو تعديل الملاحظات.', 'trip_has_bookings');
@@ -128,8 +130,26 @@ class TripService
                 );
             }
 
+            // People already booked hear about new notes (meeting point, timing remarks…).
+            if ($locked && $notesChanged) {
+                $this->notifyNotesChanged($trip);
+            }
+
             return $trip->fresh();
         });
+    }
+
+    private function notifyNotesChanged(Trip $trip): void
+    {
+        $title = 'السائق عدّل ملاحظات الرحلة';
+        $body = $trip->route->label().' — '.local_time($trip->departs_at)->format('Y-m-d H:i').': '.mb_substr((string) $trip->notes, 0, 140);
+
+        foreach ($trip->bookings()->whereIn('status', BookingStatus::active())->with('passenger')->get() as $booking) {
+            $this->notifier->send($booking->passenger, NotificationEvent::TripUpdated, $title, $body, ['booking_id' => $booking->id, 'trip_id' => $trip->id]);
+        }
+        foreach ($trip->parcels()->whereIn('status', [ParcelStatus::Pending, ParcelStatus::Accepted, ParcelStatus::PickedUp])->with('sender')->get() as $parcel) {
+            $this->notifier->send($parcel->sender, NotificationEvent::TripUpdated, $title, $body, ['parcel_id' => $parcel->id, 'trip_id' => $trip->id]);
+        }
     }
 
     /** Cancel a scheduled trip: every pending/accepted booking is cancelled and notified; fees reversed (M4). */

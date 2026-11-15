@@ -10,6 +10,7 @@ import '../auth/session_controller.dart';
 import '../bookings/booking_repository.dart';
 import '../chat/chat_repository.dart';
 import '../driver/driver_money_repository.dart';
+import '../driver/driver_repository.dart';
 import '../driver/driver_trip_repository.dart';
 import '../parcels/parcel_repository.dart';
 import '../ratings/rating_repository.dart';
@@ -23,6 +24,7 @@ class LiveBadges {
     this.bookingStatuses = const {},
     this.parcelStatuses = const {},
     this.pendingRatings = 0,
+    this.moneyVersion = '',
   });
 
   factory LiveBadges.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class LiveBadges {
       bookingStatuses: statuses(json['bookings']),
       parcelStatuses: statuses(json['parcels']),
       pendingRatings: (json['pending_ratings'] as num?)?.toInt() ?? 0,
+      moneyVersion: '${driver?['money_version'] ?? ''}',
     );
   }
 
@@ -47,6 +50,9 @@ class LiveBadges {
   final Map<int, String> bookingStatuses;
   final Map<int, String> parcelStatuses;
   final int pendingRatings;
+
+  /// Driver only: changes when money moves or a payment is reviewed.
+  final String moneyVersion;
 
   int get driverPending => driverPendingRequests + driverPendingParcels;
 }
@@ -124,6 +130,35 @@ class LiveUpdates extends Notifier<LiveState> with WidgetsBindingObserver {
     }
   }
 
+  /// Balance, payments, statement and account state (after a payment is confirmed or rejected,
+  /// a freeze, a fee).
+  void refreshMoney() {
+    ref.invalidate(driverBalanceProvider);
+    ref.invalidate(settlementsProvider);
+    ref.invalidate(ledgerProvider);
+    ref.invalidate(driverAccountProvider);
+  }
+
+  /// A push notification arrived while the app is open: refresh what it is about right away
+  /// instead of waiting for the next poll.
+  void onPush(Map<String, dynamic> data) {
+    final event = '${data['event'] ?? ''}';
+    if (const {'payment_confirmed', 'payment_rejected', 'account_frozen', 'account_unfrozen', 'settlement_due_soon'}
+        .contains(event)) {
+      refreshMoney();
+    }
+    final booking = int.tryParse('${data['booking_id'] ?? ''}');
+    if (booking != null) ref.invalidate(bookingProvider(booking));
+    final parcel = int.tryParse('${data['parcel_id'] ?? ''}');
+    if (parcel != null) ref.invalidate(parcelProvider(parcel));
+    final trip = int.tryParse('${data['trip_id'] ?? ''}');
+    if (trip != null) ref.invalidate(driverTripProvider(trip));
+    if (const {'driver_approved', 'driver_rejected', 'vehicle_approved', 'vehicle_rejected'}.contains(event)) {
+      ref.invalidate(driverAccountProvider);
+    }
+    refresh();
+  }
+
   /// Marks a notice as seen (the passenger opened that booking or parcel).
   void dismiss(LiveNotice notice) {
     final seen = _seen();
@@ -161,6 +196,7 @@ class LiveUpdates extends Notifier<LiveState> with WidgetsBindingObserver {
       ref.invalidate(driverParcelRequestsProvider);
     }
     if (next.pendingRatings != previous.pendingRatings) ref.invalidate(pendingRatingsProvider);
+    if (previous.moneyVersion.isNotEmpty && next.moneyVersion != previous.moneyVersion) refreshMoney();
 
     var bookingsChanged = false;
     next.bookingStatuses.forEach((id, status) {

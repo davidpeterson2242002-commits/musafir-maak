@@ -45,10 +45,13 @@ class NoPushService implements PushService {
 class FcmPushService implements PushService {
   FcmPushService(this._ref) {
     // Tapped while the app was in the background.
-    FirebaseMessaging.onMessageOpenedApp.listen((m) => _ref.read(pushTapProvider.notifier).state = m.data);
+    FirebaseMessaging.onMessageOpenedApp.listen((m) {
+      _ref.read(liveUpdatesProvider.notifier).onPush(m.data);
+      _ref.read(pushTapProvider.notifier).state = m.data;
+    });
     // Arrived while the app is open: Android doesn't show it, so refresh and show a banner.
     FirebaseMessaging.onMessage.listen((m) {
-      _ref.read(liveUpdatesProvider.notifier).refresh();
+      _ref.read(liveUpdatesProvider.notifier).onPush(m.data);
       if (m.notification != null) _ref.read(pushForegroundProvider.notifier).state = m.notification;
     });
     // Tapped while the app was closed.

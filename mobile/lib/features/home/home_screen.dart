@@ -15,6 +15,7 @@ import '../bookings/booking_widgets.dart';
 import '../geo/city_picker.dart';
 import '../geo/geo_repository.dart';
 import '../live/live_updates.dart';
+import '../push/background_delivery_card.dart';
 import '../ratings/rating_cards.dart';
 import '../ratings/rating_repository.dart';
 import '../trips/trip_repository.dart';
@@ -79,6 +80,7 @@ class HomeScreen extends ConsumerWidget {
           Text(S.whereTo, style: text.displaySmall),
           const SizedBox(height: 16),
           const _LiveNotices(),
+          const BackgroundDeliveryCardView(),
           const RatingCards(driverSide: false),
           const _NextTrip(),
           const _SearchCard(),

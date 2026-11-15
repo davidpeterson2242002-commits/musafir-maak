@@ -8,6 +8,7 @@ import '../../core/utils/formatters.dart';
 import '../../core/widgets/common.dart';
 import '../../models/driver.dart';
 import '../../models/driver_money.dart';
+import '../push/background_delivery_card.dart';
 import '../ratings/rating_cards.dart';
 import '../ratings/rating_repository.dart';
 import 'driver_booking_card.dart';
@@ -69,6 +70,7 @@ class DriverHomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           // Rate the passengers or senders of a finished trip (spec D15).
+          const BackgroundDeliveryCardView(),
           const RatingCards(driverSide: true),
           const SizedBox(height: 26),
           Text(S.newRequests, style: text.titleMedium),

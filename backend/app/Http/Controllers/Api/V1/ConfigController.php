@@ -20,6 +20,8 @@ class ConfigController extends Controller
             'country_code' => '+249',
             'rating_tags' => ['for_driver' => RatingTags::FOR_DRIVER, 'for_passenger' => RatingTags::FOR_PASSENGER],
             'report_reasons' => ReportReason::options(),
+            // Only make sense about a driver; the app hides them when reporting a passenger or sender.
+            'report_reasons_driver_only' => ReportReason::driverOnly(),
         ]);
     }
 }

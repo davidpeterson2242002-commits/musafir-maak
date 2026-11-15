@@ -148,6 +148,29 @@ class TripPostingTest extends TestCase
             ->assertOk()->assertJsonPath('data.seats_total', 4)->assertJsonPath('data.seats_available', 2)->assertJsonPath('data.seats_booked', 2);
     }
 
+    public function test_notes_change_notifies_booked_people_and_parcels_lock_the_trip(): void
+    {
+        $id = $this->postJson('/api/v1/driver/trips', $this->payload())->json('data.id');
+
+        // An accepted parcel alone locks date, price and points too.
+        $parcel = \App\Models\Parcel::factory()->create(['trip_id' => $id, 'status' => \App\Enums\ParcelStatus::Accepted]);
+        $this->putJson("/api/v1/driver/trips/$id", ['price_per_seat' => 20000])->assertJsonPath('code', 'trip_has_bookings');
+
+        $booking = Booking::factory()->accepted()->create(['trip_id' => $id]);
+        $booking->passenger->deviceTokens()->create(['token' => 'pas', 'platform' => 'android']);
+        $parcel->sender->deviceTokens()->create(['token' => 'snd', 'platform' => 'android']);
+
+        $this->putJson("/api/v1/driver/trips/$id", ['notes' => 'نتلاقى جنب الطلمبة'])->assertOk();
+
+        $sent = collect(app(PushGateway::class)->sent)->where('data.event', 'trip_updated');
+        $this->assertSame(2, $sent->count(), 'passenger + sender');
+        $this->assertStringContainsString('نتلاقى جنب الطلمبة', $sent->first()['body']);
+
+        // Same notes again, or only more seats: nobody is disturbed.
+        $this->putJson("/api/v1/driver/trips/$id", ['notes' => 'نتلاقى جنب الطلمبة', 'seats_total' => 4])->assertOk();
+        $this->assertSame(2, collect(app(PushGateway::class)->sent)->where('data.event', 'trip_updated')->count());
+    }
+
     public function test_cancel_trip_cancels_bookings_and_notifies(): void
     {
         Event::fake([TripCancelled::class]);

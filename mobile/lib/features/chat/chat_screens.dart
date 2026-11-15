@@ -348,6 +348,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 userId: conversation.other.id,
                 subjectType: 'conversation',
                 subjectId: conversation.id,
+                // I'm the driver → reporting the passenger / sender, and the other way round.
+                aboutDriver: conversation.myRole != 'driver',
               ),
             ),
         ],

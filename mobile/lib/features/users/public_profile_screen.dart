@@ -104,7 +104,7 @@ class PublicProfileScreen extends ConsumerWidget {
                   Padding(padding: const EdgeInsets.only(bottom: 10), child: _ReviewCard(review: review)),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: () => showReportSheet(context, userId: userId),
+                onPressed: () => showReportSheet(context, userId: userId, aboutDriver: profile.isDriver ? null : false),
                 icon: const Icon(Icons.flag_outlined, size: 20),
                 label: const Text(S.reportUser),
               ),

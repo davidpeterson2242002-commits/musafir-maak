@@ -8,6 +8,7 @@ class AppConfig {
     this.driverRatingTags = const {},
     this.passengerRatingTags = const {},
     this.reportReasons = const {},
+    this.reportReasonsDriverOnly = const {'unsafe_driving', 'wrong_vehicle_or_person', 'overcharging'},
   });
 
   final Map<String, dynamic> settings;
@@ -20,6 +21,9 @@ class AppConfig {
 
   /// Reasons a user can pick when reporting someone: key → Arabic label.
   final Map<String, String> reportReasons;
+
+  /// Reasons that only make sense about a driver (hidden when reporting a passenger or sender).
+  final Set<String> reportReasonsDriverOnly;
 
   String get terms => _text('content.terms');
   String get privacy => _text('content.privacy');
@@ -44,6 +48,9 @@ class AppConfig {
       driverRatingTags: labels(tags is Map ? tags['for_driver'] : null),
       passengerRatingTags: labels(tags is Map ? tags['for_passenger'] : null),
       reportReasons: labels(json['report_reasons']),
+      reportReasonsDriverOnly: json['report_reasons_driver_only'] is List
+          ? {for (final e in json['report_reasons_driver_only'] as List) '$e'}
+          : const {'unsafe_driving', 'wrong_vehicle_or_person', 'overcharging'},
       settings: settings is Map ? Map<String, dynamic>.from(settings) : const {},
       vehicleTypes: labels(json['vehicle_types']),
       parcelSizes: labels(json['parcel_sizes']),

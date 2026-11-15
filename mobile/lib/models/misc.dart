@@ -35,6 +35,7 @@ class PendingRating {
     required this.subjectType,
     required this.subjectId,
     required this.rateAs,
+    this.dismissed = false,
     required this.rateeName,
     required this.summary,
   });
@@ -45,6 +46,9 @@ class PendingRating {
 
   /// `passenger` / `sender` (rating the driver) or `driver` (rating the customer).
   final String rateAs;
+
+  /// Closed with ✕ on the home card (kept on the server): only the booking / trip page offers it.
+  final bool dismissed;
   final String rateeName;
 
   /// e.g. "الخرطوم ← ود مدني — 2026-11-12".
@@ -56,6 +60,7 @@ class PendingRating {
         subjectType: json['subject_type'] as String? ?? 'booking',
         subjectId: (json['subject_id'] as num).toInt(),
         rateAs: json['rate_as'] as String? ?? 'passenger',
+        dismissed: json['dismissed'] as bool? ?? false,
         rateeName: (json['ratee'] as Map?)?['name'] as String? ?? '',
         summary: json['summary'] as String? ?? '',
       );

@@ -43,13 +43,38 @@ class Notifier
                 }
 
                 try {
-                    DeliverNotification::dispatch($user->id, $event->value, $channel->value, $title, $body, $data, $broadcastId);
+                    $job = new DeliverNotification($user->id, $event->value, $channel->value, $title, $body, $data, $broadcastId);
+                    $this->sendsRightAway($channel) ? $this->afterResponse($job) : dispatch($job);
                 } catch (Throwable $e) {
                     // On the sync queue a provider failure surfaces here; the job has already logged it.
                     Log::warning('Notification failed', [
                         'user' => $user->id, 'event' => $event->value, 'channel' => $channel->value, 'error' => $e->getMessage(),
                     ]);
                 }
+            }
+        });
+    }
+
+    /**
+     * Push and email go out as soon as the HTTP response has been sent (the queue is only drained
+     * once a minute by cron on shared hosting, which made notifications up to a minute late).
+     * WhatsApp (paid, rate-limited) and everything started from cron stay on the queue.
+     */
+    private function sendsRightAway(NotificationChannelType $channel): bool
+    {
+        return in_array($channel, [NotificationChannelType::Push, NotificationChannelType::Email], true)
+            && (bool) config('notifications.send_after_response', ! app()->runningInConsole());
+    }
+
+    /** Runs the job after the response is flushed to the phone; a failure falls back to the queue (with retries). */
+    private function afterResponse(DeliverNotification $job): void
+    {
+        app()->terminating(function () use ($job) {
+            try {
+                app()->call([$job, 'handle']);
+            } catch (Throwable $e) {
+                Log::info('Immediate notification failed, queued for retry', ['event' => $job->event, 'error' => $e->getMessage()]);
+                dispatch($job);
             }
         });
     }

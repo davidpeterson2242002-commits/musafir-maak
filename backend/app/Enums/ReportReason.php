@@ -13,6 +13,12 @@ enum ReportReason: string
     case ParcelIssue = 'parcel_issue';
     case Other = 'other';
 
+    /** @return array<int, string> */
+    public static function driverOnly(): array
+    {
+        return [self::UnsafeDriving->value, self::WrongPerson->value, self::Overcharging->value];
+    }
+
     public function label(): string
     {
         return match ($this) {

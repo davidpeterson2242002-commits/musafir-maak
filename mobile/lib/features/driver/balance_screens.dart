@@ -331,30 +331,27 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                     children: [
                       Text(S.choosePaymentMethod, style: text.titleSmall),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
+                      DropdownButtonFormField<int>(
+                        initialValue: _methodId,
+                        isExpanded: true,
+                        hint: const Text(S.choosePaymentMethodHint),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                        decoration: AppTheme.input(
+                          prefixIcon: const Icon(Icons.account_balance_outlined),
+                          errorText: _errors['payment_method_id'],
+                        ),
+                        items: [
                           for (final m in methods)
-                            ChoiceChip(
-                              label: Text(m.name),
-                              selected: m.id == _methodId,
-                              onSelected: (_) => setState(() => _methodId = m.id),
-                              showCheckmark: false,
-                              selectedColor: AppColors.greenTint,
-                              backgroundColor: AppColors.surface,
-                              side: BorderSide(color: m.id == _methodId ? AppColors.green : AppColors.line),
-                              labelStyle: TextStyle(
-                                fontFamily: AppFonts.body,
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700,
-                                color: m.id == _methodId ? AppColors.green : AppColors.inkMuted,
-                              ),
+                            DropdownMenuItem(
+                              value: m.id,
+                              child: Text(m.name, style: const TextStyle(fontFamily: AppFonts.body, fontSize: 15.5, fontWeight: FontWeight.w700)),
                             ),
                         ],
+                        onChanged: (id) => setState(() {
+                          _methodId = id;
+                          _errors = {..._errors}..remove('payment_method_id');
+                        }),
                       ),
-                      if (_errors['payment_method_id'] != null)
-                        Text(_errors['payment_method_id']!, style: const TextStyle(color: AppColors.danger, fontSize: 13.5)),
                       if (method != null) ...[
                         const SizedBox(height: 12),
                         _MethodDetails(method: method),

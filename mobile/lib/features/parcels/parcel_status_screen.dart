@@ -222,6 +222,7 @@ class _ParcelStatusScreenState extends ConsumerState<ParcelStatusScreen> {
                 userId: loaded.valueOrNull!.trip.driver.id,
                 subjectType: 'parcel',
                 subjectId: widget.parcelId,
+                aboutDriver: true,
               ),
             ),
         ],

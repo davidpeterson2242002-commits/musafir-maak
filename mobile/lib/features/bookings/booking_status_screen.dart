@@ -173,6 +173,7 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
                 userId: booking.valueOrNull!.trip.driver.id,
                 subjectType: 'booking',
                 subjectId: widget.bookingId,
+                aboutDriver: true,
               ),
             ),
         ],

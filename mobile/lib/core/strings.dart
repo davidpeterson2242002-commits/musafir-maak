@@ -34,6 +34,11 @@ class S {
   static const otpTitle = 'أدخل رمز التحقق';
   static String otpBody(String phone) => 'أرسلنا الرمز على واتساب للرقم $phone';
   static String otpBodyEmail(String email) => 'أرسلنا الرمز إلى بريدك $email\nلو ما لقيته في الوارد، شوف مجلد Spam (الرسائل غير المرغوبة).';
+  static const choosePaymentMethodHint = 'اختار طريقة الدفع';
+  static const bgDeliveryTitle = 'خلّي الإشعارات توصلك والتطبيق مقفول';
+  static const bgDeliveryBody = 'بعض الجوالات بتوقف إشعارات التطبيقات المقفولة. اضغط «اسمح»، ولو جوالك تكنو أو إنفينكس أو شاومي فعّل كمان «التشغيل التلقائي» من إعدادات التطبيق.';
+  static const bgDeliveryAllow = 'اسمح';
+  static const bgDeliverySettings = 'إعدادات التطبيق';
   static const busy = 'لحظة…';
   static const busySlow = 'الشبكة بطيئة، لسه شغالين…';
   static const olderMessages = 'رسائل أقدم';

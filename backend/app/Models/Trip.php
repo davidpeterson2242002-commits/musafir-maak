@@ -114,8 +114,10 @@ class Trip extends Model
     }
 
     /** Has any booking that the driver accepted or still has to answer. */
+    /** Any waiting or accepted booking, or a parcel not yet finished: the trip's details are then locked. */
     public function hasActiveBookings(): bool
     {
-        return $this->bookings()->whereIn('status', BookingStatus::active())->exists();
+        return $this->bookings()->whereIn('status', BookingStatus::active())->exists()
+            || $this->parcels()->whereIn('status', [ParcelStatus::Pending, ParcelStatus::Accepted, ParcelStatus::PickedUp])->exists();
     }
 }

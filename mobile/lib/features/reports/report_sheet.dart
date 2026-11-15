@@ -16,6 +16,7 @@ Future<void> showReportSheet(
   required int userId,
   String? subjectType,
   int? subjectId,
+  bool? aboutDriver,
 }) async {
   final message = await showModalBottomSheet<String>(
     context: context,
@@ -23,15 +24,19 @@ Future<void> showReportSheet(
     useSafeArea: true,
     backgroundColor: AppColors.surface,
     showDragHandle: true,
-    builder: (_) => _ReportSheet(userId: userId, subjectType: subjectType, subjectId: subjectId),
+    builder: (_) => _ReportSheet(userId: userId, subjectType: subjectType, subjectId: subjectId, aboutDriver: aboutDriver),
   );
   if (message != null && context.mounted) showMessage(context, message);
 }
 
 class _ReportSheet extends ConsumerStatefulWidget {
-  const _ReportSheet({required this.userId, this.subjectType, this.subjectId});
+  const _ReportSheet({required this.userId, this.subjectType, this.subjectId, this.aboutDriver});
 
   final int userId;
+
+  /// true: reporting the driver; false: a passenger or sender (driving reasons hidden);
+  /// null: unknown (every reason).
+  final bool? aboutDriver;
   final String? subjectType;
   final int? subjectId;
 
@@ -80,7 +85,14 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final reasons = ref.watch(appConfigProvider).valueOrNull?.reportReasons ?? const <String, String>{};
+    final config = ref.watch(appConfigProvider).valueOrNull;
+    final allReasons = config?.reportReasons ?? const <String, String>{};
+    final reasons = widget.aboutDriver == false
+        ? {
+            for (final e in allReasons.entries)
+              if (!(config?.reportReasonsDriverOnly.contains(e.key) ?? false)) e.key: e.value,
+          }
+        : allReasons;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.viewInsetsOf(context).bottom),

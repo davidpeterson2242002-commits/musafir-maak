@@ -133,4 +133,26 @@ class RatingTest extends TestCase
             ->assertJsonMissingPath('data.phone')
             ->assertJsonPath('blocked_by_me', false);
     }
+
+    public function test_closed_rating_cards_stay_closed_but_remain_rateable(): void
+    {
+        $trip = $this->trip(['departs_at' => now()->subHour()]);
+        $booking = Booking::factory()->accepted()->create(['trip_id' => $trip->id]);
+        $trip->forceFill(['status' => 'departed', 'departed_at' => now()])->save();
+        app(TripService::class)->complete($trip->fresh());
+
+        Sanctum::actingAs($booking->passenger);
+        $this->getJson('/api/v1/me/badges')->assertJsonPath('pending_ratings', 1);
+
+        $this->postJson('/api/v1/ratings/dismiss', ['items' => [['subject_type' => 'booking', 'subject_id' => $booking->id]]])->assertOk();
+        $this->postJson('/api/v1/ratings/dismiss', ['items' => [['subject_type' => 'booking', 'subject_id' => $booking->id]]])->assertOk(); // idempotent
+
+        $this->getJson('/api/v1/ratings/pending')->assertJsonCount(1, 'data')->assertJsonPath('data.0.dismissed', true);
+        $this->getJson('/api/v1/me/badges')->assertJsonPath('pending_ratings', 0);
+
+        // The driver's own card is untouched.
+        Sanctum::actingAs($trip->driverProfile->user);
+        $this->getJson('/api/v1/ratings/pending')->assertJsonPath('data.0.dismissed', false);
+    }
 }
+

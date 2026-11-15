@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Parcel;
 use App\Services\RatingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /** Ratings (P9, D15). */
 class RatingController extends Controller
@@ -34,7 +35,10 @@ class RatingController extends Controller
     {
         $user = $request->user();
 
-        return ['data' => $ratings->pendingFor($user)->map(function ($subject) use ($user, $ratings) {
+        $dismissed = DB::table('rating_dismissals')->where('user_id', $user->id)->get(['subject_type', 'subject_id'])
+            ->map(fn ($d) => "$d->subject_type:$d->subject_id")->flip();
+
+        return ['data' => $ratings->pendingFor($user)->map(function ($subject) use ($user, $ratings, $dismissed) {
             [$customerId, $driverUserId] = $ratings->parties($subject);
             $iAmDriver = $user->id === $driverUserId;
             $other = $iAmDriver ? ($subject instanceof Booking ? $subject->passenger : $subject->sender) : $subject->trip->driverProfile->user;
@@ -45,7 +49,25 @@ class RatingController extends Controller
                 'rate_as' => $iAmDriver ? 'driver' : ($subject instanceof Booking ? 'passenger' : 'sender'),
                 'ratee' => ['id' => $other->id, 'name' => $other->name],
                 'summary' => $subject->trip->route->label().' — '.local_time($subject->trip->departs_at)->format('Y-m-d'),
+                // Closed with ✕ on the home card: still rateable from the booking / trip page.
+                'dismissed' => $dismissed->has($subject->getMorphClass().':'.$subject->id),
             ];
         })->values()];
+    }
+
+    /** POST ratings/dismiss {items: [{subject_type, subject_id}]} — the ✕ on the home rating card. */
+    public function dismiss(Request $request): array
+    {
+        $data = $request->validate([
+            'items' => ['required', 'array', 'max:50'],
+            'items.*.subject_type' => ['required', 'in:booking,parcel'],
+            'items.*.subject_id' => ['required', 'integer'],
+        ]);
+        $rows = collect($data['items'])->map(fn ($i) => [
+            'user_id' => $request->user()->id, 'subject_type' => $i['subject_type'], 'subject_id' => $i['subject_id'], 'created_at' => now(),
+        ])->all();
+        DB::table('rating_dismissals')->insertOrIgnore($rows);
+
+        return ['message' => 'ok'];
     }
 }

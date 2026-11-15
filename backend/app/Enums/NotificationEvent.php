@@ -21,6 +21,7 @@ enum NotificationEvent: string
     case BookingExpired = 'booking_expired';
     case BookingCancelledByPassenger = 'booking_cancelled_by_passenger';
     case TripCancelled = 'trip_cancelled';
+    case TripUpdated = 'trip_updated';
     case TripReminder = 'trip_reminder';
     case RouteAlertMatch = 'route_alert_match';
     case NoShowMarked = 'no_show_marked';
@@ -60,6 +61,7 @@ enum NotificationEvent: string
             self::BookingExpired => 'انتهاء مهلة الحجز (للراكب)',
             self::BookingCancelledByPassenger => 'إلغاء الراكب للحجز (للسائق)',
             self::TripCancelled => 'إلغاء الرحلة (للركاب)',
+            self::TripUpdated => 'تعديل ملاحظات الرحلة (للركاب والمرسلين)',
             self::TripReminder => 'تذكير بالرحلة',
             self::RouteAlertMatch => 'رحلة مطابقة لتنبيه طريق',
             self::NoShowMarked => 'تسجيل عدم حضور (للراكب)',

@@ -114,6 +114,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Ratings, profiles, blocks, reports
         Route::post('ratings', [RatingController::class, 'store']);
         Route::get('ratings/pending', [RatingController::class, 'pending']);
+        Route::post('ratings/dismiss', [RatingController::class, 'dismiss']);
         Route::get('users/{user}', [UserProfileController::class, 'show']);
         Route::post('users/{user}/block', [UserProfileController::class, 'block']);
         Route::delete('users/{user}/block', [UserProfileController::class, 'unblock']);
