@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RouteAlert extends Model
 {
-    protected $fillable = ['user_id', 'origin_city_id', 'destination_city_id', 'date', 'active'];
+    protected $fillable = ['user_id', 'origin_city_id', 'destination_city_id', 'date', 'active', 'kind', 'role'];
 
     protected function casts(): array
     {

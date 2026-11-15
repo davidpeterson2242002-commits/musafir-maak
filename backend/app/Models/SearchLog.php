@@ -9,11 +9,11 @@ class SearchLog extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['origin_city_id', 'destination_city_id', 'route_id', 'date', 'kind', 'results_count', 'user_id'];
+    protected $fillable = ['origin_city_id', 'destination_city_id', 'route_id', 'date', 'kind', 'results_count', 'closed', 'user_id'];
 
     protected function casts(): array
     {
-        return ['date' => 'date'];
+        return ['date' => 'date', 'closed' => 'boolean'];
     }
 
     public function origin(): BelongsTo

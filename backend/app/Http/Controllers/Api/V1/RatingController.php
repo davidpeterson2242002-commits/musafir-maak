@@ -27,6 +27,8 @@ class RatingController extends Controller
 
         $subject = ($data['subject_type'] === 'booking' ? Booking::class : Parcel::class)::findOrFail($data['subject_id']);
 
+        \Illuminate\Support\Facades\Cache::forget('badges.ratings.'.$request->user()->id);
+
         return new RatingResource($ratings->rate($request->user(), $subject, $data['stars'], $data['comment'] ?? null, $data['tags'] ?? [])->load('rater'));
     }
 
@@ -67,6 +69,8 @@ class RatingController extends Controller
             'user_id' => $request->user()->id, 'subject_type' => $i['subject_type'], 'subject_id' => $i['subject_id'], 'created_at' => now(),
         ])->all();
         DB::table('rating_dismissals')->insertOrIgnore($rows);
+
+        \Illuminate\Support\Facades\Cache::forget('badges.ratings.'.$request->user()->id);
 
         return ['message' => 'ok'];
     }

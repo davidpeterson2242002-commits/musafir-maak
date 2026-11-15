@@ -12,10 +12,15 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class GeoController extends Controller
 {
-    /** GET /api/v1/cities — enabled cities, grouped by the client by state. */
-    public function cities(): AnonymousResourceCollection
+    /**
+     * GET /api/v1/cities — enabled cities, grouped by the client by state.
+     * ?all=1 also lists closed cities (available=false) so people can still search them,
+     * see that they are closed and ask to be told when they open.
+     */
+    public function cities(Request $request): AnonymousResourceCollection
     {
-        $cities = City::available()
+        $cities = City::query()
+            ->unless($request->boolean('all'), fn ($q) => $q->available())
             ->with('state')
             ->join('states', 'states.id', '=', 'cities.state_id')
             ->orderBy('states.sort')->orderBy('cities.sort')->orderBy('cities.name_ar')
@@ -33,7 +38,7 @@ class GeoController extends Controller
     {
         $routes = TravelRoute::query()
             ->with(['origin.state', 'destination.state'])
-            ->when($request->boolean('popular'), fn ($q) => $q->where('is_popular', true)->where('enabled', true))
+            ->when($request->boolean('popular'), fn ($q) => $q->where('is_popular', true))
             ->orderByDesc('is_popular')->orderBy('sort')->orderBy('id')
             ->get();
 

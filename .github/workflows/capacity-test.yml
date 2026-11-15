@@ -1,0 +1,122 @@
+name: Capacity test
+
+# Manual load test against the live API, from GitHub's servers. It creates temporary test
+# accounts on the server, sends a realistic mix of app requests at rising speeds, prints a
+# table (requests/second → response time, errors) and deletes the test accounts again.
+# Takes ~5 minutes. Real users may feel the app slower while it runs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      levels:
+        description: "Requests per second to try, in order (stops early when the server struggles)"
+        default: "5 10 20 30 40 60 80 100 130"
+      seconds:
+        description: "Seconds per level"
+        default: "30"
+
+env:
+  SSH_HOST: 194.164.74.72
+  SSH_PORT: "65002"
+  SSH_USER: u214835178
+  HOST_FINGERPRINT: "SHA256:5QLQTWZosryBAR8PaS3YdCRRyoVf2JHIh83I1RcR3dA"
+  APP_URL: https://musafir.statement-ds.com
+  PHP: /opt/alt/php84/usr/bin/php
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: SSH setup (verify host key)
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          ssh-keyscan -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > /tmp/hostkey 2>/dev/null
+          got=$(ssh-keygen -lf /tmp/hostkey | awk '{print $2}')
+          [ "$got" = "$HOST_FINGERPRINT" ] || { echo "Host key fingerprint mismatch!"; exit 1; }
+          cat /tmp/hostkey >> ~/.ssh/known_hosts
+
+      - name: Server facts
+        run: |
+          ssh -i ~/.ssh/deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" '
+            echo "CPU cores: $(nproc)"; echo "Load: $(cat /proc/loadavg)"
+            free -m 2>/dev/null | head -2
+            echo "Process limit (ulimit -u): $(ulimit -u)"
+            cd ~/musafir/app && '"$PHP"' artisan server:info --no-ansi 2>&1 | cut -c1-300'
+
+      - name: Create test accounts
+        run: |
+          ssh -i ~/.ssh/deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "cd ~/musafir/app && $PHP artisan loadtest:setup --users=300 --no-ansi" > /tmp/lt.json
+          python3 -c "import json;d=json.load(open('/tmp/lt.json'));print(len(d['tokens']),'tokens; route',d['origin'],'->',d['destination'],'trip',d['trip'])"
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Load test
+        run: |
+          cat > /tmp/test.js <<'JS'
+          import http from 'k6/http';
+          import { check } from 'k6';
+          const d = JSON.parse(open('/tmp/lt.json'));
+          const base = __ENV.APP_URL + '/api/v1/';
+          export const options = {
+            discardResponseBodies: true,
+            scenarios: { s: { executor: 'constant-arrival-rate', rate: Number(__ENV.RATE), timeUnit: '1s',
+              duration: __ENV.SECONDS + 's', preAllocatedVUs: 50, maxVUs: 600 } },
+            summaryTrendStats: ['avg', 'med', 'p(95)', 'max'],
+          };
+          // What an open app actually sends: mostly the 12-second badge poll, plus screens.
+          export default function () {
+            const token = d.tokens[Math.floor(Math.random() * d.tokens.length)];
+            const h = { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }, timeout: '20s' };
+            const r = Math.random();
+            let url;
+            if (r < 0.65) url = 'me/badges';
+            else if (r < 0.80) url = `trips/search?origin_city_id=${d.origin}&destination_city_id=${d.destination}&date=${d.date}`;
+            else if (r < 0.90 && d.trip) url = `trips/${d.trip}`;
+            else if (r < 0.95) url = 'bookings';
+            else url = 'me/notifications';
+            const res = http.get(base + url, h);
+            check(res, { ok: (x) => x.status >= 200 && x.status < 400 });
+          }
+          JS
+          echo "| req/s asked | req/s done | avg ms | median | p95 ms | max ms | failed |" > /tmp/table.md
+          echo "|---|---|---|---|---|---|---|" >> /tmp/table.md
+          for rate in ${{ inputs.levels }}; do
+            echo "::group::$rate req/s"
+            k6 run --quiet -e RATE=$rate -e SECONDS=${{ inputs.seconds }} -e APP_URL=$APP_URL \
+              --summary-export=/tmp/s.json /tmp/test.js > /tmp/k6.log 2>&1 || true
+            tail -25 /tmp/k6.log
+            echo "::endgroup::"
+            row=$(python3 - "$rate" 2>/tmp/verdict <<'PY'
+          import json, sys
+          s = json.load(open('/tmp/s.json'))['metrics']
+          d = s['http_req_duration']; f = s.get('http_req_failed', {}).get('value', 0)
+          reqs = s['http_reqs']
+          print(f"| {sys.argv[1]} | {reqs['rate']:.1f} | {d['avg']:.0f} | {d['med']:.0f} | {d['p(95)']:.0f} | {d['max']:.0f} | {f*100:.1f}% |")
+          print("STOP" if f > 0.05 or d['p(95)'] > 4000 else "GO", file=sys.stderr)
+          PY
+          )
+            echo "$row" | tee -a /tmp/table.md
+            if grep -q STOP /tmp/verdict; then echo "Server struggling at $rate req/s — stopping."; break; fi
+            sleep 10
+          done
+          cat /tmp/table.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Admin panel timing (login page and assets)
+        if: always()
+        run: |
+          for i in 1 2 3; do
+            curl -s -o /dev/null -w 'admin login: first byte %{time_starttransfer}s total %{time_total}s %{size_download} bytes\n' -H 'Accept-Encoding: gzip, br' $APP_URL/admin/login
+          done
+          for a in css/filament/filament/app.css js/filament/filament/app.js js/filament/support/support.js; do
+            curl -s -o /dev/null -D /tmp/h -w "$a: %{size_download} bytes in %{time_total}s\n" -H 'Accept-Encoding: gzip, br' "$APP_URL/$a" || true
+            grep -iE '^(content-encoding|cache-control|expires)' /tmp/h || true
+          done
+
+      - name: Delete test accounts
+        if: always()
+        run: |
+          ssh -i ~/.ssh/deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ~/musafir/app && $PHP artisan loadtest:cleanup --no-ansi"
+          rm -f /tmp/lt.json

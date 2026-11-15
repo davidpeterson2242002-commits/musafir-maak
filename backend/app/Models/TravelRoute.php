@@ -41,6 +41,11 @@ class TravelRoute extends Model
         return $this->belongsTo(City::class, 'destination_city_id');
     }
 
+    public function trips(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Trip::class, 'route_id');
+    }
+
     public function scopeBetween(Builder $query, int $originId, int $destinationId): Builder
     {
         return $query->where('origin_city_id', $originId)->where('destination_city_id', $destinationId);

@@ -15,6 +15,7 @@ use App\Models\AppSecret;
 use App\Services\MailSetup;
 use App\Support\PrivateFiles;
 use DateTimeInterface;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Gateways\LogPushGateway;
 use App\Gateways\LogWhatsAppGateway;
@@ -111,8 +112,18 @@ class AppServiceProvider extends ServiceProvider
 
         Model::preventLazyLoading(! $this->app->isProduction());
 
+        // Switching a route, city or state back on tells everyone who asked to be notified.
+        foreach ([TravelRoute::class, City::class, State::class] as $model) {
+            $model::saved(function ($row) {
+                if ($row->wasChanged('enabled') && $row->enabled) {
+                    DB::afterCommit(fn () => app(\App\Services\RouteAlertService::class)->notifyReopened());
+                }
+            });
+        }
+
         // Admin lists refresh themselves while open (no manual reload after each change).
-        \Filament\Tables\Table::configureUsing(fn (\Filament\Tables\Table $table) => $table->poll('15s'));
+        // 30 s: each refresh re-sends the whole table, which is heavy on a slow connection.
+        \Filament\Tables\Table::configureUsing(fn (\Filament\Tables\Table $table) => $table->poll('30s'));
 
         // Short, stable type names in polymorphic columns (documents, reviews, audit log, tokens).
         Relation::enforceMorphMap([

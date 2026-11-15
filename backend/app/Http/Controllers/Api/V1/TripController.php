@@ -31,6 +31,11 @@ class TripController extends Controller
             'route' => $result['route'] ? (new RouteResource($result['route']))->resolve($request) : null,
             'closed' => $result['closed'],
             'closure_message' => $result['closure_message'],
+            // Closed route: has this user already asked to be told when it opens?
+            'reopen_alert' => $result['closed'] && $request->user()->routeAlerts()->where([
+                'kind' => 'reopen', 'active' => true,
+                'origin_city_id' => $request->integer('origin_city_id'), 'destination_city_id' => $request->integer('destination_city_id'),
+            ])->exists(),
             'nearby_dates' => $result['nearby_dates'],
         ]);
     }

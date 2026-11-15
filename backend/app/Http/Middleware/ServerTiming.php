@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\ApiMetrics;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,11 +26,20 @@ class ServerTiming
 
         $response = $next($request);
 
+        $ms = (microtime(true) - $start) * 1000;
+        $request->attributes->set('server_ms', (int) round($ms));
         $response->headers->set('Server-Timing', sprintf(
-            'app;dur=%.0f, db;dur=%.0f;desc="%d queries"',
-            (microtime(true) - $start) * 1000, $dbMs, $queries,
+            'app;dur=%.0f, db;dur=%.0f;desc="%d queries"', $ms, $dbMs, $queries,
         ));
 
         return $response;
+    }
+
+    /** After the response is sent: count it for the live dashboard (ApiMetrics). */
+    public function terminate(Request $request, Response $response): void
+    {
+        if (config('metrics.enabled', true)) {
+            ApiMetrics::record((int) $request->attributes->get('server_ms', 0), $response->getStatusCode());
+        }
     }
 }

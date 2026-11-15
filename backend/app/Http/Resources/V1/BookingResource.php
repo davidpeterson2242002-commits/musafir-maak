@@ -47,6 +47,16 @@ class BookingResource extends JsonResource
                     && $this->no_show_at->gt(now()->subHours($disputeHours)),
             ] : null,
             'can_cancel' => $this->status->isActive() && $trip->status === TripStatus::Scheduled && $trip->departs_at->isFuture(),
+            // Shown next to the cancel button so the passenger knows the rules before tapping.
+            'cancel_policy' => $this->status->isActive() ? [
+                'late_window_hours' => settings()->int('cancellation.late_window_hours'),
+                // Withdrawing a pending request is always free; only an accepted seat can be "late".
+                'late_now' => $this->status === BookingStatus::Accepted
+                    && now()->diffInHours($trip->departs_at, false) < settings()->int('cancellation.late_window_hours'),
+                'late_limit' => settings()->int('cancellation.passenger_limit'),
+                'window_days' => settings()->int('cancellation.passenger_window_days'),
+                'restriction_days' => settings()->int('cancellation.passenger_restriction_days'),
+            ] : null,
             'conversation_id' => $this->conversation?->id,
             'trip' => (new TripResource($trip))->withDetails(),
             'contact' => $reveal ? [

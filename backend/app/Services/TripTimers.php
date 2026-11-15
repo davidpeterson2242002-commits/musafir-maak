@@ -33,6 +33,7 @@ class TripTimers
             'no_shows_confirmed' => $this->bookings->confirmUndisputedNoShows(),
             'auto_completed' => $this->autoComplete(),
             'alerts_deactivated' => $this->alerts->deactivatePast(),
+            'routes_reopened' => $this->alerts->notifyReopened(),
             'settlement_reminders' => $this->settlement->remindDue(),
             'frozen' => $this->settlement->freezeOverdue(),
         ];

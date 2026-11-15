@@ -16,6 +16,7 @@ class RouteAlertResource extends JsonResource
             'origin' => ['id' => $this->origin->id, 'name' => $this->origin->name_ar],
             'destination' => ['id' => $this->destination->id, 'name' => $this->destination->name_ar],
             'date' => $this->date?->toDateString(),
+            'kind' => $this->kind ?? 'trips',
             'active' => $this->active,
             'last_notified_at' => local_iso($this->last_notified_at),
         ];

@@ -15,6 +15,7 @@ class CityResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name_ar,
             'name_en' => $this->name_en,
+            'available' => (bool) $this->enabled && (! $this->relationLoaded('state') || (bool) $this->state?->enabled),
             'state' => $this->whenLoaded('state', fn () => [
                 'id' => $this->state->id,
                 'name' => $this->state->name_ar,

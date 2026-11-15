@@ -38,6 +38,9 @@ Artisan::command('admin:create', function () {
 
 Artisan::command('musafir:tick', function (TripTimers $timers) {
     $result = $timers->tick();
+    // Live dashboard: copy the finished minutes of API traffic into metric_minutes.
+    \App\Support\ApiMetrics::flush();
+    \Illuminate\Support\Facades\Cache::put('musafir.last_tick', now()->toIso8601String(), 3600);
     if (array_sum($result) > 0) {
         $this->info(json_encode($result));
     }
@@ -61,6 +64,9 @@ Artisan::command('notifications:prune', function () {
     $days = settings()->int('notifications.log_retention_days');
     $deleted = NotificationLog::where('created_at', '<', now()->subDays($days))->delete();
     $this->info("Deleted $deleted notification log rows older than $days days.");
+    $inbox = \App\Models\UserNotification::where('created_at', '<', now()->subDays(90))->delete();
+    $metrics = \App\Support\ApiMetrics::prune();
+    $this->info("Deleted $inbox in-app notifications older than 90 days and $metrics metric minutes.");
 })->purpose('Delete old notification log rows (retention is an admin setting)');
 
 Schedule::command('notifications:prune')->dailyAt('01:30')->onOneServer();
@@ -100,8 +106,8 @@ Artisan::command('notifications:test {phone : Phone of a registered user, e.g. 0
 })->purpose('Send a test notification to one user through the configured providers');
 
 Artisan::command('admin:bootstrap', function () {
-    $email = env('ADMIN_EMAIL');
-    $pass = env('ADMIN_PASSWORD');
+    $email = config('app.bootstrap_admin.email');
+    $pass = config('app.bootstrap_admin.password');
     if (blank($email) || blank($pass)) {
         $this->line('ADMIN_EMAIL / ADMIN_PASSWORD not set — skipped.');
 
@@ -118,7 +124,7 @@ Artisan::command('admin:bootstrap', function () {
 
 // Shared hosting has no long-running worker: when QUEUE_VIA_SCHEDULER=true the cron-driven
 // scheduler drains the queue every minute instead (notifications go out within ~1 minute).
-if (env('QUEUE_VIA_SCHEDULER', false)) {
+if (config('queue.via_scheduler')) {
     Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')
         ->everyMinute()->withoutOverlapping(2);
 }
@@ -180,3 +186,56 @@ Artisan::command('api:timing', function () {
 
     return 0;
 })->purpose('Time the public API endpoints in-process (read-only)');
+
+// ---------------------------------------------------------------- Capacity test (load test)
+// Used by .github/workflows/capacity-test.yml. Test accounts use phones +249 900 0xx xxx and
+// are deleted afterwards, with everything they created (search logs, tokens).
+
+Artisan::command('loadtest:setup {--users=200}', function () {
+    $count = max(1, min(1000, (int) $this->option('users')));
+    // The busiest route (most trips), else Khartoum → Wad Madani.
+    $route = \App\Models\TravelRoute::withCount('trips')->orderByDesc('trips_count')->first();
+    $trip = \App\Models\Trip::bookable()->latest('id')->value('id') ?? \App\Models\Trip::latest('id')->value('id');
+    $tokens = [];
+    for ($i = 1; $i <= $count; $i++) {
+        $user = User::withTrashed()->firstOrCreate(
+            ['phone' => sprintf('+2499000%05d', $i)],
+            ['name' => 'Load Test '.$i, 'status' => \App\Enums\UserStatus::Active, 'phone_verified_at' => now(), 'terms_accepted_at' => now()],
+        );
+        if ($user->trashed()) {
+            $user->restore();
+        }
+        $tokens[] = $user->createToken('loadtest')->plainTextToken;
+    }
+    // JSON on stdout only; the workflow keeps it in a file and never prints it.
+    $this->line(json_encode([
+        'tokens' => $tokens,
+        'origin' => $route->origin_city_id,
+        'destination' => $route->destination_city_id,
+        'trip' => $trip,
+        'date' => now(config('app.display_timezone'))->addDay()->toDateString(),
+    ]));
+})->purpose('Create load-test accounts and tokens (prints JSON)');
+
+Artisan::command('loadtest:cleanup', function () {
+    $ids = User::withTrashed()->where('phone', 'like', '+2499000%')->where('name', 'like', 'Load Test %')->pluck('id');
+    \App\Models\SearchLog::whereIn('user_id', $ids)->delete();
+    \Laravel\Sanctum\PersonalAccessToken::where('tokenable_type', 'user')->whereIn('tokenable_id', $ids)->delete();
+    \App\Models\TrustedDevice::whereIn('user_id', $ids)->delete();
+    $deleted = User::withTrashed()->whereIn('id', $ids)->forceDelete();
+    \Illuminate\Support\Facades\Cache::forget('dashboard.live.v1');
+    $this->info("Removed $deleted load-test accounts.");
+})->purpose('Delete the load-test accounts and what they created');
+
+Artisan::command('server:info', function () {
+    $this->line('PHP '.PHP_VERSION.' · memory_limit '.ini_get('memory_limit').' · max_execution_time '.ini_get('max_execution_time').' · opcache '.(function_exists('opcache_get_status') && @opcache_get_status(false) ? 'on' : 'off/cli'));
+    $this->line('cache='.config('cache.default').' session='.config('session.driver').' queue='.config('queue.default').' config_cached='.(app()->configurationIsCached() ? 'yes' : 'no').' routes_cached='.(app()->routesAreCached() ? 'yes' : 'no'));
+    $db = \Illuminate\Support\Facades\DB::connection();
+    if ($db->getDriverName() !== 'mysql' && $db->getDriverName() !== 'mariadb') {
+        return 0;
+    }
+    $vars = collect($db->select("show variables where Variable_name in ('max_connections','max_user_connections','innodb_buffer_pool_size','version')"))->pluck('Value', 'Variable_name');
+    $this->line('MySQL '.$vars->toJson());
+    $size = $db->selectOne('select round(sum(data_length + index_length) / 1024 / 1024, 1) as mb from information_schema.tables where table_schema = database()');
+    $this->line('DB size '.($size->mb ?? '?').' MB · users '.User::count().' · trips '.\App\Models\Trip::count().' · bookings '.\App\Models\Booking::count());
+})->purpose('Print server and database facts for the capacity report (read-only)');

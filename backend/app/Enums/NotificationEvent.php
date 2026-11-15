@@ -24,6 +24,7 @@ enum NotificationEvent: string
     case TripUpdated = 'trip_updated';
     case TripReminder = 'trip_reminder';
     case RouteAlertMatch = 'route_alert_match';
+    case RouteReopened = 'route_reopened';
     case NoShowMarked = 'no_show_marked';
     case AccountWarning = 'account_warning';
     case SettlementDueSoon = 'settlement_due_soon';
@@ -64,6 +65,7 @@ enum NotificationEvent: string
             self::TripUpdated => 'تعديل ملاحظات الرحلة (للركاب والمرسلين)',
             self::TripReminder => 'تذكير بالرحلة',
             self::RouteAlertMatch => 'رحلة مطابقة لتنبيه طريق',
+            self::RouteReopened => 'فتح طريق كان مقفولاً (لمن طلب التنبيه)',
             self::NoShowMarked => 'تسجيل عدم حضور (للراكب)',
             self::AccountWarning => 'تنبيه / إيقاف / حظر',
             self::SettlementDueSoon => 'اقتراب موعد السداد',

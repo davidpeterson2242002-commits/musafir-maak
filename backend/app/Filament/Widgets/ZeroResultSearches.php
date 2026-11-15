@@ -11,18 +11,20 @@ use Illuminate\Database\Eloquent\Builder;
 /** Routes people search for but find nothing (last 7 days) — where to recruit drivers (spec 9.1). */
 class ZeroResultSearches extends TableWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 2;
+
+    protected static bool $isDiscovered = false;
 
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?string $heading = 'بحث بدون نتائج — آخر 7 أيام (أين نحتاج سائقين)';
+    protected static ?string $heading = 'طرق مفتوحة بدون رحلات — آخر 7 أيام (أين نحتاج سائقين)';
 
     public function table(Table $table): Table
     {
         return $table
             ->query(fn (): Builder => SearchLog::query()
                 ->selectRaw('min(id) as id, origin_city_id, destination_city_id, count(*) as searches, count(distinct user_id) as users, max(created_at) as last_at')
-                ->where('results_count', 0)
+                ->where('results_count', 0)->where('closed', false)
                 ->where('created_at', '>=', now()->subDays(7))
                 ->groupBy('origin_city_id', 'destination_city_id')
                 ->with(['origin', 'destination']))

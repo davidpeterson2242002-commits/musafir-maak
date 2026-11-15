@@ -70,6 +70,9 @@ return [
     // Times are stored in UTC; shown to users (API, admin) in Sudan time.
     'display_timezone' => 'Africa/Khartoum',
 
+    // First super admin created on deploy (php artisan admin:bootstrap).
+    'bootstrap_admin' => ['email' => env('ADMIN_EMAIL'), 'password' => env('ADMIN_PASSWORD')],
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

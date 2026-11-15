@@ -2,6 +2,9 @@
 
 return [
 
+    // Shared hosting: the per-minute scheduler drains the queue (routes/console.php).
+    'via_scheduler' => (bool) env('QUEUE_VIA_SCHEDULER', false),
+
     /*
     |--------------------------------------------------------------------------
     | Default Queue Connection Name

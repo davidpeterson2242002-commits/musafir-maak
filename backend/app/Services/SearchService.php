@@ -52,6 +52,7 @@ class SearchService
             'date' => $date->toDateString(),
             'kind' => $kind,
             'results_count' => $trips->count(),
+            'closed' => $closed,
             'user_id' => $user?->id,
         ]);
 

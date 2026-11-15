@@ -6,6 +6,7 @@ use App\Enums\NotificationChannelType;
 use App\Enums\NotificationEvent;
 use App\Jobs\DeliverNotification;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Support\ChannelMatrix;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,6 +37,8 @@ class Notifier
         ?int $broadcastId = null,
     ): void {
         DB::afterCommit(function () use ($user, $event, $title, $body, $data, $channels, $broadcastId) {
+            $this->keepInInbox($user, $event, $title, $body, $data);
+
             foreach ($channels ?? $this->enabledChannels($event) as $channel) {
                 // Email is opt-in by having an address; don't queue (or log) anything for users without one.
                 if ($channel === NotificationChannelType::Email && blank($user->email)) {
@@ -77,6 +80,25 @@ class Notifier
                 dispatch($job);
             }
         });
+    }
+
+    /**
+     * Every notification also lands in the in-app list (the bell), so a push that was swiped
+     * away or never arrived can still be opened. Chat messages have their own unread list.
+     */
+    private function keepInInbox(User $user, NotificationEvent $event, string $title, string $body, array $data): void
+    {
+        if ($event === NotificationEvent::NewChatMessage) {
+            return;
+        }
+        try {
+            UserNotification::create([
+                'user_id' => $user->id, 'event' => $event->value, 'title' => mb_substr($title, 0, 200),
+                'body' => $body, 'data' => $data ?: null,
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('Inbox write failed', ['user' => $user->id, 'event' => $event->value, 'error' => $e->getMessage()]);
+        }
     }
 
     /** @return array<int, NotificationChannelType> */

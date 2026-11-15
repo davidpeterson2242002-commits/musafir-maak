@@ -13,6 +13,7 @@ use App\Models\SettlementRequest;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 /** Revenue numbers (spec 9.1), visible to finance and super admins. */
 class FinanceStats extends StatsOverviewWidget
@@ -21,6 +22,8 @@ class FinanceStats extends StatsOverviewWidget
 
     protected ?string $heading = 'المالية';
 
+    protected static bool $isDiscovered = false;
+
     public static function canView(): bool
     {
         return Auth::guard('admin')->user()?->hasRole(AdminRole::Finance) ?? false;
@@ -28,25 +31,36 @@ class FinanceStats extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $week = now()->subDays(7);
-        // Wallet entries are negative for fees, so totals use absolute values.
-        $total = fn (array $types) => (int) LedgerEntry::whereIn('type', $types)->where('created_at', '>=', $week)->sum(\DB::raw('abs(amount)'));
-        $fees = $total([LedgerType::Fee]);
-        $reversed = $total([LedgerType::FeeReversal]);
-        $paid = $total([LedgerType::Payment, LedgerType::WalletTopup]);
-        $pending = SettlementRequest::where('status', SettlementStatus::Pending);
+        $n = Cache::remember('dashboard.finance.v1', 60, function () {
+            $week = now()->subDays(7);
+            // Wallet entries are negative for fees, so totals use absolute values.
+            $total = fn (array $types) => (int) LedgerEntry::whereIn('type', $types)->where('created_at', '>=', $week)->sum(\DB::raw('abs(amount)'));
+            $pending = SettlementRequest::where('status', SettlementStatus::Pending);
+
+            return [
+                'fees' => $total([LedgerType::Fee]),
+                'reversed' => $total([LedgerType::FeeReversal]),
+                'paid' => $total([LedgerType::Payment, LedgerType::WalletTopup]),
+                'owed' => (int) DriverProfile::sum('balance_owed'),
+                'late' => DriverProfile::where('balance_owed', '>', 0)->where('settlement_due_at', '<', now())->count(),
+                'frozen' => DriverProfile::where('status', DriverStatus::Frozen)->count(),
+                'pending_count' => (clone $pending)->count(),
+                'pending_sum' => (int) (clone $pending)->sum('amount'),
+            ];
+        });
+        ['fees' => $fees, 'reversed' => $reversed, 'paid' => $paid] = $n;
 
         return [
             Stat::make('عمولات آخر 7 أيام', number_format($fees).' ج')
                 ->description('أُلغي منها '.number_format($reversed).' ج'),
             Stat::make('مدفوعات مؤكدة (7 أيام)', number_format($paid).' ج'),
-            Stat::make('أرصدة مستحقة', number_format(DriverProfile::sum('balance_owed')).' ج')
-                ->description(DriverProfile::where('balance_owed', '>', 0)->where('settlement_due_at', '<', now())->count().' سائق متأخر'),
-            Stat::make('حسابات مجمّدة', DriverProfile::where('status', DriverStatus::Frozen)->count())
+            Stat::make('أرصدة مستحقة', number_format($n['owed']).' ج')
+                ->description($n['late'].' سائق متأخر'),
+            Stat::make('حسابات مجمّدة', $n['frozen'])
                 ->color('danger'),
-            Stat::make('مدفوعات بانتظار التأكيد', (clone $pending)->count())
-                ->description(number_format((clone $pending)->sum('amount')).' ج')
-                ->color((clone $pending)->exists() ? 'warning' : 'success')
+            Stat::make('مدفوعات بانتظار التأكيد', $n['pending_count'])
+                ->description(number_format($n['pending_sum']).' ج')
+                ->color($n['pending_count'] ? 'warning' : 'success')
                 ->url(SettlementResource::getUrl()),
         ];
     }

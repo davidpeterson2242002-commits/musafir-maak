@@ -106,6 +106,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         // Chat
         Route::get('conversations', [ConversationController::class, 'index']);
+        Route::get('me/notifications', [\App\Http\Controllers\Api\V1\NotificationController::class, 'index']);
+        Route::post('me/notifications/read', [\App\Http\Controllers\Api\V1\NotificationController::class, 'read']);
         Route::get('me/badges', \App\Http\Controllers\Api\V1\BadgesController::class);
         Route::get('conversations/unread-count', [ConversationController::class, 'unreadCount']);
         Route::get('conversations/{conversation}/messages', [ConversationController::class, 'messages']);

@@ -30,6 +30,7 @@ final class SettingsRegistry
         'trust' => 'المحادثات والبلاغات',
         'notifications' => 'الإشعارات',
         'content' => 'النصوص والمحتوى',
+        'ops' => 'السيرفر والسعة',
     ];
 
     public const VEHICLE_TYPES = [
@@ -252,6 +253,18 @@ final class SettingsRegistry
             'routes.auto_create' => [
                 'type' => SettingType::Boolean, 'group' => 'routes', 'label' => 'إنشاء الطريق تلقائياً عند أول رحلة بين مدينتين مفعّلتين',
                 'default' => true, 'help' => 'إذا أُوقف، يمكن نشر الرحلات فقط على الطرق التي أضافتها الإدارة',
+            ],
+
+            // ---------------- Server capacity (live dashboard) ----------------
+            'ops.capacity_rps' => [
+                'type' => SettingType::Decimal, 'group' => 'ops', 'label' => 'أقصى طلبات في الثانية يتحملها السيرفر (من اختبار الضغط)',
+                'default' => 0, 'min' => 0,
+                'help' => 'تُقاس باختبار الضغط (GitHub → Actions → Capacity test). 0 = غير مقاس. لوحة "الآن" تقارن الحمل الحالي بهذا الرقم.',
+            ],
+            'ops.requests_per_user_per_second' => [
+                'type' => SettingType::Decimal, 'group' => 'ops', 'label' => 'متوسط طلبات المستخدم الواحد في الثانية (قيمة احتياطية)',
+                'default' => 0.12, 'min' => 0.01,
+                'help' => 'يُستعمل لحساب عدد المستخدمين الممكن حتى تتوفر أرقام حقيقية. التطبيق المفتوح يرسل طلباً كل ~12 ثانية + الشاشات التي يفتحها.',
             ],
 
             // ---------------- Parcels ----------------

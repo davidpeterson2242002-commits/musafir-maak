@@ -55,6 +55,7 @@ class BadgesController extends Controller
 
         return [
             'unread_messages' => $unread,
+            'unread_notifications' => \App\Models\UserNotification::where('user_id', $user->id)->whereNull('read_at')->count(),
             'driver' => $driver,
             'bookings' => Booking::where('passenger_id', $user->id)->where('updated_at', '>=', $since)
                 ->orderByDesc('updated_at')->limit(20)->get(['id', 'status'])
@@ -63,9 +64,11 @@ class BadgesController extends Controller
                 ->orderByDesc('updated_at')->limit(20)->get(['id', 'status'])
                 ->map(fn (Parcel $p) => ['id' => $p->id, 'status' => $p->status->value])->values(),
             // Home rating cards: closed ones don't count.
-            'pending_ratings' => $ratings->pendingFor($user)
+            // Cached a minute (this endpoint is polled every ~12 s by every open app); rating or
+            // closing a card clears it right away.
+            'pending_ratings' => \Illuminate\Support\Facades\Cache::remember('badges.ratings.'.$user->id, 60, fn () => $ratings->pendingFor($user)
                 ->reject(fn ($s) => DB::table('rating_dismissals')->where(['user_id' => $user->id, 'subject_type' => $s->getMorphClass(), 'subject_id' => $s->id])->exists())
-                ->count(),
+                ->count()),
         ];
     }
 }

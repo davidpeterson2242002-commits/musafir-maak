@@ -47,7 +47,7 @@ SESSION_LIFETIME=120
 FILESYSTEM_DISK=local
 QUEUE_CONNECTION=database
 QUEUE_VIA_SCHEDULER=true
-CACHE_STORE=database
+CACHE_STORE=file
 MAIL_MAILER=log
 MAIL_FROM_ADDRESS="no-reply@statement-ds.com"
 MAIL_FROM_NAME="\${APP_NAME}"
@@ -64,6 +64,13 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 EOF
   chmod 600 "$SHARED/.env"
   echo "Created $SHARED/.env"
+fi
+
+# Cache in files instead of MySQL (settings, rate limits, live dashboard counters):
+# one less database round trip on every request.
+if grep -q '^CACHE_STORE=database' "$SHARED/.env"; then
+  sed -i 's/^CACHE_STORE=database/CACHE_STORE=file/' "$SHARED/.env"
+  echo "CACHE_STORE switched to file"
 fi
 
 # --- unpack new release -----------------------------------------------------
@@ -99,6 +106,9 @@ fi
 "$PHP" artisan filament:assets
 ls public/css/filament >/dev/null || { echo "Filament assets missing"; exit 1; }
 "$PHP" artisan optimize:clear >/dev/null
+# Cache config, routes, views and events: Laravel then skips reading ~40 config files and
+# compiling routes on every request (the admin panel and the API both get faster).
+"$PHP" artisan optimize
 "$PHP" artisan filament:optimize >/dev/null 2>&1 || true
 
 # --- web root -> Laravel public/ -------------------------------------------
