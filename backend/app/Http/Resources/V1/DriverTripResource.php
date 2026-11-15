@@ -28,7 +28,7 @@ class DriverTripResource extends JsonResource
                 'origin' => ['id' => $this->route->origin->id, 'name' => $this->route->origin->name_ar],
                 'destination' => ['id' => $this->route->destination->id, 'name' => $this->route->destination->name_ar],
             ],
-            'vehicle' => ['id' => $this->vehicle->id, 'label' => $this->vehicle->label()],
+            'vehicle' => ['id' => $this->vehicle->id, 'label' => $this->vehicle->label(), 'seats' => $this->vehicle->seats],
             'price_per_seat' => $this->price_per_seat,
             'seats_total' => $this->seats_total,
             'seats_booked' => $this->seats_total - $this->seats_available,

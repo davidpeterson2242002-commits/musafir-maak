@@ -32,8 +32,8 @@ class ParcelRepository {
   Future<List<Parcel>> list() async {
     try {
       final items = [
-        ..._items(await _api.get('parcels', query: {'tab': 'active'})),
-        ..._items(await _api.get('parcels', query: {'tab': 'done'})),
+        ...await fetchAllPages(_api, 'parcels', {'tab': 'active'}),
+        ...await fetchAllPages(_api, 'parcels', {'tab': 'done'}),
       ];
       await _cache.write(_listKey, items);
       return _parseList(items);
@@ -93,7 +93,6 @@ class ParcelRepository {
   }
 
   /// Paginated lists arrive as `{data: [...], links, meta}`.
-  List _items(dynamic json) => json is Map ? (json['data'] as List? ?? const []) : (json as List);
 
   List<Parcel> _parseList(List items) =>
       items.map((e) => Parcel.fromJson(Map<String, dynamic>.from(e as Map))).toList();

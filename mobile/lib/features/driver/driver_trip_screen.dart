@@ -48,6 +48,58 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
     }
   }
 
+  /// Trip with bookings: notes, and seats can only go up (to the vehicle's seats).
+  Future<void> _limitedEdit(BuildContext context, DriverTrip trip) async {
+    final notes = TextEditingController(text: trip.notes ?? '');
+    var seats = trip.seatsTotal;
+    final maxSeats = trip.vehicleSeats > 0 ? trip.vehicleSeats : trip.seatsTotal;
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheet) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.of(sheetContext).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(S.editTrip, style: Theme.of(sheetContext).textTheme.titleLarge),
+              const SizedBox(height: 6),
+              Text(S.limitedEditBody, style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(color: AppColors.inkMuted)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: Text(S.seatsTotalLabel, style: Theme.of(sheetContext).textTheme.titleMedium)),
+                  IconButton(
+                    onPressed: seats > trip.seatsTotal ? () => setSheet(() => seats--) : null,
+                    icon: const Icon(Icons.remove_circle_outline),
+                  ),
+                  Text('$seats', style: Theme.of(sheetContext).textTheme.titleLarge),
+                  IconButton(
+                    onPressed: seats < maxSeats ? () => setSheet(() => seats++) : null,
+                    icon: const Icon(Icons.add_circle_outline),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(controller: notes, maxLines: 3, maxLength: 500, decoration: InputDecoration(hintText: S.tripNotes, border: const OutlineInputBorder())),
+              const SizedBox(height: 8),
+              FilledButton(onPressed: () => Navigator.pop(sheetContext, true), child: const Text(S.saveChanges)),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (saved == true) {
+      await _run(
+        () => ref.read(driverTripRepositoryProvider).updateLimited(trip.id, notes: notes.text.trim(), seatsTotal: seats),
+        S.tripUpdated,
+      );
+    }
+    notes.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
@@ -68,6 +120,12 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                 await context.push('/driver/trips/${widget.tripId}/edit', extra: loaded.valueOrNull);
                 ref.invalidate(driverTripProvider(widget.tripId));
               },
+            )
+          else if (loaded.valueOrNull?.canEditLimited ?? false)
+            IconButton(
+              tooltip: S.editTrip,
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => _limitedEdit(context, loaded.value!),
             ),
         ],
       ),

@@ -56,6 +56,11 @@ class ProfileScreen extends ConsumerWidget {
                   label: S.routeAlerts,
                   onTap: () => context.push('/alerts'),
                 ),
+                _MenuItem(
+                  icon: Icons.block_rounded,
+                  label: S.blockedUsers,
+                  onTap: () => context.push('/blocked'),
+                ),
                 if (supportNumber.isNotEmpty)
                   _MenuItem(
                     icon: Icons.support_agent_rounded,

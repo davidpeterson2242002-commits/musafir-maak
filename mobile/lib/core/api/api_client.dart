@@ -141,3 +141,21 @@ class ApiClient {
     }
   }
 }
+
+/// Reads a Laravel paginated list (`{data, links, meta}`) page by page, up to [maxPages]
+/// (20 per page), so long histories aren't cut at the first 20.
+Future<List<dynamic>> fetchAllPages(ApiClient api, String path, Map<String, dynamic> query, {int maxPages = 5}) async {
+  final items = <dynamic>[];
+  for (var page = 1; page <= maxPages; page++) {
+    final json = await api.get(path, query: {...query, 'page': page});
+    if (json is! Map) {
+      items.addAll(json as List);
+      break;
+    }
+    items.addAll(json['data'] as List? ?? const []);
+    final meta = json['meta'];
+    final last = meta is Map ? (meta['last_page'] as num?)?.toInt() ?? 1 : 1;
+    if (page >= last) break;
+  }
+  return items;
+}

@@ -120,6 +120,8 @@ class DriverTrip {
     this.pickupPoints = const [],
     this.dropoffPoints = const [],
     this.canEditAll = false,
+    this.canEditLimited = false,
+    this.vehicleSeats = 0,
     this.canDepart = false,
     this.canComplete = false,
     this.canCancel = false,
@@ -158,6 +160,12 @@ class DriverTrip {
 
   /// No active bookings yet: everything can still be changed.
   final bool canEditAll;
+
+  /// Bookings exist: only notes and more seats can change.
+  final bool canEditLimited;
+
+  /// Passenger seats of the trip's vehicle (upper bound for seats).
+  final int vehicleSeats;
   final bool canDepart;
   final bool canComplete;
   final bool canCancel;
@@ -216,6 +224,8 @@ class DriverTrip {
       pickupPoints: labels(json['pickup_points']),
       dropoffPoints: labels(json['dropoff_points']),
       canEditAll: actions['can_edit_all'] as bool? ?? false,
+      canEditLimited: actions['can_edit_limited'] as bool? ?? false,
+      vehicleSeats: (vehicle['seats'] as num?)?.toInt() ?? 0,
       canDepart: actions['can_depart'] as bool? ?? false,
       canComplete: actions['can_complete'] as bool? ?? false,
       canCancel: actions['can_cancel'] as bool? ?? false,

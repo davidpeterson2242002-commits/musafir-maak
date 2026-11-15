@@ -104,6 +104,16 @@ class BalanceScreen extends ConsumerWidget {
                           child: const Text(S.payBalance),
                         ),
                       ],
+                      // Optional prepaid wallet: fees are taken from it before they add to the balance.
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          await context.push('/driver/pay', extra: 'wallet');
+                          reload();
+                        },
+                        icon: const Icon(Icons.account_balance_wallet_outlined),
+                        label: const Text(S.topUpWallet),
+                      ),
                     ],
                   ),
                 ),
@@ -213,7 +223,10 @@ class _LedgerRow extends StatelessWidget {
 /// Report a payment (spec D14): pick how you paid, see where to pay, enter the
 /// amount and reference, attach the receipt.
 class PayScreen extends ConsumerStatefulWidget {
-  const PayScreen({super.key});
+  const PayScreen({super.key, this.walletTopUp = false});
+
+  /// Adding credit to the prepaid wallet instead of paying what's owed.
+  final bool walletTopUp;
 
   @override
   ConsumerState<PayScreen> createState() => _PayScreenState();
@@ -267,6 +280,7 @@ class _PayScreenState extends ConsumerState<PayScreen> {
             amount: amount!,
             receiptPath: _receiptPath!,
             reference: _reference.text,
+            walletTopUp: widget.walletTopUp,
           );
       if (!mounted) return;
       showMessage(context, S.paymentSent);
@@ -287,7 +301,7 @@ class _PayScreenState extends ConsumerState<PayScreen> {
     final methods = ref.watch(paymentMethodsProvider);
     final owed = ref.watch(driverBalanceProvider).valueOrNull?.balanceOwed;
 
-    if (!_amountPrefilled && owed != null && owed > 0) {
+    if (!widget.walletTopUp && !_amountPrefilled && owed != null && owed > 0) {
       _amountPrefilled = true;
       _amount.text = '$owed';
     }
@@ -295,7 +309,7 @@ class _PayScreenState extends ConsumerState<PayScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(S.payTitle, style: text.titleLarge),
+        title: Text(widget.walletTopUp ? S.topUpWallet : S.payTitle, style: text.titleLarge),
         backgroundColor: AppColors.surface,
         scrolledUnderElevation: 0,
       ),

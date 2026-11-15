@@ -69,6 +69,10 @@ class DriverTripRepository {
   Future<DriverTrip> update(int id, TripDraft draft) async =>
       _trip(await _api.put('driver/trips/$id', body: draft.toJson(creating: false)));
 
+  /// After bookings exist the server accepts only notes and a higher seat count.
+  Future<DriverTrip> updateLimited(int id, {required String notes, required int seatsTotal}) async =>
+      _trip(await _api.put('driver/trips/$id', body: {'notes': notes, 'seats_total': seatsTotal}));
+
   Future<DriverTrip> cancel(int id, String reason) async =>
       _trip(await _api.post('driver/trips/$id/cancel', body: {'reason': reason}));
 

@@ -42,9 +42,7 @@ class BookingRepository {
 
   Future<List<Booking>> list(String tab) async {
     try {
-      final json = await _api.get('bookings', query: {'tab': tab});
-      // Paginated: {data: [...], links, meta}. The first page (20) covers every realistic passenger.
-      final items = json is Map ? (json['data'] as List? ?? const []) : (json as List);
+      final items = await fetchAllPages(_api, 'bookings', {'tab': tab});
       await _cache.write(_listKey(tab), items);
       for (final item in items) {
         await _cache.write(_itemKey((item as Map)['id'] as int), {'data': item});

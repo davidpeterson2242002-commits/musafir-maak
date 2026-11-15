@@ -151,17 +151,5 @@ Artisan::command('files:check', function () {
         }
     }
 
-    // Same link checked inside this process: separates a signature problem from a web-server one.
-    $req = \Illuminate\Http\Request::create($signed);
-    $this->line('Signature valid (in-process): '.(\Illuminate\Support\Facades\URL::hasValidRelativeSignature($req) ? 'yes' : 'NO'));
-    $this->line('Request path seen: '.substr($req->path(), 0, 9).'…, route: '.(app('router')->getRoutes()->match($req)->getName() ?? '?'));
-    $resp = app(\Illuminate\Contracts\Http\Kernel::class)->handle($req);
-    $this->line('In-process kernel response: '.$resp->getStatusCode());
-    $this->line('PHP open_basedir (cli): '.(ini_get('open_basedir') ?: 'none').', storage real path ok: '.(is_dir(realpath(storage_path('app/private')) ?: '') ? 'yes' : 'NO'));
-
-    $bad = preg_replace('/signature=[^&]+/', 'signature=0', $signed);
-    $r = \Illuminate\Support\Facades\Http::timeout(20)->get($bad);
-    $this->line('GET with a wrong signature → '.$r->status().' (should be 403)');
-
     return 0;
 })->purpose('Diagnose private image links (no URLs printed)');

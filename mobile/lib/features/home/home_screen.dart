@@ -45,7 +45,9 @@ class SearchQuery {
 }
 
 final searchQueryProvider = StateProvider<SearchQuery>((ref) {
-  // Start from the user's own city: most trips begin at home.
+  // Start from the user's own city: most trips begin at home. Rebuilt when another
+  // account logs in, so it never keeps the previous user's search.
+  ref.watch(currentUserProvider.select((user) => user?.id));
   final home = ref.read(currentUserProvider)?.city;
   return SearchQuery(from: home, date: DateTime.now());
 });

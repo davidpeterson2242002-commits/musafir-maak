@@ -162,6 +162,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _loading = true;
   bool _polling = false;
 
+  /// The server sends 50 messages at a time; a full page means there may be older ones.
+  static const _pageSize = 50;
+  bool _hasOlder = false;
+  bool _loadingOlder = false;
+
   @override
   void initState() {
     super.initState();
@@ -190,6 +195,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ..clear()
           ..addAll(page.messages);
         _conversation = page.conversation;
+        _hasOlder = page.messages.length >= _pageSize;
         _loading = false;
       });
       _jumpToEnd();
@@ -221,6 +227,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       // Offline or slow: the next tick tries again; the banner already says we're offline.
     } finally {
       _polling = false;
+    }
+  }
+
+  Future<void> _loadOlder() async {
+    if (_loadingOlder || _messages.isEmpty) return;
+    setState(() => _loadingOlder = true);
+    try {
+      final page = await ref.read(chatRepositoryProvider).messages(widget.conversationId, beforeId: _messages.first.id);
+      if (!mounted) return;
+      final known = _messages.map((m) => m.id).toSet();
+      final before = _scroll.hasClients ? _scroll.position.maxScrollExtent : 0.0;
+      setState(() {
+        _messages.insertAll(0, page.messages.where((m) => !known.contains(m.id)));
+        _hasOlder = page.messages.length >= _pageSize;
+      });
+      // Keep the messages the user was reading in place.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scroll.hasClients) _scroll.jumpTo(_scroll.offset + _scroll.position.maxScrollExtent - before);
+      });
+    } on ApiException catch (e) {
+      if (mounted) showMessage(context, e.message);
+    } finally {
+      if (mounted) setState(() => _loadingOlder = false);
     }
   }
 
@@ -345,8 +374,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         : ListView.builder(
                             controller: _scroll,
                             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                            itemCount: items.length,
+                            itemCount: items.length + (_hasOlder ? 1 : 0),
                             itemBuilder: (context, index) {
+                              if (_hasOlder) {
+                                if (index == 0) {
+                                  return Center(
+                                    child: _loadingOlder
+                                        ? const Padding(
+                                            padding: EdgeInsets.all(8),
+                                            child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)),
+                                          )
+                                        : TextButton.icon(
+                                            onPressed: _loadOlder,
+                                            icon: const Icon(Icons.history_rounded, size: 18),
+                                            label: const Text(S.olderMessages),
+                                          ),
+                                  );
+                                }
+                                index--;
+                              }
                               final item = items[index];
                               return item.pending != null
                                   ? _PendingBubble(item: item.pending!)

@@ -57,7 +57,7 @@ class DriverMoneyRepository {
   Future<DriverBalance> balance() async =>
       DriverBalance.fromJson(Map<String, dynamic>.from(await _api.get('driver/balance') as Map));
 
-  Future<List<LedgerEntry>> ledger() async => _list(await _api.get('driver/ledger'), LedgerEntry.fromJson);
+  Future<List<LedgerEntry>> ledger() async => _list(await fetchAllPages(_api, 'driver/ledger', const {}, maxPages: 3), LedgerEntry.fromJson);
 
   Future<List<SettlementPayment>> settlements() async =>
       _list(await _api.get('driver/settlements'), SettlementPayment.fromJson);
@@ -70,6 +70,7 @@ class DriverMoneyRepository {
     required int amount,
     required String receiptPath,
     String? reference,
+    bool walletTopUp = false,
   }) =>
       _api.upload(
         'driver/settlements',
@@ -77,7 +78,7 @@ class DriverMoneyRepository {
         filePath: receiptPath,
         fields: {
           'payment_method_id': methodId,
-          'purpose': 'settlement',
+          'purpose': walletTopUp ? 'wallet_topup' : 'settlement',
           'amount': amount,
           if (reference != null && reference.trim().isNotEmpty) 'reference_number': reference.trim(),
         },

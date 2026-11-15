@@ -25,15 +25,17 @@ class ChatRepository {
   final ApiClient _api;
 
   Future<List<Conversation>> conversations() async {
-    final json = await _api.get('conversations');
-    final items = json is Map ? (json['data'] as List? ?? const []) : (json as List);
+    final items = await fetchAllPages(_api, 'conversations', const {}, maxPages: 3);
     return items.map((e) => Conversation.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 
-  /// The latest 50 messages, or only those newer than [afterId] (polling).
   /// Loading messages also marks the conversation as read.
-  Future<ChatPage> messages(int conversationId, {int? afterId}) async => ChatPage.fromJson(
-        await _api.get('conversations/$conversationId/messages', query: {if (afterId != null) 'after_id': afterId}),
+  /// Newest 50, or the 50 after [afterId] (polling) / before [beforeId] (older history).
+  Future<ChatPage> messages(int conversationId, {int? afterId, int? beforeId}) async => ChatPage.fromJson(
+        await _api.get('conversations/$conversationId/messages', query: {
+          if (afterId != null) 'after_id': afterId,
+          if (beforeId != null) 'before_id': beforeId,
+        }),
       );
 
   /// [clientId] makes a retry safe: the server returns the first copy instead of a duplicate.

@@ -34,6 +34,7 @@ class S {
   static const otpTitle = 'أدخل رمز التحقق';
   static String otpBody(String phone) => 'أرسلنا الرمز على واتساب للرقم $phone';
   static String otpBodyEmail(String email) => 'أرسلنا الرمز إلى بريدك $email\nلو ما لقيته في الوارد، شوف مجلد Spam (الرسائل غير المرغوبة).';
+  static const olderMessages = 'رسائل أقدم';
   static const otpBodyGeneric = 'اكتب الرمز اللي وصلك. لو ما لقيته في بريدك، شوف مجلد Spam.';
   static const otpBodyTest = 'رقم تجريبي: الرمز اتملى براهو.';
   static const emailTitle = 'بريدك الإلكتروني';
@@ -416,6 +417,9 @@ class S {
   static const blockBody = 'ما بتظهر ليك رحلاته وما بيقدر يراسلك أو يحجز معاك.';
   static const blocked = 'تم الحظر';
   static const unblocked = 'تم إلغاء الحظر';
+  static const blockedUsers = 'المحظورين';
+  static const noBlockedUsers = 'ما في زول محظور';
+  static const noBlockedUsersBody = 'لو حظرت زول من صفحته، حيظهر هنا وتقدر تلغي الحظر.';
 
   // Driver registration
   static const driverRegTitle = 'التسجيل كسائق';
@@ -486,6 +490,9 @@ class S {
   static const driverHomeTitle = 'رحلاتك وطلباتك';
   static const postTrip = 'انشر رحلة';
   static const editTrip = 'تعديل الرحلة';
+  static const topUpWallet = 'اشحن المحفظة مقدماً';
+  static const limitedEditBody = 'الرحلة فيها حجوزات، فتقدر تزيد المقاعد أو تعدّل الملاحظات بس. لتغيير الموعد أو السعر كلّم الركاب أو ألغِ الرحلة وأنشر واحدة جديدة.';
+  static const seatsTotalLabel = 'عدد المقاعد';
   static const newRequests = 'طلبات جديدة';
   static const noRequests = 'ما في طلبات حجز جديدة';
   static const upcomingTrips = 'رحلاتك القادمة';

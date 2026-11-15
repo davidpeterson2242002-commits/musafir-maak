@@ -9,6 +9,8 @@ final publicProfileProvider = FutureProvider.autoDispose.family<PublicProfile, i
   (ref, id) => ref.watch(userRepositoryProvider).profile(id),
 );
 
+final myBlocksProvider = FutureProvider.autoDispose((ref) => ref.watch(userRepositoryProvider).blocks());
+
 class UserRepository {
   UserRepository(this._api);
 
@@ -20,6 +22,15 @@ class UserRepository {
   Future<void> block(int userId) => _api.post('users/$userId/block');
 
   Future<void> unblock(int userId) => _api.delete('users/$userId/block');
+
+  /// People I blocked: `[{id, name, blocked_at}]`.
+  Future<List<({int id, String name})>> blocks() async {
+    final json = await _api.get('me/blocks');
+    final items = json is Map ? (json['data'] as List? ?? const []) : (json as List);
+    return [
+      for (final e in items.cast<Map>()) (id: (e['id'] as num).toInt(), name: (e['name'] as String?) ?? '—'),
+    ];
+  }
 
   /// Returns the server's thank-you message.
   Future<String?> report({

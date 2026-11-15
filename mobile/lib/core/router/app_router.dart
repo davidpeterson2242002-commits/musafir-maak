@@ -20,6 +20,7 @@ import '../../features/driver/vehicle_form_screen.dart';
 import '../../features/home/home_shell.dart';
 import '../../features/parcels/parcel_request_screen.dart';
 import '../../features/parcels/parcel_status_screen.dart';
+import '../../features/users/blocked_users_screen.dart';
 import '../../features/users/public_profile_screen.dart';
 import '../../features/identity/identity_screen.dart';
 import '../../features/ratings/rate_screen.dart';
@@ -93,9 +94,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(path: '/alerts', builder: (context, state) => const RouteAlertsScreen()),
+          GoRoute(path: '/blocked', builder: (context, state) => const BlockedUsersScreen()),
           GoRoute(path: '/driver/register', builder: (context, state) => const DriverRegistrationScreen()),
           GoRoute(path: '/driver/balance', builder: (context, state) => const BalanceScreen()),
-          GoRoute(path: '/driver/pay', builder: (context, state) => const PayScreen()),
+          GoRoute(path: '/driver/pay', builder: (context, state) => PayScreen(walletTopUp: state.extra == 'wallet')),
           // 'new' is listed before ':id' so it isn't read as a trip id.
           GoRoute(path: '/driver/trips/new', builder: (context, state) => const PostTripScreen()),
           GoRoute(
