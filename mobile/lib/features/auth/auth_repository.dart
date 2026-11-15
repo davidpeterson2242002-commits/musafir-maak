@@ -90,7 +90,7 @@ class AuthRepository {
   /// `device_not_trusted` when a code is needed instead.
   Future<VerifiedSession> deviceLogin(String phone, String deviceToken) async {
     final json = Map<String, dynamic>.from(
-      await _api.post('auth/device-login', body: {'phone': phone, 'device_token': deviceToken, 'device_name': 'android'})
+      await _api.post('auth/device-login', body: {'phone': phone, 'device_token': deviceToken, 'device_name': 'android'}, silent: true)
           as Map,
     );
     return VerifiedSession.fromJson(json);

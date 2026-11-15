@@ -25,7 +25,7 @@ class DriverRepository {
   Future<DriverAccount> start() async => _account(await _api.post('driver'));
 
   Future<DriverAccount> uploadLicence(String filePath) async => _account(
-        await _api.upload('driver/documents', field: 'file', filePath: filePath, fields: {'kind': 'driving_licence'}),
+        await _api.upload('driver/documents', field: 'file', filePath: filePath, fields: {'kind': 'driving_licence'}, silent: true),
       );
 
   /// Sends identity + licence + vehicles for review in one application.
@@ -58,7 +58,7 @@ class DriverRepository {
 
   /// `kind`: vehicle_front, vehicle_back, vehicle_side, vehicle_interior, vehicle_registration.
   Future<Vehicle> uploadVehiclePhoto(int vehicleId, String kind, String filePath) async => _vehicle(
-        await _api.upload('driver/vehicles/$vehicleId/documents', field: 'file', filePath: filePath, fields: {'kind': kind}),
+        await _api.upload('driver/vehicles/$vehicleId/documents', field: 'file', filePath: filePath, fields: {'kind': kind}, silent: true),
       );
 
   /// For a vehicle added after the driver was approved: it gets its own review.

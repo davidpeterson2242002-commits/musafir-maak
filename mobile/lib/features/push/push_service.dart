@@ -83,7 +83,7 @@ class FcmPushService implements PushService {
   }
 
   Future<void> _send(String token) async {
-    await _ref.read(apiClientProvider).post('devices', body: {'token': token, 'platform': 'android'});
+    await _ref.read(apiClientProvider).post('devices', body: {'token': token, 'platform': 'android'}, silent: true);
     await _ref.read(cacheStoreProvider).write(_cacheKey, {'token': token});
   }
 
@@ -94,7 +94,7 @@ class FcmPushService implements PushService {
     await _refreshSub?.cancel();
     _refreshSub = null;
     try {
-      if (token != null) await _ref.read(apiClientProvider).delete('devices', body: {'token': token});
+      if (token != null) await _ref.read(apiClientProvider).delete('devices', body: {'token': token}, silent: true);
     } finally {
       await cache.remove(_cacheKey);
       // A fresh token for the next account on this phone.

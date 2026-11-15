@@ -153,3 +153,53 @@ Artisan::command('files:check', function () {
 
     return 0;
 })->purpose('Diagnose private image links (no URLs printed)');
+
+Artisan::command('api:timing {--user=}', function () {
+    // Server-side time, DB queries and size of the main screens' requests, run in-process
+    // as a real user (read-only GETs). Prints numbers only.
+    $user = $this->option('user')
+        ? \App\Models\User::find($this->option('user'))
+        : \App\Models\User::whereHas('driverProfile', fn ($q) => $q->where('status', 'active'))->latest('last_seen_at')->first()
+            ?? \App\Models\User::latest('last_seen_at')->first();
+    if ($user === null) {
+        $this->warn('No users.');
+
+        return 0;
+    }
+    $this->line("As user #{$user->id} (driver: ".($user->driverProfile ? 'yes' : 'no').')');
+    \Laravel\Sanctum\Sanctum::actingAs($user, ['*']);
+
+    $route = \App\Models\TravelRoute::where('enabled', true)->where('is_popular', true)->first();
+    $trip = \App\Models\Trip::latest('id')->first();
+    $paths = ['config', 'cities', 'routes?popular=1', 'me', 'me/badges', 'bookings?tab=upcoming', 'bookings?tab=past',
+        'parcels?tab=active', 'conversations', 'ratings/pending', 'route-alerts', 'payment-methods'];
+    if ($route) {
+        $paths[] = "trips/search?origin_city_id={$route->origin_city_id}&destination_city_id={$route->destination_city_id}&date=".now('Africa/Khartoum')->toDateString();
+    }
+    if ($trip) {
+        $paths[] = "trips/{$trip->id}";
+    }
+    if ($user->driverProfile) {
+        array_push($paths, 'driver', 'driver/trips?tab=upcoming', 'driver/requests', 'driver/parcels', 'driver/balance', 'driver/ledger');
+        if ($trip && $trip->driver_profile_id === $user->driverProfile->id) {
+            $paths[] = "driver/trips/{$trip->id}";
+        }
+    }
+
+    $kernel = app(\Illuminate\Contracts\Http\Kernel::class);
+    foreach ($paths as $path) {
+        $queries = 0;
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $start = microtime(true);
+        $req = \Illuminate\Http\Request::create('/api/v1/'.$path, 'GET', server: ['HTTP_ACCEPT' => 'application/json']);
+        $resp = $kernel->handle($req);
+        $ms = (microtime(true) - $start) * 1000;
+        $queries = count(\Illuminate\Support\Facades\DB::getQueryLog());
+        $this->line(sprintf('%-28s %3d  %6.0f ms  %3d queries  %6.1f KB', strtok($path, '?').(str_contains($path, 'tab=') ? '('.substr($path, strpos($path, 'tab=') + 4).')' : ''), $resp->getStatusCode(), $ms, $queries, strlen((string) $resp->getContent()) / 1024));
+        app()->forgetInstance('auth');
+        \Laravel\Sanctum\Sanctum::actingAs($user, ['*']);
+    }
+
+    return 0;
+})->purpose('Time the main API screens in-process (read-only)');

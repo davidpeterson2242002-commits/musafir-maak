@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/api/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/strings.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/busy_overlay.dart';
 import 'features/auth/session_controller.dart';
 import 'features/push/push_routes.dart';
 import 'features/push/push_service.dart';
@@ -63,7 +65,10 @@ class MusafirApp extends ConsumerWidget {
         final media = MediaQuery.of(context);
         return MediaQuery(
           data: media.copyWith(textScaler: media.textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.3)),
-          child: child ?? const SizedBox.shrink(),
+          child: BusyOverlay(
+            busy: ref.watch(apiClientProvider).busy,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

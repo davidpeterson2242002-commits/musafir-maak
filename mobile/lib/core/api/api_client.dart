@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/env.dart';
@@ -23,7 +24,10 @@ final apiClientProvider = Provider<ApiClient>((ref) {
       }
     },
   );
-  ref.onDispose(client.close);
+  ref.onDispose(() {
+    client.close();
+    client.busy.dispose();
+  });
   return client;
 });
 
@@ -57,16 +61,25 @@ class ApiClient {
 
   UnauthorizedHandler? onUnauthorized;
 
+  /// Number of user actions (POST/PUT/DELETE/uploads) in flight. The app shows a
+  /// loading overlay while it is above zero, so an action is never silent.
+  /// Background calls pass `silent: true` (push token, chat outbox, photo tiles
+  /// that show their own spinner).
+  final ValueNotifier<int> busy = ValueNotifier<int>(0);
+
   void close() => _dio.close();
 
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>
-      _send('GET', path, query: query);
+      _send('GET', path, query: query, silent: true);
 
-  Future<dynamic> post(String path, {Object? body}) => _send('POST', path, body: body);
+  Future<dynamic> post(String path, {Object? body, bool silent = false}) =>
+      _send('POST', path, body: body, silent: silent);
 
-  Future<dynamic> put(String path, {Object? body}) => _send('PUT', path, body: body);
+  Future<dynamic> put(String path, {Object? body, bool silent = false}) =>
+      _send('PUT', path, body: body, silent: silent);
 
-  Future<dynamic> delete(String path, {Object? body}) => _send('DELETE', path, body: body);
+  Future<dynamic> delete(String path, {Object? body, bool silent = false}) =>
+      _send('DELETE', path, body: body, silent: silent);
 
   /// Multipart upload of one file plus optional text fields.
   Future<dynamic> upload(
@@ -74,15 +87,25 @@ class ApiClient {
     required String field,
     required String filePath,
     Map<String, dynamic> fields = const {},
+    bool silent = false,
   }) async {
     final form = FormData.fromMap({
       ...fields,
       field: await MultipartFile.fromFile(filePath),
     });
-    return _send('POST', path, body: form);
+    return _send('POST', path, body: form, silent: silent);
   }
 
-  Future<dynamic> _send(String method, String path, {Object? body, Map<String, dynamic>? query}) async {
+  Future<dynamic> _send(String method, String path, {Object? body, Map<String, dynamic>? query, required bool silent}) async {
+    if (!silent) busy.value++;
+    try {
+      return await _request(method, path, body: body, query: query);
+    } finally {
+      if (!silent) busy.value--;
+    }
+  }
+
+  Future<dynamic> _request(String method, String path, {Object? body, Map<String, dynamic>? query}) async {
     final token = await _tokenStore.read();
 
     try {

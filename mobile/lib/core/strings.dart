@@ -34,6 +34,8 @@ class S {
   static const otpTitle = 'أدخل رمز التحقق';
   static String otpBody(String phone) => 'أرسلنا الرمز على واتساب للرقم $phone';
   static String otpBodyEmail(String email) => 'أرسلنا الرمز إلى بريدك $email\nلو ما لقيته في الوارد، شوف مجلد Spam (الرسائل غير المرغوبة).';
+  static const busy = 'لحظة…';
+  static const busySlow = 'الشبكة بطيئة، لسه شغالين…';
   static const olderMessages = 'رسائل أقدم';
   static const otpBodyGeneric = 'اكتب الرمز اللي وصلك. لو ما لقيته في بريدك، شوف مجلد Spam.';
   static const otpBodyTest = 'رقم تجريبي: الرمز اتملى براهو.';

@@ -20,7 +20,7 @@ class IdentityRepository {
 
   /// Uploads (or replaces) one photo. `kind`: selfie, passport, national_id_front, national_id_back.
   Future<Identity> upload(String kind, String filePath) async => _parse(
-        await _api.upload('me/identity/documents', field: 'file', filePath: filePath, fields: {'kind': kind}),
+        await _api.upload('me/identity/documents', field: 'file', filePath: filePath, fields: {'kind': kind}, silent: true),
       );
 
   /// Sends the uploaded photos for review.

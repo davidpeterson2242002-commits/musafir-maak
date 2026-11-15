@@ -7,7 +7,7 @@ on:
       command:
         description: "Diagnostic to run"
         type: choice
-        options: [files:check, about]
+        options: [files:check, api:timing, about]
         default: files:check
 
 env:
@@ -33,3 +33,12 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
             "cd ~/musafir/app && /opt/alt/php84/usr/bin/php artisan ${{ inputs.command }} --no-ansi 2>&1 | cut -c1-400"
+      - name: Network timing from GitHub (US) to the API
+        run: |
+          for i in 1 2 3; do
+            curl -s -o /dev/null -w 'dns %{time_namelookup}s  connect %{time_connect}s  tls %{time_appconnect}s  first byte %{time_starttransfer}s  total %{time_total}s  %{size_download} bytes (gzip asked)\n' \
+              -H 'Accept-Encoding: gzip' https://musafir.statement-ds.com/api/v1/config
+          done
+          curl -sI -H 'Accept-Encoding: gzip' https://musafir.statement-ds.com/api/v1/config | grep -iE 'content-encoding|server|x-litespeed|cache' || true
+          curl -s https://ipinfo.io/$(dig +short musafir.statement-ds.com | tail -1)/json | grep -E '"(city|region|country|org)"' || true
+

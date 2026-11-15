@@ -43,6 +43,7 @@ class ChatRepository {
     final json = await _api.post(
       'conversations/$conversationId/messages',
       body: {'body': body, if (clientId != null) 'client_id': clientId},
+      silent: true, // the bubble shows its own clock / ticks
     );
     return ChatMessage.fromJson(Map<String, dynamic>.from(json as Map));
   }
