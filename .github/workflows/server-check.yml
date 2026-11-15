@@ -39,6 +39,9 @@ jobs:
             curl -s -o /dev/null -w 'dns %{time_namelookup}s  connect %{time_connect}s  tls %{time_appconnect}s  first byte %{time_starttransfer}s  total %{time_total}s  %{size_download} bytes (gzip asked)\n' \
               -H 'Accept-Encoding: gzip' https://musafir.statement-ds.com/api/v1/config
           done
-          curl -sI -H 'Accept-Encoding: gzip' https://musafir.statement-ds.com/api/v1/config | grep -iE 'content-encoding|server|x-litespeed|cache' || true
+          curl -sI -H 'Accept-Encoding: gzip' https://musafir.statement-ds.com/api/v1/config | grep -iE 'content-encoding|server|cache' || true
+          for p in config cities 'routes?popular=1'; do
+            printf '%-18s ' "$p"; curl -s -o /dev/null -D - "https://musafir.statement-ds.com/api/v1/$p" | grep -i '^server-timing' || echo
+          done
           curl -s https://ipinfo.io/$(dig +short musafir.statement-ds.com | tail -1)/json | grep -E '"(city|region|country|org)"' || true
 
