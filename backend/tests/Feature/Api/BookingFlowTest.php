@@ -277,6 +277,8 @@ class BookingFlowTest extends TestCase
 
     public function test_trip_reminders_to_driver_and_passengers(): void
     {
+        // Midday, so the "evening before" reminder can't fire too (the test failed after 20:00 Sudan time).
+        $this->travelTo(now('Africa/Khartoum')->setTime(10, 0)->utc());
         $trip = $this->trip(['departs_at' => now()->addHours(5)]);
         $booking = Booking::factory()->accepted()->create(['trip_id' => $trip->id]);
         $booking->passenger->deviceTokens()->create(['token' => 'pas', 'platform' => 'android']);
