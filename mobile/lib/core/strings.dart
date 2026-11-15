@@ -39,7 +39,6 @@ class S {
   static const emailTitle = 'بريدك الإلكتروني';
   static const emailBody = 'أول مرة بس: اكتب بريدك عشان نرسل ليك عليه رمز الدخول. بعد كده الرموز تجي على البريد ده.';
   static const emailHintLogin = 'name@gmail.com';
-  static const emailInvalid = 'البريد غير صحيح. مثال: name@gmail.com';
   static const verify = 'تأكيد الرمز';
   static const changeNumber = 'تغيير الرقم';
   static const resendCode = 'أعد إرسال الرمز';

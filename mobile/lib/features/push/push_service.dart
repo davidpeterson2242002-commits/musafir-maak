@@ -69,8 +69,12 @@ class FcmPushService implements PushService {
       // Android 13+ shows the system permission dialog once; older versions allow by default.
       final settings = await _fm.requestPermission();
       if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+      // Registration tokens are what the server's FCM HTTP v1 `message.token` expects; the newer
+      // register()/onRegistered API hands out installation IDs for a different send path.
+      // ignore: deprecated_member_use
       final token = await _fm.getToken();
       if (token != null) await _send(token);
+      // ignore: deprecated_member_use
       _refreshSub ??= _fm.onTokenRefresh.listen(_send);
     } catch (e) {
       // No Google Play services, offline, … — the app still works with polling.
@@ -94,6 +98,7 @@ class FcmPushService implements PushService {
     } finally {
       await cache.remove(_cacheKey);
       // A fresh token for the next account on this phone.
+      // ignore: deprecated_member_use
       unawaited(_fm.deleteToken().catchError((_) {}));
     }
   }

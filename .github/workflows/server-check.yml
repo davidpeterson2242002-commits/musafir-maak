@@ -1,0 +1,35 @@
+name: Server check
+
+# Runs read-only artisan diagnostics on the Hostinger server. Prints status lines only.
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Diagnostic to run"
+        type: choice
+        options: [files:check, about]
+        default: files:check
+
+env:
+  SSH_HOST: 194.164.74.72
+  SSH_PORT: "65002"
+  SSH_USER: u214835178
+  HOST_FINGERPRINT: "SHA256:5QLQTWZosryBAR8PaS3YdCRRyoVf2JHIh83I1RcR3dA"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: SSH setup (verify host key)
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          ssh-keyscan -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > /tmp/hostkey 2>/dev/null
+          got=$(ssh-keygen -lf /tmp/hostkey | awk '{print $2}')
+          [ "$got" = "$HOST_FINGERPRINT" ] || { echo "Host key fingerprint mismatch!"; exit 1; }
+          cat /tmp/hostkey >> ~/.ssh/known_hosts
+      - name: Run
+        run: |
+          ssh -i ~/.ssh/deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "cd ~/musafir/app && /opt/alt/php84/usr/bin/php artisan ${{ inputs.command }} --no-ansi 2>&1 | cut -c1-400"

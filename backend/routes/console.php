@@ -122,3 +122,38 @@ if (env('QUEUE_VIA_SCHEDULER', false)) {
     Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')
         ->everyMinute()->withoutOverlapping(2);
 }
+
+Artisan::command('files:check', function () {
+    // Why private images (ID photos, car photos, avatars) might not load: makes a short-lived
+    // signed link for the newest upload and requests it from this server. Prints no links.
+    $url = config('app.url');
+    $this->line('APP_URL scheme: '.parse_url($url, PHP_URL_SCHEME).', host: '.parse_url($url, PHP_URL_HOST));
+    $this->line('Private disk: '.config('filesystems.private_disk').', serve: '.var_export(config('filesystems.disks.'.config('filesystems.private_disk').'.serve'), true));
+
+    $doc = \App\Models\Document::latest('id')->first();
+    if ($doc === null) {
+        $this->warn('No uploaded documents yet.');
+
+        return 0;
+    }
+    $disk = \Illuminate\Support\Facades\Storage::disk($doc->disk);
+    $this->line("Newest document #{$doc->id} ({$doc->kind}) on disk {$doc->disk}: file ".($disk->exists($doc->path) ? 'exists' : 'MISSING').', '.$doc->size.' bytes');
+
+    $signed = $doc->temporaryUrl(5);
+    $this->line('Link host matches APP_URL: '.(parse_url($signed, PHP_URL_HOST) === parse_url($url, PHP_URL_HOST) ? 'yes' : 'NO').', path starts: '.substr((string) parse_url($signed, PHP_URL_PATH), 0, 9));
+
+    foreach (['as generated' => $signed, 'over http' => preg_replace('#^https://#', 'http://', $signed)] as $label => $try) {
+        try {
+            $r = \Illuminate\Support\Facades\Http::timeout(20)->withoutRedirecting()->get($try);
+            $this->line(sprintf('GET %-12s → %d %s, %s bytes', $label, $r->status(), $r->header('Content-Type'), strlen($r->body())));
+        } catch (\Throwable $e) {
+            $this->line("GET $label → error: ".mb_substr($e->getMessage(), 0, 200));
+        }
+    }
+
+    $bad = preg_replace('/signature=[^&]+/', 'signature=0', $signed);
+    $r = \Illuminate\Support\Facades\Http::timeout(20)->get($bad);
+    $this->line('GET with a wrong signature → '.$r->status().' (should be 403)');
+
+    return 0;
+})->purpose('Diagnose private image links (no URLs printed)');
