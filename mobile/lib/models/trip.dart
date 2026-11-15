@@ -210,6 +210,7 @@ class SearchResult {
     this.closed = false,
     this.closureMessage,
     this.nearbyDates = const [],
+    this.reopenAlert = false,
   });
 
   final List<Trip> trips;
@@ -218,6 +219,9 @@ class SearchResult {
   final bool closed;
   final String? closureMessage;
   final List<NearbyDate> nearbyDates;
+
+  /// Closed route: the user already asked to be told when it opens.
+  final bool reopenAlert;
 
   factory SearchResult.fromJson(Map<String, dynamic> json) {
     final nearby = <NearbyDate>[];
@@ -233,6 +237,7 @@ class SearchResult {
       closed: json['closed'] as bool? ?? false,
       closureMessage: json['closure_message'] as String?,
       nearbyDates: nearby,
+      reopenAlert: json['reopen_alert'] as bool? ?? false,
     );
   }
 }

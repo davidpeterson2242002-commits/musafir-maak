@@ -49,6 +49,37 @@ class NoShowInfo {
 }
 
 /// A seat booking from the passenger's side (spec P7/P8).
+/// Late-cancellation rules for a booking (`cancel_policy`).
+class CancelPolicy {
+  const CancelPolicy({
+    required this.lateWindowHours,
+    required this.lateNow,
+    required this.lateLimit,
+    required this.windowDays,
+    required this.restrictionDays,
+  });
+
+  /// Cancelling an accepted seat closer than this to departure counts as late.
+  final int lateWindowHours;
+
+  /// Cancelling right now would count as late.
+  final bool lateNow;
+  final int lateLimit;
+  final int windowDays;
+  final int restrictionDays;
+
+  factory CancelPolicy.fromJson(Map<String, dynamic> json) {
+    int n(String k, int d) => (json[k] as num?)?.toInt() ?? d;
+    return CancelPolicy(
+      lateWindowHours: n('late_window_hours', 3),
+      lateNow: json['late_now'] as bool? ?? false,
+      lateLimit: n('late_limit', 3),
+      windowDays: n('window_days', 30),
+      restrictionDays: n('restriction_days', 7),
+    );
+  }
+}
+
 class Booking {
   const Booking({
     required this.id,
@@ -67,6 +98,7 @@ class Booking {
     this.lateCancellation = false,
     this.noShow,
     this.canCancel = false,
+    this.cancelPolicy,
     this.conversationId,
     this.contact,
     this.shareText,
@@ -93,6 +125,9 @@ class Booking {
   final bool lateCancellation;
   final NoShowInfo? noShow;
   final bool canCancel;
+
+  /// The rules shown next to the cancel button (numbers come from the admin settings).
+  final CancelPolicy? cancelPolicy;
   final int? conversationId;
   final BookingContact? contact;
 
@@ -133,6 +168,7 @@ class Booking {
             )
           : null,
       canCancel: json['can_cancel'] as bool? ?? false,
+      cancelPolicy: json['cancel_policy'] is Map ? CancelPolicy.fromJson(Map<String, dynamic>.from(json['cancel_policy'] as Map)) : null,
       conversationId: (json['conversation_id'] as num?)?.toInt(),
       contact: contact is Map
           ? BookingContact(

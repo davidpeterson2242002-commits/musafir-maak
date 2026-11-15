@@ -12,6 +12,7 @@ import '../chat/chat_repository.dart';
 import '../driver/driver_money_repository.dart';
 import '../driver/driver_repository.dart';
 import '../driver/driver_trip_repository.dart';
+import '../notifications/notifications_repository.dart';
 import '../parcels/parcel_repository.dart';
 import '../ratings/rating_repository.dart';
 
@@ -25,6 +26,7 @@ class LiveBadges {
     this.parcelStatuses = const {},
     this.pendingRatings = 0,
     this.moneyVersion = '',
+    this.unreadNotifications = 0,
   });
 
   factory LiveBadges.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class LiveBadges {
       parcelStatuses: statuses(json['parcels']),
       pendingRatings: (json['pending_ratings'] as num?)?.toInt() ?? 0,
       moneyVersion: '${driver?['money_version'] ?? ''}',
+      unreadNotifications: (json['unread_notifications'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -50,6 +53,9 @@ class LiveBadges {
   final Map<int, String> bookingStatuses;
   final Map<int, String> parcelStatuses;
   final int pendingRatings;
+
+  /// The bell in the top bar.
+  final int unreadNotifications;
 
   /// Driver only: changes when money moves or a payment is reviewed.
   final String moneyVersion;
@@ -196,6 +202,7 @@ class LiveUpdates extends Notifier<LiveState> with WidgetsBindingObserver {
       ref.invalidate(driverParcelRequestsProvider);
     }
     if (next.pendingRatings != previous.pendingRatings) ref.invalidate(pendingRatingsProvider);
+    if (next.unreadNotifications > previous.unreadNotifications) ref.invalidate(notificationsProvider);
     if (previous.moneyVersion.isNotEmpty && next.moneyVersion != previous.moneyVersion) refreshMoney();
 
     var bookingsChanged = false;

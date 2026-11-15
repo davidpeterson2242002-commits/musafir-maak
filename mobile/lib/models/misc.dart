@@ -8,6 +8,7 @@ class RouteAlert {
     required this.destinationName,
     this.date,
     this.active = true,
+    this.kind = 'trips',
   });
 
   final int id;
@@ -20,12 +21,18 @@ class RouteAlert {
   /// Dated alerts switch off once the day has passed.
   final bool active;
 
+  /// `trips` = new trips on this route; `reopen` = tell me when this closed route opens.
+  final String kind;
+
+  bool get isReopen => kind == 'reopen';
+
   factory RouteAlert.fromJson(Map<String, dynamic> json) => RouteAlert(
         id: json['id'] as int,
         originName: (json['origin'] as Map?)?['name'] as String? ?? '',
         destinationName: (json['destination'] as Map?)?['name'] as String? ?? '',
         date: ApiTime.day(json['date']),
         active: json['active'] as bool? ?? true,
+        kind: json['kind'] as String? ?? 'trips',
       );
 }
 

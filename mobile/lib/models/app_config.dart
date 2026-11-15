@@ -29,6 +29,8 @@ class AppConfig {
   String get privacy => _text('content.privacy');
   String get driverTerms => _text('content.driver_terms');
   String get supportWhatsapp => _text('content.support_whatsapp');
+  /// A trip can't be posted for a time sooner than this.
+  int get tripMinMinutesAhead => (settings['trips.min_minutes_ahead'] as num?)?.toInt() ?? 30;
   int get otpResendSeconds => (settings['otp.resend_seconds'] as num?)?.toInt() ?? 60;
 
   List<String> get prohibitedItems {

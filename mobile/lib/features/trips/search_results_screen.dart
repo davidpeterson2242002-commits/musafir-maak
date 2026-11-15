@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/common.dart';
 import '../../models/trip.dart';
+import '../alerts/reopen_alert.dart';
 import '../alerts/route_alert_repository.dart';
 import '../home/home_screen.dart';
 import '../parcels/parcel_request_screen.dart';
@@ -65,13 +66,7 @@ class SearchResultsScreen extends ConsumerWidget {
                 final trips = draftSize == null
                     ? result.trips
                     : result.trips.where((t) => (t.parcelPrices[draftSize] ?? 0) > 0).toList();
-                if (result.closed) {
-                  return EmptyState(
-                    icon: Icons.block_rounded,
-                    title: S.routeClosedTitle,
-                    body: result.closureMessage ?? S.routeClosed,
-                  );
-                }
+                if (result.closed) return _ClosedRoute(result: result);
                 if (trips.isEmpty) {
                   return _NoTrips(result: result, filtered: filters.activeCount > 0);
                 }
@@ -168,6 +163,74 @@ class _Toolbar extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The admin closed this route (or one of its cities): say so, and offer to tell the
+/// user when it opens — that request also shows the admin which closed routes are wanted.
+class _ClosedRoute extends ConsumerStatefulWidget {
+  const _ClosedRoute({required this.result});
+
+  final SearchResult result;
+
+  @override
+  ConsumerState<_ClosedRoute> createState() => _ClosedRouteState();
+}
+
+class _ClosedRouteState extends ConsumerState<_ClosedRoute> {
+  bool _busy = false;
+  bool _saved = false;
+
+  Future<void> _save() async {
+    final query = ref.read(searchQueryProvider);
+    setState(() => _busy = true);
+    final ok = await saveReopenAlert(context, ref, originCityId: query.from!.id, destinationCityId: query.to!.id);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _saved = ok;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final query = ref.watch(searchQueryProvider);
+    final saved = _saved || widget.result.reopenAlert;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+      children: [
+        Center(
+          child: Container(
+            width: 84,
+            height: 84,
+            decoration: const BoxDecoration(color: AppColors.amberTint, shape: BoxShape.circle),
+            child: const Icon(Icons.lock_clock_rounded, size: 38, color: AppColors.ink),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(S.routeClosedNamed('${query.from!.name} ← ${query.to!.name}'), style: text.titleLarge, textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        Text(
+          widget.result.closureMessage ?? S.routeClosed,
+          style: text.bodyMedium?.copyWith(color: AppColors.inkMuted),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 28),
+        if (saved)
+          const Center(child: Tag(S.reopenAlertSet, icon: Icons.notifications_active_rounded))
+        else ...[
+          Text(S.reopenAsk, style: text.titleSmall, textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _busy ? null : _save,
+            icon: const Icon(Icons.notifications_active_outlined, size: 20),
+            label: const Text(S.notifyWhenOpen),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -32,6 +32,8 @@ String pushRoute(Map<String, dynamic> data) {
     case 'id_approved':
     case 'id_rejected':
       return '/identity';
+    case 'route_reopened':
+      return '/alerts';
     case 'route_alert_match':
       return trip != null ? '/trips/$trip' : '/alerts';
     case 'trip_reminder':

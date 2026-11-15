@@ -90,17 +90,20 @@ class RatingLabel extends StatelessWidget {
 
 /// Driver line used on cards and pages: photo, name, verified mark, rating.
 class DriverLine extends StatelessWidget {
-  const DriverLine({super.key, required this.driver, this.avatarSize = 44, this.trailing});
+  const DriverLine({super.key, required this.driver, this.avatarSize = 44, this.trailing, this.onTap});
 
   final PublicUser driver;
   final double avatarSize;
   final Widget? trailing;
 
+  /// Opens the driver's profile (ratings, comments). Adds a visible "profile and reviews" hint.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
 
-    return Row(
+    final row = Row(
       children: [
         AppAvatar(photoUrl: driver.photoUrl, name: driver.name, size: avatarSize),
         const SizedBox(width: 10),
@@ -115,12 +118,25 @@ class DriverLine extends StatelessWidget {
                 ],
               ),
               RatingLabel(average: driver.ratingAvg, count: driver.ratingCount),
+              if (onTap != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    S.viewProfileAndReviews,
+                    style: text.bodySmall?.copyWith(color: AppColors.green, fontWeight: FontWeight.w700),
+                  ),
+                ),
             ],
           ),
         ),
         if (trailing != null) trailing!,
+        if (onTap != null && trailing == null)
+          const Icon(Icons.chevron_left_rounded, color: AppColors.inkMuted, textDirection: TextDirection.ltr),
       ],
     );
+
+    if (onTap == null) return row;
+    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(10), child: row);
   }
 }
 

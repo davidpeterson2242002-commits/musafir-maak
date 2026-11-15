@@ -71,7 +71,13 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
     final ok = await confirmSheet(
       context,
       title: S.cancelBookingConfirm,
-      body: accepted ? S.cancelLateWarning : null,
+      body: !accepted
+          ? S.cancelFreePending
+          : (booking.cancelPolicy?.lateNow ?? false)
+              ? '${S.cancelLateNow(booking.cancelPolicy!.lateWindowHours)}\n${S.cancelLateRule(booking.cancelPolicy!.lateLimit, booking.cancelPolicy!.windowDays, booking.cancelPolicy!.restrictionDays)}'
+              : booking.cancelPolicy != null
+                  ? S.cancelFreeUntil(booking.cancelPolicy!.lateWindowHours)
+                  : S.cancelLateWarning,
       confirmLabel: accepted ? S.cancelBooking : S.cancelRequest,
       destructive: true,
     );
@@ -221,6 +227,7 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
                       const SizedBox(height: 12),
                       Panel(
                         child: DriverLine(
+                          onTap: () => context.push('/users/${booking.trip.driver.id}'),
                           driver: booking.trip.driver,
                           avatarSize: 48,
                           trailing: booking.conversationId == null || !booking.status.isActive
@@ -283,18 +290,75 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
         OutlinedButton(onPressed: _busy ? null : () => _dispute(booking), child: const Text(S.disputeNoShow)),
         const SizedBox(height: 10),
       ],
-      if (booking.canCancel)
-        TextButton(
+      if (booking.canCancel) ...[
+        if (booking.cancelPolicy != null) ...[
+          _CancelPolicyPanel(booking: booking),
+          const SizedBox(height: 10),
+        ],
+        OutlinedButton.icon(
           onPressed: _busy ? null : () => _cancel(booking),
-          style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-          child: Text(booking.status == BookingStatus.accepted ? S.cancelBooking : S.cancelRequest),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.danger,
+            side: const BorderSide(color: AppColors.danger),
+          ),
+          icon: const Icon(Icons.event_busy_rounded, size: 20),
+          label: Text(booking.status == BookingStatus.accepted ? S.cancelBooking : S.cancelRequest),
         ),
+      ] else if (booking.status.isActive) ...[
+        Text(S.cancelAfterDeparture, style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+      ],
     ];
   }
 
   Future<void> _rate(PendingRating rating) async {
     await context.push('/rate', extra: rating);
     ref.invalidate(pendingRatingsProvider);
+  }
+}
+
+/// What happens if the passenger cancels now (spec 5.4): free while pending or early,
+/// counted as late close to departure; repeated late ones pause booking for a while.
+class _CancelPolicyPanel extends StatelessWidget {
+  const _CancelPolicyPanel({required this.booking});
+
+  final Booking booking;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final p = booking.cancelPolicy!;
+    final pending = booking.status == BookingStatus.pending;
+    final late = !pending && p.lateNow;
+    final lines = <String>[
+      if (pending) S.cancelFreePending,
+      if (!pending && !late) S.cancelFreeUntil(p.lateWindowHours),
+      if (late) S.cancelLateNow(p.lateWindowHours),
+      if (!pending) S.cancelLateRule(p.lateLimit, p.windowDays, p.restrictionDays),
+      S.cancelDriverNotified,
+    ];
+
+    return Panel(
+      color: late ? AppColors.amberTint : AppColors.background,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(late ? Icons.warning_amber_rounded : Icons.info_outline_rounded, size: 18, color: AppColors.ink),
+              const SizedBox(width: 6),
+              Text(S.cancelPolicyTitle, style: text.titleSmall),
+            ],
+          ),
+          const SizedBox(height: 6),
+          for (final line in lines)
+            Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text('• $line', style: text.bodySmall?.copyWith(color: AppColors.ink, height: 1.45)),
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -382,6 +446,7 @@ class _ContactPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DriverLine(
+            onTap: () => context.push('/users/${trip.driver.id}'),
             driver: trip.driver,
             avatarSize: 52,
             trailing: Ltr(Phone.local(contact.driverPhone), style: text.titleSmall),

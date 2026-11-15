@@ -1,12 +1,15 @@
 /// A city users travel between. Greater Khartoum (Khartoum, Omdurman, Bahri)
 /// is a single city on the backend; neighbourhoods are pickup points.
 class City {
-  const City({required this.id, required this.name, this.nameEn, this.stateName});
+  const City({required this.id, required this.name, this.nameEn, this.stateName, this.available = true});
 
   final int id;
   final String name;
   final String? nameEn;
   final String? stateName;
+
+  /// false = the admin closed this city for now (it is listed so people can ask to be told when it opens).
+  final bool available;
 
   factory City.fromJson(Map<String, dynamic> json) {
     final state = json['state'];
@@ -15,6 +18,7 @@ class City {
       name: json['name'] as String,
       nameEn: json['name_en'] as String?,
       stateName: state is Map ? state['name'] as String? : null,
+      available: json['available'] as bool? ?? true,
     );
   }
 
@@ -23,6 +27,7 @@ class City {
         'name': name,
         'name_en': nameEn,
         if (stateName != null) 'state': {'name': stateName},
+        'available': available,
       };
 
   @override

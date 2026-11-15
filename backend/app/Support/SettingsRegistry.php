@@ -128,7 +128,7 @@ final class SettingsRegistry
             // ---------------- Trips & search ----------------
             'trips.min_minutes_ahead' => [
                 'type' => SettingType::Integer, 'group' => 'trips', 'label' => 'أقل وقت قبل الانطلاق لنشر رحلة (دقائق)',
-                'default' => 30, 'min' => 0,
+                'default' => 30, 'min' => 0, 'public' => true,
             ],
             'trips.max_days_ahead' => [
                 'type' => SettingType::Integer, 'group' => 'trips', 'label' => 'أقصى مدة مسبقة لنشر رحلة (أيام)',

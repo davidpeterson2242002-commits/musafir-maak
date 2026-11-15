@@ -165,16 +165,19 @@ class TripBody extends StatelessWidget {
             children: [
               Text(S.driver, style: text.labelMedium),
               const SizedBox(height: 8),
-              InkWell(
+              DriverLine(
                 onTap: () => context.push('/users/${trip.driver.id}'),
-                borderRadius: BorderRadius.circular(10),
-                child: DriverLine(
-                  driver: trip.driver,
-                  avatarSize: 52,
-                  trailing: trip.driver.tripsCount == null
-                      ? null
-                      : Text(S.tripsDone(trip.driver.tripsCount!), style: text.labelMedium),
-                ),
+                driver: trip.driver,
+                avatarSize: 52,
+                trailing: trip.driver.tripsCount == null
+                    ? null
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(S.tripsDone(trip.driver.tripsCount!), style: text.labelMedium),
+                          const Icon(Icons.chevron_left_rounded, color: AppColors.inkMuted, textDirection: TextDirection.ltr),
+                        ],
+                      ),
               ),
               if (trip.driver.memberSince != null) ...[
                 const SizedBox(height: 8),

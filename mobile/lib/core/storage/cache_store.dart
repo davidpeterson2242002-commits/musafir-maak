@@ -38,8 +38,9 @@ class CacheKeys {
   static const config = 'config';
   /// Last account that logged in on this phone (survives logout): {phone, name, photo_url}.
   static const lastLogin = 'last_login';
-  static const cities = 'cities';
-  static const popularRoutes = 'routes.popular';
+  // v2: closed cities and closed popular routes are listed too (marked).
+  static const cities = 'cities.v2';
+  static const popularRoutes = 'routes.popular.v2';
   static const onboardingSeen = 'onboarding_seen';
 }
 

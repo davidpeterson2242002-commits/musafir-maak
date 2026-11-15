@@ -190,13 +190,36 @@ class TopBar extends ConsumerWidget {
           const Spacer(),
           if (isDriver) ...[
             _ModePill(driverMode: driverMode),
-            const SizedBox(width: 10),
+            const SizedBox(width: 4),
           ],
+          const _Bell(),
+          const SizedBox(width: 4),
           GestureDetector(
             onTap: () => ref.read(homeTabProvider.notifier).state = 3,
             child: AppAvatar(photoUrl: user?.photoUrl, name: user?.name, size: 34),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Notifications list, with the number not opened yet.
+class _Bell extends ConsumerWidget {
+  const _Bell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(liveUpdatesProvider.select((s) => s.badges.unreadNotifications));
+    return IconButton(
+      tooltip: S.notifications,
+      onPressed: () => context.push('/notifications'),
+      icon: Badge(
+        isLabelVisible: unread > 0,
+        label: Text(unread > 99 ? '99+' : '$unread'),
+        backgroundColor: AppColors.danger,
+        child: Icon(unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+            color: AppColors.greenDark, size: 26),
       ),
     );
   }

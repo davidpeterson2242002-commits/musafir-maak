@@ -85,7 +85,7 @@ class RouteAlertsScreen extends ConsumerWidget {
                           RouteTitle(from: alert.originName, to: alert.destinationName, style: text.titleMedium),
                           const SizedBox(height: 2),
                           Text(
-                            alert.date == null ? S.anyDate : Fmt.dayMonth(alert.date!),
+                            alert.isReopen ? S.reopenAlertLabel : (alert.date == null ? S.anyDate : Fmt.dayMonth(alert.date!)),
                             style: text.bodySmall,
                           ),
                         ],

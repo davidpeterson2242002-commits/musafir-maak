@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
 import '../../models/city.dart';
+import '../trips/trip_widgets.dart';
 import 'geo_repository.dart';
 
 /// Opens the city list (searchable, grouped by state) and returns the choice.
@@ -107,7 +108,11 @@ class _CityPickerSheetState extends ConsumerState<_CityPickerSheet> {
                           style: text.titleMedium?.copyWith(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500),
                         ),
                         subtitle: showState ? Text('ولاية ${city.stateName}', style: text.bodySmall) : null,
-                        trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.green) : null,
+                        trailing: isSelected
+                            ? const Icon(Icons.check_rounded, color: AppColors.green)
+                            : city.available
+                                ? null
+                                : const Tag(S.closedNow, icon: Icons.lock_outline_rounded, color: AppColors.inkMuted, background: AppColors.background),
                         onTap: () => Navigator.of(context).pop(city),
                       );
                     },

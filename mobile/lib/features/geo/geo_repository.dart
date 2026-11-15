@@ -28,7 +28,7 @@ class GeoRepository {
   final CacheStore _cache;
 
   Future<List<City>> cities() async {
-    final list = await _cachedList(CacheKeys.cities, () => _api.get('cities'));
+    final list = await _cachedList(CacheKeys.cities, () => _api.get('cities', query: {'all': 1}));
     return list.map(City.fromJson).toList();
   }
 

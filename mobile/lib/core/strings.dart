@@ -633,4 +633,38 @@ class S {
   static const sessionExpired = 'انتهت الجلسة. سجّل دخولك من جديد.';
   static const retry = 'حاول تاني';
   static const loadFailed = 'ما قدرنا نحمّل البيانات';
+
+  // Notifications list (the bell)
+  static const notifications = 'الإشعارات';
+  static const noNotifications = 'ما في إشعارات لسه';
+  static const noNotificationsBody = 'أي إشعار يجيك — حجز، رحلة جديدة على طريقك، رسالة من الإدارة — بتلقاه هنا حتى لو فات عليك.';
+  static const markAllRead = 'علّم الكل مقروء';
+  static const loadMore = 'عرض الأقدم';
+
+  // Closed routes
+  static const closedNow = 'مقفول حالياً';
+  static String routeClosedNamed(String route) => 'طريق $route مقفول حالياً';
+  static const reopenAsk = 'عايز ننبهك أول ما يتفتح؟';
+  static const reopenAskDriver = 'عايز ننبهك أول ما يتفتح عشان تنشر رحلتك؟';
+  static const notifyWhenOpen = 'نبّهني أول ما يتفتح';
+  static const reopenAlertSaved = 'تمام — بنرسل ليك إشعار أول ما الطريق يتفتح';
+  static const reopenAlertSet = 'بننبهك أول ما يتفتح';
+  static const reopenAlertLabel = 'لمّا الطريق يتفتح';
+
+  // Cancelling a booking
+  static const cancelPolicyTitle = 'لو احتجت تلغي';
+  static const cancelFreePending = 'الطلب لسه ما اتقبل: تقدر تلغيه مجاناً في أي وقت.';
+  static String cancelFreeUntil(int hours) => 'الإلغاء مجاني لحدي $hours ساعات قبل موعد الانطلاق.';
+  static String cancelLateNow(int hours) => 'هسي باقي أقل من $hours ساعات على الرحلة، فالإلغاء بيتحسب إلغاء متأخر.';
+  static String cancelLateRule(int limit, int days, int block) =>
+      '$limit إلغاءات متأخرة خلال $days يوم بتوقف الحجز من حسابك $block أيام. ما في غرامة مالية.';
+  static const cancelAfterDeparture = 'بعد موعد الانطلاق ما بتقدر تلغي من التطبيق — كلّم السائق.';
+  static const cancelDriverNotified = 'السائق بيوصلو إشعار، والمقعد بيرجع متاح لغيرك.';
+
+  // Driver card
+  static const viewProfileAndReviews = 'الملف والتقييمات';
+
+  // Posting a trip
+  static String departureTooSoon(int minutes) => 'اختار وقت بعد $minutes دقيقة من هسي على الأقل.';
+  static const departurePast = 'الوقت ده فات. اختار وقت قادم.';
 }

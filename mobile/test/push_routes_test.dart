@@ -30,5 +30,6 @@ void main() {
     expect(pushRoute({'event': 'route_alert_match', 'trip_id': '5'}), '/trips/5');
     expect(pushRoute({'event': 'broadcast', 'broadcast_id': '2'}), '/');
     expect(pushRoute({}), '/');
+    expect(pushRoute({'event': 'route_reopened', 'origin_city_id': '1'}), '/alerts');
   });
 }

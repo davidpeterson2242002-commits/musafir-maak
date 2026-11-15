@@ -277,6 +277,7 @@ class _ParcelStatusScreenState extends ConsumerState<ParcelStatusScreen> {
                           child: Column(
                             children: [
                               DriverLine(
+                                onTap: () => context.push('/users/${parcel.trip.driver.id}'),
                                 driver: parcel.trip.driver,
                                 avatarSize: 48,
                                 trailing: Ltr(Phone.local(contact.driverPhone), style: text.titleSmall),
@@ -323,6 +324,7 @@ class _ParcelStatusScreenState extends ConsumerState<ParcelStatusScreen> {
                         const SizedBox(height: 12),
                         Panel(
                           child: DriverLine(
+                            onTap: () => context.push('/users/${parcel.trip.driver.id}'),
                             driver: parcel.trip.driver,
                             avatarSize: 48,
                             trailing: parcel.conversationId == null || parcel.status != ParcelStatus.pending

@@ -13,7 +13,9 @@ import '../../core/widgets/common.dart';
 import '../../models/city.dart';
 import '../../models/driver.dart';
 import '../../models/driver_trip.dart';
+import '../alerts/reopen_alert.dart';
 import '../auth/session_controller.dart';
+import '../config/config_repository.dart';
 import '../geo/city_picker.dart';
 import 'driver_repository.dart';
 import 'driver_trip_repository.dart';
@@ -119,7 +121,27 @@ class _PostTripScreenState extends ConsumerState<PostTripScreen> {
 
   Future<void> _pickTime() async {
     final picked = await showTimePicker(context: context, initialTime: _time ?? const TimeOfDay(hour: 7, minute: 0));
-    if (picked != null) setState(() => _time = picked);
+    if (picked == null || !mounted) return;
+    setState(() => _time = picked);
+    // Today and already past (or too close): say it right away, not after filling the whole form.
+    final problem = _departureProblem();
+    if (problem != null) {
+      setState(() => _errors = {..._errors, 'departs_at': problem});
+      showMessage(context, problem);
+    } else if (_errors.containsKey('departs_at')) {
+      setState(() => _errors = Map.of(_errors)..remove('departs_at'));
+    }
+  }
+
+  /// Departure must be at least the admin's minimum ahead of now (Sudan time = the phone's wall clock here).
+  String? _departureProblem() {
+    if (_date == null || _time == null || _editing) return null;
+    final when = DateTime(_date!.year, _date!.month, _date!.day, _time!.hour, _time!.minute);
+    final now = DateTime.now();
+    if (!when.isAfter(now)) return S.departurePast;
+    final min = ref.read(appConfigProvider).valueOrNull?.tripMinMinutesAhead ?? 30;
+    if (when.isBefore(now.add(Duration(minutes: min)))) return S.departureTooSoon(min);
+    return null;
   }
 
   Future<void> _submit(Vehicle vehicle, int seats) async {
@@ -141,6 +163,8 @@ class _PostTripScreenState extends ConsumerState<PostTripScreen> {
     }
     if (_date == null) errors['departs_at'] = S.fieldRequired;
     if (_time == null) errors['departs_at'] = S.timeRequired;
+    final departure = _departureProblem();
+    if (departure != null) errors['departs_at'] = departure;
     if (price == null || price < 1) errors['price_per_seat'] = S.priceRequired;
     if (pickups.isEmpty) errors['pickup_points'] = S.pointRequired;
     if (dropoffs.isEmpty) errors['dropoff_points'] = S.pointRequired;
@@ -189,6 +213,20 @@ class _PostTripScreenState extends ConsumerState<PostTripScreen> {
       }
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (e.code == 'route_closed' && _from != null && _to != null) {
+        // Closed route: offer to tell the driver when it opens (the admin sees drivers waiting).
+        setState(() => _busy = false);
+        await offerReopenAlert(
+          context,
+          ref,
+          originCityId: _from!.id,
+          destinationCityId: _to!.id,
+          routeLabel: '${_from!.name} ← ${_to!.name}',
+          message: e.message,
+          asDriver: true,
+        );
+        return;
+      }
       // Price above the route's maximum, time too soon, account frozen… the server says which.
       setState(() => _errors = e.fieldErrors);
       showMessage(context, e.message);

@@ -9,6 +9,7 @@ import '../../core/utils/formatters.dart';
 import '../../core/widgets/common.dart';
 import '../../core/widgets/road.dart';
 import '../../models/city.dart';
+import '../alerts/reopen_alert.dart';
 import '../auth/session_controller.dart';
 import '../bookings/booking_repository.dart';
 import '../bookings/booking_widgets.dart';
@@ -426,7 +427,14 @@ class _PopularRoutes extends ConsumerWidget {
               child: GestureDetector(
                 onTap: () {
                   if (!route.open) {
-                    showMessage(context, route.closureMessage ?? S.routeClosed);
+                    offerReopenAlert(
+                      context,
+                      ref,
+                      originCityId: route.origin.id,
+                      destinationCityId: route.destination.id,
+                      routeLabel: '${route.origin.name} ← ${route.destination.name}',
+                      message: route.closureMessage,
+                    );
                     return;
                   }
                   final current = ref.read(searchQueryProvider);
@@ -453,6 +461,10 @@ class _PopularRoutes extends ConsumerWidget {
                       ),
                       Text(route.destination.name,
                           style: text.bodyMedium?.copyWith(color: AppColors.greenDark, fontWeight: FontWeight.w500)),
+                      if (!route.open) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.lock_outline_rounded, size: 15, color: AppColors.inkMuted),
+                      ],
                     ],
                   ),
                 ),

@@ -35,5 +35,16 @@ class RouteAlertRepository {
     return RouteAlert.fromJson(Map<String, dynamic>.from(json as Map));
   }
 
+  /// "Tell me when this closed route opens". [asDriver] = a driver who wants to post trips on it.
+  Future<RouteAlert> createReopen({required int originCityId, required int destinationCityId, bool asDriver = false}) async {
+    final json = await _api.post('route-alerts', body: {
+      'origin_city_id': originCityId,
+      'destination_city_id': destinationCityId,
+      'kind': 'reopen',
+      'role': asDriver ? 'driver' : 'passenger',
+    });
+    return RouteAlert.fromJson(Map<String, dynamic>.from(json as Map));
+  }
+
   Future<void> delete(int id) => _api.delete('route-alerts/$id');
 }

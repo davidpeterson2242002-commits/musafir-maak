@@ -8,6 +8,7 @@ import '../../features/auth/onboarding_screen.dart';
 import '../../features/auth/profile_setup_screen.dart';
 import '../../features/auth/session_controller.dart';
 import '../../features/auth/splash_screen.dart';
+import '../../features/notifications/notifications_screen.dart';
 import '../../features/alerts/route_alerts_screen.dart';
 import '../../features/bookings/booking_request_screen.dart';
 import '../../features/bookings/booking_status_screen.dart';
@@ -94,6 +95,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(path: '/alerts', builder: (context, state) => const RouteAlertsScreen()),
+          GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
           GoRoute(path: '/blocked', builder: (context, state) => const BlockedUsersScreen()),
           GoRoute(path: '/driver/register', builder: (context, state) => const DriverRegistrationScreen()),
           GoRoute(path: '/driver/balance', builder: (context, state) => const BalanceScreen()),
