@@ -6,10 +6,16 @@ import '../../models/chat.dart';
 final userRepositoryProvider = Provider<UserRepository>((ref) => UserRepository(ref.watch(apiClientProvider)));
 
 final publicProfileProvider = FutureProvider.autoDispose.family<PublicProfile, int>(
-  (ref, id) => ref.watch(userRepositoryProvider).profile(id),
+  (ref, id) {
+    ref.refreshOnFresh('users/$id');
+    return ref.watch(userRepositoryProvider).profile(id);
+  },
 );
 
-final myBlocksProvider = FutureProvider.autoDispose((ref) => ref.watch(userRepositoryProvider).blocks());
+final myBlocksProvider = FutureProvider.autoDispose((ref) {
+  ref.refreshOnFresh('me/blocks');
+  return ref.watch(userRepositoryProvider).blocks();
+});
 
 class UserRepository {
   UserRepository(this._api);
@@ -17,7 +23,7 @@ class UserRepository {
   final ApiClient _api;
 
   Future<PublicProfile> profile(int userId) async =>
-      PublicProfile.fromJson(Map<String, dynamic>.from(await _api.get('users/$userId') as Map));
+      PublicProfile.fromJson(Map<String, dynamic>.from(await _api.getCached('users/$userId') as Map));
 
   Future<void> block(int userId) => _api.post('users/$userId/block');
 
@@ -25,7 +31,7 @@ class UserRepository {
 
   /// People I blocked: `[{id, name, blocked_at}]`.
   Future<List<({int id, String name})>> blocks() async {
-    final json = await _api.get('me/blocks');
+    final json = await _api.getCached('me/blocks');
     final items = json is Map ? (json['data'] as List? ?? const []) : (json as List);
     return [
       for (final e in items.cast<Map>()) (id: (e['id'] as num).toInt(), name: (e['name'] as String?) ?? '—'),

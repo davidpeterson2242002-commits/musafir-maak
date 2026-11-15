@@ -12,6 +12,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/phone.dart';
+import '../../core/widgets/app_image.dart';
 import '../../core/widgets/common.dart';
 import '../../models/parcel.dart';
 import '../reports/report_sheet.dart';
@@ -343,13 +344,12 @@ class _ParcelStatusScreenState extends ConsumerState<ParcelStatusScreen> {
                               const SizedBox(height: 8),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
+                                child: AppImage(
                                   parcel.pickupPhotoUrl!,
                                   height: 180,
                                   width: double.infinity,
-                                  fit: BoxFit.cover,
-                                  cacheWidth: 800,
-                                  errorBuilder: (_, __, ___) => const SizedBox(height: 60),
+                                  thumb: 800,
+                                  fallback: const SizedBox(height: 60),
                                 ),
                               ),
                             ],

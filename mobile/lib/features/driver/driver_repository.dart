@@ -8,7 +8,10 @@ final driverRepositoryProvider = Provider<DriverRepository>((ref) => DriverRepos
 
 /// The user's driver account; null when they never started registration.
 final driverAccountProvider = FutureProvider.autoDispose<DriverAccount?>(
-  (ref) => ref.watch(driverRepositoryProvider).fetch(),
+  (ref) {
+    ref.refreshOnFresh('driver');
+    return ref.watch(driverRepositoryProvider).fetch();
+  },
 );
 
 class DriverRepository {
@@ -17,7 +20,7 @@ class DriverRepository {
   final ApiClient _api;
 
   Future<DriverAccount?> fetch() async {
-    final json = await _api.get('driver');
+    final json = await _api.getCached('driver');
     return json is Map ? DriverAccount.fromJson(Map<String, dynamic>.from(json)) : null;
   }
 

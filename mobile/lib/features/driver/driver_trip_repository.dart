@@ -37,17 +37,26 @@ final driverTripRepositoryProvider = Provider<DriverTripRepository>(
 
 /// upcoming / ongoing / past / cancelled.
 final driverTripsProvider = FutureProvider.autoDispose.family<List<DriverTrip>, String>(
-  (ref, tab) => ref.watch(driverTripRepositoryProvider).list(tab),
+  (ref, tab) {
+    ref.refreshOnFresh('driver/trips');
+    return ref.watch(driverTripRepositoryProvider).list(tab);
+  },
 );
 
 /// One trip with its bookings.
 final driverTripProvider = FutureProvider.autoDispose.family<DriverTrip, int>(
-  (ref, id) => ref.watch(driverTripRepositoryProvider).get(id),
+  (ref, id) {
+    ref.refreshOnFresh('driver/trips/$id');
+    return ref.watch(driverTripRepositoryProvider).get(id);
+  },
 );
 
 /// Pending booking requests across all the driver's trips, soonest to expire first.
 final driverRequestsProvider = FutureProvider.autoDispose<List<DriverBooking>>(
-  (ref) => ref.watch(driverTripRepositoryProvider).requests(),
+  (ref) {
+    ref.refreshOnFresh('driver/requests');
+    return ref.watch(driverTripRepositoryProvider).requests();
+  },
 );
 
 class DriverTripRepository {
@@ -56,12 +65,12 @@ class DriverTripRepository {
   final ApiClient _api;
 
   Future<List<DriverTrip>> list(String tab) async {
-    final json = await _api.get('driver/trips', query: {'tab': tab});
+    final json = await _api.getCached('driver/trips', query: {'tab': tab});
     final items = json is Map ? (json['data'] as List? ?? const []) : (json as List);
     return items.map((e) => DriverTrip.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 
-  Future<DriverTrip> get(int id) async => _trip(await _api.get('driver/trips/$id'));
+  Future<DriverTrip> get(int id) async => _trip(await _api.getCached('driver/trips/$id'));
 
   Future<DriverTrip> create(TripDraft draft) async =>
       _trip(await _api.post('driver/trips', body: draft.toJson(creating: true)));
@@ -81,7 +90,7 @@ class DriverTripRepository {
   Future<DriverTrip> complete(int id) async => _trip(await _api.post('driver/trips/$id/complete'));
 
   Future<List<DriverBooking>> requests() async {
-    final json = await _api.get('driver/requests');
+    final json = await _api.getCached('driver/requests');
     return (json as List).map((e) => DriverBooking.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 

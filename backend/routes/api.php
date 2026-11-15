@@ -129,6 +129,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
 // Private uploads through expiring encrypted links (PrivateFiles). Outside the API rate limit:
 // a screen can show many photos at once.
-Route::get('v1/files/{token}', \App\Http\Controllers\PrivateFileController::class)
-    ->where('token', '[A-Za-z0-9_-]+')
+Route::get('v1/files/{expires}/{sig}/{file}', [\App\Http\Controllers\PrivateFileController::class, 'show'])
+    ->where(['expires' => '[0-9]+', 'sig' => '[A-Za-z0-9_-]+', 'file' => '.+'])
     ->name('files.show');
+Route::get('v1/files/{token}', [\App\Http\Controllers\PrivateFileController::class, 'legacy'])
+    ->where('token', '[A-Za-z0-9_-]+');

@@ -9,7 +9,10 @@ final routeAlertRepositoryProvider = Provider<RouteAlertRepository>(
 );
 
 final routeAlertsProvider = FutureProvider.autoDispose<List<RouteAlert>>(
-  (ref) => ref.watch(routeAlertRepositoryProvider).list(),
+  (ref) {
+    ref.refreshOnFresh('route-alerts');
+    return ref.watch(routeAlertRepositoryProvider).list();
+  },
 );
 
 class RouteAlertRepository {
@@ -18,7 +21,7 @@ class RouteAlertRepository {
   final ApiClient _api;
 
   Future<List<RouteAlert>> list() async {
-    final json = await _api.get('route-alerts');
+    final json = await _api.getCached('route-alerts');
     return (json as List).map((e) => RouteAlert.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 

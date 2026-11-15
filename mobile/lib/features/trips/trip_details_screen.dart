@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/app_image.dart';
 import '../../core/widgets/common.dart';
 import '../../models/trip.dart';
 import '../home/home_screen.dart';
@@ -203,13 +204,12 @@ class TripBody extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, index) => ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
+                      child: AppImage(
                         trip.vehiclePhotos[index],
                         width: 170,
                         height: 120,
-                        fit: BoxFit.cover,
-                        cacheWidth: 400,
-                        errorBuilder: (_, __, ___) => Container(
+                        thumb: 400,
+                        fallback: Container(
                           width: 170,
                           color: AppColors.background,
                           child: const Icon(Icons.directions_car_filled_outlined, color: AppColors.inkMuted),

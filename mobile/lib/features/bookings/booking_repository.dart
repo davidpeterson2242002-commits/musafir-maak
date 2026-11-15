@@ -11,11 +11,17 @@ final bookingRepositoryProvider = Provider<BookingRepository>(
 
 /// upcoming / past / cancelled (spec P8).
 final bookingsProvider = FutureProvider.autoDispose.family<List<Booking>, String>(
-  (ref, tab) => ref.watch(bookingRepositoryProvider).list(tab),
+  (ref, tab) {
+    ref.refreshOnFresh('bookings');
+    return ref.watch(bookingRepositoryProvider).list(tab);
+  },
 );
 
 final bookingProvider = FutureProvider.autoDispose.family<Booking, int>(
-  (ref, id) => ref.watch(bookingRepositoryProvider).get(id),
+  (ref, id) {
+    ref.refreshOnFresh('bookings/$id');
+    return ref.watch(bookingRepositoryProvider).get(id);
+  },
 );
 
 /// Result of cancelling: the booking plus any late-cancellation consequence to tell the user.
@@ -42,7 +48,7 @@ class BookingRepository {
 
   Future<List<Booking>> list(String tab) async {
     try {
-      final items = await fetchAllPages(_api, 'bookings', {'tab': tab});
+      final items = await fetchAllPages(_api, 'bookings', {'tab': tab}, cached: true);
       await _cache.write(_listKey(tab), items);
       for (final item in items) {
         await _cache.write(_itemKey((item as Map)['id'] as int), {'data': item});
@@ -57,7 +63,7 @@ class BookingRepository {
 
   Future<Booking> get(int id) async {
     try {
-      final json = await _api.get('bookings/$id');
+      final json = await _api.getCached('bookings/$id');
       final envelope = _envelope(json);
       await _cache.write(_itemKey(id), envelope);
       return _parse(envelope);

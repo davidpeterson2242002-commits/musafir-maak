@@ -11,11 +11,17 @@ final parcelRepositoryProvider = Provider<ParcelRepository>(
 
 /// The sender's parcels: those in progress first, then finished ones.
 final parcelsProvider = FutureProvider.autoDispose<List<Parcel>>(
-  (ref) => ref.watch(parcelRepositoryProvider).list(),
+  (ref) {
+    ref.refreshOnFresh('parcels');
+    return ref.watch(parcelRepositoryProvider).list();
+  },
 );
 
 final parcelProvider = FutureProvider.autoDispose.family<Parcel, int>(
-  (ref, id) => ref.watch(parcelRepositoryProvider).get(id),
+  (ref, id) {
+    ref.refreshOnFresh('parcels/$id');
+    return ref.watch(parcelRepositoryProvider).get(id);
+  },
 );
 
 /// Like bookings, parcels are saved after each load so the delivery code and
@@ -32,8 +38,8 @@ class ParcelRepository {
   Future<List<Parcel>> list() async {
     try {
       final items = [
-        ...await fetchAllPages(_api, 'parcels', {'tab': 'active'}),
-        ...await fetchAllPages(_api, 'parcels', {'tab': 'done'}),
+        ...await fetchAllPages(_api, 'parcels', {'tab': 'active'}, cached: true),
+        ...await fetchAllPages(_api, 'parcels', {'tab': 'done'}, cached: true),
       ];
       await _cache.write(_listKey, items);
       return _parseList(items);
@@ -46,7 +52,7 @@ class ParcelRepository {
 
   Future<Parcel> get(int id) async {
     try {
-      return await _store(await _api.get('parcels/$id'));
+      return await _store(await _api.getCached('parcels/$id'));
     } on ApiException catch (e) {
       final cached = _cache.read(_itemKey(id));
       if (e.isOffline && cached?.data is Map) return Parcel.fromJson(Map<String, dynamic>.from(cached!.data as Map));

@@ -7,7 +7,10 @@ import '../../models/chat.dart';
 final chatRepositoryProvider = Provider<ChatRepository>((ref) => ChatRepository(ref.watch(apiClientProvider)));
 
 final conversationsProvider = FutureProvider.autoDispose<List<Conversation>>(
-  (ref) => ref.watch(chatRepositoryProvider).conversations(),
+  (ref) {
+    ref.refreshOnFresh('conversations');
+    return ref.watch(chatRepositoryProvider).conversations();
+  },
 );
 
 /// Total unread messages, for the badge on the messages tab. 0 on any failure.
@@ -25,7 +28,7 @@ class ChatRepository {
   final ApiClient _api;
 
   Future<List<Conversation>> conversations() async {
-    final items = await fetchAllPages(_api, 'conversations', const {}, maxPages: 3);
+    final items = await fetchAllPages(_api, 'conversations', const {}, maxPages: 3, cached: true);
     return items.map((e) => Conversation.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 

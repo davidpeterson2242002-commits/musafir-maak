@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/env.dart';
+import '../storage/cache_store.dart';
 import '../storage/token_store.dart';
 import 'api_exception.dart';
 
@@ -18,6 +22,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient(
     baseUrl: Env.apiBaseUrl,
     tokenStore: ref.watch(tokenStoreProvider),
+    cache: ref.watch(cacheStoreProvider),
     onConnectivity: (offline) {
       if (ref.read(offlineProvider) != offline) {
         ref.read(offlineProvider.notifier).state = offline;
@@ -27,6 +32,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   ref.onDispose(() {
     client.close();
     client.busy.dispose();
+    client.disposeStreams();
   });
   return client;
 });
@@ -37,9 +43,11 @@ class ApiClient {
   ApiClient({
     required String baseUrl,
     required TokenStore tokenStore,
+    CacheStore? cache,
     void Function(bool offline)? onConnectivity,
     Dio? dio,
   })  : _tokenStore = tokenStore,
+        _cache = cache,
         _onConnectivity = onConnectivity,
         _dio = dio ??
             Dio(
@@ -57,6 +65,7 @@ class ApiClient {
 
   final Dio _dio;
   final TokenStore _tokenStore;
+  final CacheStore? _cache;
   final void Function(bool offline)? _onConnectivity;
 
   UnauthorizedHandler? onUnauthorized;
@@ -68,6 +77,54 @@ class ApiClient {
   final ValueNotifier<int> busy = ValueNotifier<int>(0);
 
   void close() => _dio.close();
+
+  // ---- Instant screens: saved answer first, fresh one in the background -------------------
+
+  /// Paths (without query) whose saved answer was just replaced by a different fresh one.
+  /// Providers listen through [FreshDataRef.refreshOnFresh] and rebuild.
+  Stream<String> get freshData => _fresh.stream;
+  final _fresh = StreamController<String>.broadcast();
+  DateTime _lastAction = DateTime.fromMillisecondsSinceEpoch(0);
+
+  void disposeStreams() => _fresh.close();
+
+  /// GET that answers from the phone's copy right away when there is one, then refreshes it in
+  /// the background (and tells [freshData] if it changed). Right after a user action the network
+  /// answer is awaited instead, so the screen never shows the state from before the action.
+  Future<dynamic> getCached(String path, {Map<String, dynamic>? query}) async {
+    final cache = _cache;
+    if (cache == null) return get(path, query: query);
+
+    final key = '${CacheKeys.user}http.$path${query == null || query.isEmpty ? '' : '?${Uri(queryParameters: query.map((k, v) => MapEntry(k, '$v'))).query}'}';
+    final saved = cache.read(key);
+    final justActed = DateTime.now().difference(_lastAction) < const Duration(seconds: 15);
+
+    if (saved == null || justActed) {
+      try {
+        final fresh = await get(path, query: query);
+        unawaited(cache.write(key, fresh));
+        return fresh;
+      } on ApiException catch (e) {
+        if (saved != null && e.isOffline) return saved.data;
+        rethrow;
+      }
+    }
+
+    // Copies younger than a few seconds are what a refresh just wrote: no new request.
+    if (saved.isOlderThan(const Duration(seconds: 5))) {
+      unawaited(() async {
+        try {
+          final fresh = await get(path, query: query);
+          final changed = jsonEncode(fresh) != jsonEncode(saved.data);
+          await cache.write(key, fresh);
+          if (changed && !_fresh.isClosed) _fresh.add(path);
+        } catch (_) {
+          // Offline or a server hiccup: the saved copy stays on screen.
+        }
+      }());
+    }
+    return saved.data;
+  }
 
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>
       _send('GET', path, query: query, silent: true);
@@ -99,7 +156,9 @@ class ApiClient {
   Future<dynamic> _send(String method, String path, {Object? body, Map<String, dynamic>? query, required bool silent}) async {
     if (!silent) busy.value++;
     try {
-      return await _request(method, path, body: body, query: query);
+      final result = await _request(method, path, body: body, query: query);
+      if (method != 'GET') _lastAction = DateTime.now();
+      return result;
     } finally {
       if (!silent) busy.value--;
     }
@@ -167,10 +226,17 @@ class ApiClient {
 
 /// Reads a Laravel paginated list (`{data, links, meta}`) page by page, up to [maxPages]
 /// (20 per page), so long histories aren't cut at the first 20.
-Future<List<dynamic>> fetchAllPages(ApiClient api, String path, Map<String, dynamic> query, {int maxPages = 5}) async {
+Future<List<dynamic>> fetchAllPages(
+  ApiClient api,
+  String path,
+  Map<String, dynamic> query, {
+  int maxPages = 5,
+  bool cached = false,
+}) async {
   final items = <dynamic>[];
   for (var page = 1; page <= maxPages; page++) {
-    final json = await api.get(path, query: {...query, 'page': page});
+    final pageQuery = {...query, 'page': page};
+    final json = cached ? await api.getCached(path, query: pageQuery) : await api.get(path, query: pageQuery);
     if (json is! Map) {
       items.addAll(json as List);
       break;
@@ -182,3 +248,13 @@ Future<List<dynamic>> fetchAllPages(ApiClient api, String path, Map<String, dyna
   }
   return items;
 }
+
+extension FreshDataRef on Ref {
+  /// Rebuilds this provider when a background refresh brought a different answer for [path]
+  /// (see [ApiClient.getCached]): the screen first shows the saved copy, then the fresh one.
+  void refreshOnFresh(String path) {
+    final sub = read(apiClientProvider).freshData.where((p) => p == path).listen((_) => invalidateSelf());
+    onDispose(sub.cancel);
+  }
+}
+

@@ -9,23 +9,38 @@ final driverMoneyRepositoryProvider = Provider<DriverMoneyRepository>(
 
 /// Parcel requests waiting for the driver's answer, soonest to expire first.
 final driverParcelRequestsProvider = FutureProvider.autoDispose<List<DriverParcel>>(
-  (ref) => ref.watch(driverMoneyRepositoryProvider).parcels('pending'),
+  (ref) {
+    ref.refreshOnFresh('driver/parcels');
+    return ref.watch(driverMoneyRepositoryProvider).parcels('pending');
+  },
 );
 
 final driverBalanceProvider = FutureProvider.autoDispose<DriverBalance>(
-  (ref) => ref.watch(driverMoneyRepositoryProvider).balance(),
+  (ref) {
+    ref.refreshOnFresh('driver/balance');
+    return ref.watch(driverMoneyRepositoryProvider).balance();
+  },
 );
 
 final ledgerProvider = FutureProvider.autoDispose<List<LedgerEntry>>(
-  (ref) => ref.watch(driverMoneyRepositoryProvider).ledger(),
+  (ref) {
+    ref.refreshOnFresh('driver/ledger');
+    return ref.watch(driverMoneyRepositoryProvider).ledger();
+  },
 );
 
 final settlementsProvider = FutureProvider.autoDispose<List<SettlementPayment>>(
-  (ref) => ref.watch(driverMoneyRepositoryProvider).settlements(),
+  (ref) {
+    ref.refreshOnFresh('driver/settlements');
+    return ref.watch(driverMoneyRepositoryProvider).settlements();
+  },
 );
 
 final paymentMethodsProvider = FutureProvider.autoDispose<List<PaymentMethod>>(
-  (ref) => ref.watch(driverMoneyRepositoryProvider).paymentMethods(),
+  (ref) {
+    ref.refreshOnFresh('payment-methods');
+    return ref.watch(driverMoneyRepositoryProvider).paymentMethods();
+  },
 );
 
 class DriverMoneyRepository {
@@ -37,7 +52,7 @@ class DriverMoneyRepository {
 
   /// `status`: pending / active / done.
   Future<List<DriverParcel>> parcels(String status) async =>
-      _list(await _api.get('driver/parcels', query: {'status': status}), DriverParcel.fromJson);
+      _list(await _api.getCached('driver/parcels', query: {'status': status}), DriverParcel.fromJson);
 
   Future<void> acceptParcel(int id) => _api.post('driver/parcels/$id/accept');
 
@@ -55,14 +70,14 @@ class DriverMoneyRepository {
   // ---- Balance and payments ----
 
   Future<DriverBalance> balance() async =>
-      DriverBalance.fromJson(Map<String, dynamic>.from(await _api.get('driver/balance') as Map));
+      DriverBalance.fromJson(Map<String, dynamic>.from(await _api.getCached('driver/balance') as Map));
 
-  Future<List<LedgerEntry>> ledger() async => _list(await fetchAllPages(_api, 'driver/ledger', const {}, maxPages: 3), LedgerEntry.fromJson);
+  Future<List<LedgerEntry>> ledger() async => _list(await fetchAllPages(_api, 'driver/ledger', const {}, maxPages: 3, cached: true), LedgerEntry.fromJson);
 
   Future<List<SettlementPayment>> settlements() async =>
-      _list(await _api.get('driver/settlements'), SettlementPayment.fromJson);
+      _list(await _api.getCached('driver/settlements'), SettlementPayment.fromJson);
 
-  Future<List<PaymentMethod>> paymentMethods() async => _list(await _api.get('payment-methods'), PaymentMethod.fromJson);
+  Future<List<PaymentMethod>> paymentMethods() async => _list(await _api.getCached('payment-methods'), PaymentMethod.fromJson);
 
   /// Reports a payment made outside the app; finance confirms it against the receipt.
   Future<void> submitPayment({

@@ -8,6 +8,7 @@ final ratingRepositoryProvider = Provider<RatingRepository>((ref) => RatingRepos
 
 /// Trips waiting for the user's rating. Never blocks a screen: empty on any failure.
 final pendingRatingsProvider = FutureProvider.autoDispose<List<PendingRating>>((ref) async {
+  ref.refreshOnFresh('ratings/pending');
   try {
     return await ref.watch(ratingRepositoryProvider).pending();
   } on ApiException {
@@ -21,7 +22,7 @@ class RatingRepository {
   final ApiClient _api;
 
   Future<List<PendingRating>> pending() async {
-    final json = await _api.get('ratings/pending');
+    final json = await _api.getCached('ratings/pending');
     return (json as List).map((e) => PendingRating.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 

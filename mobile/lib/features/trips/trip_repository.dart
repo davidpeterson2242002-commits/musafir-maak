@@ -69,7 +69,10 @@ final searchResultsProvider = FutureProvider.autoDispose<SearchResult>((ref) {
 });
 
 final tripDetailsProvider = FutureProvider.autoDispose.family<TripDetails, int>(
-  (ref, id) => ref.watch(tripRepositoryProvider).details(id),
+  (ref, id) {
+    ref.refreshOnFresh('trips/$id');
+    return ref.watch(tripRepositoryProvider).details(id);
+  },
 );
 
 class TripRepository {
@@ -90,7 +93,7 @@ class TripRepository {
   }
 
   Future<TripDetails> details(int id) async {
-    final json = await _api.get('trips/$id');
+    final json = await _api.getCached('trips/$id');
     return TripDetails.fromJson(Map<String, dynamic>.from(json as Map));
   }
 }

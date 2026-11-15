@@ -7,6 +7,7 @@ import '../strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
+import 'app_image.dart';
 
 /// Full-width primary button that shows a spinner (and ignores taps) while busy.
 class PrimaryButton extends StatelessWidget {
@@ -90,16 +91,8 @@ class AppAvatar extends StatelessWidget {
     if (photoUrl == null) return placeholder;
 
     return ClipOval(
-      child: Image.network(
-        photoUrl!,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        // Decode at display size: profile photos are tiny on screen and memory is tight on older phones.
-        cacheWidth: (size * 2).round(),
-        errorBuilder: (_, __, ___) => placeholder,
-        loadingBuilder: (context, child, progress) => progress == null ? child : placeholder,
-      ),
+      // Small server copy, cached on the phone: avatars appear on almost every screen.
+      child: AppImage(photoUrl!, width: size, height: size, thumb: size > 80 ? 400 : 160, fallback: placeholder),
     );
   }
 }

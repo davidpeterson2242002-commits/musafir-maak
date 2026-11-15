@@ -8,7 +8,10 @@ final identityRepositoryProvider = Provider<IdentityRepository>(
 );
 
 final identityProvider = FutureProvider.autoDispose<Identity>(
-  (ref) => ref.watch(identityRepositoryProvider).fetch(),
+  (ref) {
+    ref.refreshOnFresh('me/identity');
+    return ref.watch(identityRepositoryProvider).fetch();
+  },
 );
 
 class IdentityRepository {
@@ -16,7 +19,7 @@ class IdentityRepository {
 
   final ApiClient _api;
 
-  Future<Identity> fetch() async => _parse(await _api.get('me/identity'));
+  Future<Identity> fetch() async => _parse(await _api.getCached('me/identity'));
 
   /// Uploads (or replaces) one photo. `kind`: selfie, passport, national_id_front, national_id_back.
   Future<Identity> upload(String kind, String filePath) async => _parse(

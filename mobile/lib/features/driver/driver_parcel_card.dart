@@ -11,6 +11,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/phone.dart';
+import '../../core/widgets/app_image.dart';
 import '../../core/widgets/common.dart';
 import '../../models/driver_money.dart';
 import '../../models/parcel.dart';
@@ -120,13 +121,12 @@ class _DriverParcelCardState extends ConsumerState<DriverParcelCard> {
               if (parcel.photoUrl != null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
+                  child: AppImage(
                     parcel.photoUrl!,
                     width: 68,
                     height: 68,
-                    fit: BoxFit.cover,
-                    cacheWidth: 220,
-                    errorBuilder: (_, __, ___) => Container(
+                    thumb: 160,
+                    fallback: Container(
                       width: 68,
                       height: 68,
                       color: AppColors.background,
