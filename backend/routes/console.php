@@ -239,3 +239,26 @@ Artisan::command('server:info', function () {
     $size = $db->selectOne('select round(sum(data_length + index_length) / 1024 / 1024, 1) as mb from information_schema.tables where table_schema = database()');
     $this->line('DB size '.($size->mb ?? '?').' MB · users '.User::count().' · trips '.\App\Models\Trip::count().' · bookings '.\App\Models\Booking::count());
 })->purpose('Print server and database facts for the capacity report (read-only)');
+
+Artisan::command('log:summary {--lines=40}', function () {
+    $file = collect(glob(storage_path('logs/laravel*.log')))->sortDesc()->first();
+    if (! $file) {
+        $this->line('no log');
+
+        return 0;
+    }
+    $counts = [];
+    $handle = fopen($file, 'r');
+    while (($line = fgets($handle)) !== false) {
+        if (preg_match('/^\[([^\]]+)\] \w+\.(ERROR|CRITICAL|WARNING|ALERT|EMERGENCY): (.{0,220})/', $line, $m)) {
+            $key = $m[2].': '.preg_replace('/\d{3,}/', 'N', $m[3]);
+            $counts[$key] = ['n' => ($counts[$key]['n'] ?? 0) + 1, 'last' => $m[1]];
+        }
+    }
+    fclose($handle);
+    uasort($counts, fn ($a, $b) => $b['n'] <=> $a['n']);
+    $this->line(basename($file).' '.round(filesize($file) / 1048576, 1).' MB');
+    foreach (array_slice($counts, 0, (int) $this->option('lines'), true) as $msg => $c) {
+        $this->line(sprintf('%6d  last %s  %s', $c['n'], $c['last'], $msg));
+    }
+})->purpose('Count distinct errors in the newest Laravel log (read-only)');

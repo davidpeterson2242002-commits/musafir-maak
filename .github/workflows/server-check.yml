@@ -7,7 +7,7 @@ on:
       command:
         description: "Diagnostic to run"
         type: choice
-        options: [files:check, api:timing, about]
+        options: [files:check, api:timing, about, log:summary, server:info]
         default: files:check
 
 env:
