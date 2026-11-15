@@ -137,7 +137,7 @@ Artisan::command('files:check', function () {
         return 0;
     }
     $disk = \Illuminate\Support\Facades\Storage::disk($doc->disk);
-    $this->line("Newest document #{$doc->id} ({$doc->kind}) on disk {$doc->disk}: file ".($disk->exists($doc->path) ? 'exists' : 'MISSING').', '.$doc->size.' bytes');
+    $this->line("Newest document #{$doc->id} ({$doc->kind->value}) on disk {$doc->disk}: file ".($disk->exists($doc->path) ? 'exists' : 'MISSING').', '.$doc->size.' bytes');
 
     $signed = $doc->temporaryUrl(5);
     $this->line('Link host matches APP_URL: '.(parse_url($signed, PHP_URL_HOST) === parse_url($url, PHP_URL_HOST) ? 'yes' : 'NO').', path starts: '.substr((string) parse_url($signed, PHP_URL_PATH), 0, 9));
