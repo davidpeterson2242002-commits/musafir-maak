@@ -1,0 +1,61 @@
+name: Deploy website pages (Hostinger)
+
+# Publishes the static pages in site/musafir-maak (privacy policy, account deletion)
+# to https://statement-ds.com/musafir-maak/ — the URLs given to Google Play.
+# Same SSH key and host as deploy-backend.yml.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/deploy-site.yml"
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+
+env:
+  SSH_HOST: 194.164.74.72
+  SSH_PORT: "65002"
+  SSH_USER: u214835178
+  HOST_FINGERPRINT: "SHA256:5QLQTWZosryBAR8PaS3YdCRRyoVf2JHIh83I1RcR3dA"
+  TARGET: domains/statement-ds.com/public_html/musafir-maak
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH setup (verify host key)
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          ssh-keyscan -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > /tmp/hostkey 2>/dev/null
+          got=$(ssh-keygen -lf /tmp/hostkey | awk '{print $2}')
+          echo "Host key: $got"
+          [ "$got" = "$HOST_FINGERPRINT" ] || { echo "Host key fingerprint mismatch!"; exit 1; }
+          cat /tmp/hostkey >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host prod
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy
+          EOF
+
+      - name: Upload pages
+        run: |
+          tar -C site/musafir-maak -czf - . | ssh prod "set -e; mkdir -p ~/$TARGET.new; tar -xzf - -C ~/$TARGET.new; rm -rf ~/$TARGET.old; [ -d ~/$TARGET ] && mv ~/$TARGET ~/$TARGET.old || true; mv ~/$TARGET.new ~/$TARGET; rm -rf ~/$TARGET.old; find ~/$TARGET -type d -exec chmod 755 {} +; find ~/$TARGET -type f -exec chmod 644 {} +"
+
+      - name: Check the pages are live
+        run: |
+          sleep 5
+          for p in privacy/ privacy/en.html delete-account/ delete-account/en.html; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://statement-ds.com/musafir-maak/$p")
+            echo "$p → $code"
+            [ "$code" = "200" ] || exit 1
+          done

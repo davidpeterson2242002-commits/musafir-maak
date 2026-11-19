@@ -71,6 +71,43 @@ Artisan::command('notifications:prune', function () {
 
 Schedule::command('notifications:prune')->dailyAt('01:30')->onOneServer();
 
+Artisan::command('users:purge-deleted {--months=12}', function () {
+    // Promise on the public deletion page: 12 months after an account is deleted, its personal
+    // data and verification documents are removed for good. Trip, booking and payment records
+    // stay, linked to an anonymous account, so other users' history and the books still add up.
+    $months = max(1, (int) $this->option('months'));
+    $privateDisk = \Illuminate\Support\Facades\Storage::disk(config('filesystems.private_disk'));
+    $purged = 0;
+
+    User::onlyTrashed()
+        ->where('deleted_at', '<', now()->subMonths($months))
+        ->where('phone', 'not like', 'deleted:%')
+        ->with(['documents', 'driverProfile.documents', 'driverProfile.vehicles' => fn ($q) => $q->withTrashed()->with('documents')])
+        ->chunkById(100, function ($users) use ($privateDisk, &$purged) {
+            foreach ($users as $user) {
+                $docs = $user->documents
+                    ->concat($user->driverProfile?->documents ?? [])
+                    ->concat(($user->driverProfile?->vehicles ?? collect())->flatMap->documents);
+                foreach ($docs as $doc) {
+                    \Illuminate\Support\Facades\Storage::disk($doc->disk)->delete($doc->path);
+                    $doc->delete();
+                }
+                if ($user->photo_path) {
+                    $privateDisk->delete($user->photo_path);
+                }
+                $user->forceFill([
+                    'name' => null, 'email' => null, 'whatsapp_phone' => null, 'photo_path' => null,
+                    'gender' => null, 'city_id' => null, 'phone' => 'deleted:'.$user->id,
+                ])->saveQuietly();
+                $purged++;
+            }
+        });
+
+    $this->info("Purged personal data of $purged account(s) deleted more than $months months ago.");
+})->purpose('Remove personal data and documents of accounts deleted more than 12 months ago');
+
+Schedule::command('users:purge-deleted')->dailyAt('02:00')->onOneServer();
+
 Artisan::command('notifications:test {phone : Phone of a registered user, e.g. 0912345678} {--channel=all : push, whatsapp, email or all}', function () {
     $phone = Phone::normalize($this->argument('phone'));
     $user = $phone ? User::where('phone', $phone)->first() : null;

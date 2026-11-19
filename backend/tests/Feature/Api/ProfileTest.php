@@ -123,6 +123,32 @@ class ProfileTest extends TestCase
             ->assertJsonPath('user.profile_completed', false);
     }
 
+    public function test_purge_removes_personal_data_twelve_months_after_deletion(): void
+    {
+        Storage::fake(config('filesystems.private_disk'));
+        $disk = config('filesystems.private_disk');
+        $old = User::factory()->create(['phone' => '+249911111111', 'name' => 'قديم', 'email' => 'old@example.com']);
+        Storage::disk($disk)->put("users/{$old->id}/id/front.jpg", 'x');
+        $doc = $old->documents()->create(['kind' => 'national_id_front', 'disk' => $disk, 'path' => "users/{$old->id}/id/front.jpg", 'mime' => 'image/jpeg', 'size' => 1]);
+        $recent = User::factory()->create(['phone' => '+249922222222', 'name' => 'جديد']);
+        $active = User::factory()->create(['phone' => '+249933333333', 'name' => 'نشط']);
+
+        $old->delete();
+        $this->travel(13)->months();
+        $recent->delete();
+
+        $this->artisan('users:purge-deleted')->assertSuccessful();
+
+        $old = User::withTrashed()->find($old->id);
+        $this->assertNull($old->name);
+        $this->assertNull($old->email);
+        $this->assertSame('deleted:'.$old->id, $old->phone);
+        $this->assertModelMissing($doc);
+        Storage::disk($disk)->assertMissing("users/{$old->id}/id/front.jpg");
+        $this->assertSame('جديد', User::withTrashed()->find($recent->id)->name);
+        $this->assertSame('نشط', $active->fresh()->name);
+    }
+
     public function test_suspension_auto_lifts_when_expired(): void
     {
         $user = User::factory()->create(['status' => 'suspended', 'suspended_until' => now()->addDay()]);
