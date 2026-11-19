@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/strings.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/common.dart';
 import '../../core/widgets/road.dart';
