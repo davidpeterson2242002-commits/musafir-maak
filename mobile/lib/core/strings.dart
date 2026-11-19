@@ -94,6 +94,9 @@ class S {
   static const travelDate = 'تاريخ السفر';
   static const today = 'اليوم';
   static const tomorrow = 'بكرة';
+  static const otherDate = 'يوم تاني';
+  static const fewerSeats = 'مقعد أقل';
+  static const moreSeats = 'مقعد زيادة';
   static const seats = 'عدد المقاعد';
   static const searchTrips = 'ابحث عن رحلة';
   static const searchParcelTrips = 'ابحث عن سائق للارسالية';

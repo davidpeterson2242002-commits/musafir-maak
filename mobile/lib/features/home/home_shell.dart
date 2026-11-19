@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +7,7 @@ import '../../core/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/logo_mark.dart';
 import '../auth/session_controller.dart';
 import '../bookings/my_bookings_screen.dart';
 import '../chat/chat_outbox.dart';
@@ -123,11 +125,16 @@ class HomeShell extends ConsumerWidget {
     final suspended = ref.watch(currentUserProvider)?.isSuspended ?? false;
     final driverMode = ref.watch(driverModeProvider);
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
+    return Column(
         children: [
-          const TopBar(),
+          // Navy runs up behind the status bar (light status-bar icons).
+          const AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle.light,
+            child: ColoredBox(
+              color: AppColors.navy,
+              child: SafeArea(bottom: false, child: TopBar()),
+            ),
+          ),
           const OfflineBanner(),
           if (suspended)
             Container(
@@ -151,7 +158,6 @@ class HomeShell extends ConsumerWidget {
             ),
           ),
         ],
-      ),
     );
   }
 }
@@ -168,24 +174,16 @@ class TopBar extends ConsumerWidget {
     final driverMode = ref.watch(driverModeProvider);
 
     return Container(
-      height: 54,
+      height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.line)),
-      ),
+      color: AppColors.navy,
       child: Row(
         children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.alt_route_rounded, size: 19, color: AppColors.amber),
-          ),
+          const LogoMark(size: 28),
           const SizedBox(width: 8),
           const Text(
             S.appName,
-            style: TextStyle(fontFamily: AppFonts.display, fontSize: 21, height: 1.2, color: AppColors.navyDark),
+            style: TextStyle(fontFamily: AppFonts.display, fontSize: 21, height: 1.2, color: Colors.white),
           ),
           const Spacer(),
           if (isDriver) ...[
@@ -196,7 +194,12 @@ class TopBar extends ConsumerWidget {
           const SizedBox(width: 4),
           GestureDetector(
             onTap: () => ref.read(homeTabProvider.notifier).state = 3,
-            child: AppAvatar(photoUrl: user?.photoUrl, name: user?.name, size: 34),
+            // White ring so the picture (or initial) stands out on the navy bar.
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: AppAvatar(photoUrl: user?.photoUrl, name: user?.name, size: 32),
+            ),
           ),
         ],
       ),
@@ -219,7 +222,7 @@ class _Bell extends ConsumerWidget {
         label: Text(unread > 99 ? '99+' : '$unread'),
         backgroundColor: AppColors.danger,
         child: Icon(unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
-            color: AppColors.navyDark, size: 26),
+            color: Colors.white, size: 26),
       ),
     );
   }

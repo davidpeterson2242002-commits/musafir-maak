@@ -7,7 +7,7 @@
 #   <circle cx="22" cy="81" r="8" fill="none" stroke-width="6"/>
 #   <circle cx="78" cy="19" r="11"/>
 #
-# Adaptive icon: 108dp foreground, mark box 56dp centred (inside the 66dp safe circle),
+# Adaptive icon: 108dp foreground, mark box 44dp centred (inside the 66dp safe circle),
 # background colour #15233F (icon/values/ic_launcher_background.xml).
 # Legacy icon: navy rounded square (22% radius) with the same mark.
 # To regenerate, render the SVG above at each density (mdpi 1x … xxxhdpi 4x).

@@ -54,7 +54,8 @@ final searchQueryProvider = StateProvider<SearchQuery>((ref) {
   return SearchQuery(from: home, date: DateTime.now());
 });
 
-/// Home tab (spec P3): where to, when, how many — plus one-tap popular routes.
+/// Home tab (spec P3): a navy header ("ماشي وين؟") that the search card sits on,
+/// then live notices, the next trip and one-tap popular routes.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -74,21 +75,54 @@ class HomeScreen extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+        padding: const EdgeInsets.only(bottom: 28),
         children: [
-          if (firstName.isNotEmpty)
-            Text(S.hello(firstName), style: text.bodyLarge?.copyWith(color: AppColors.inkMuted)),
-          Text(S.whereTo, style: text.displaySmall),
-          const SizedBox(height: 16),
-          const _LiveNotices(),
-          const BackgroundDeliveryCardView(),
-          const RatingCards(driverSide: false),
-          const _NextTrip(),
-          const _SearchCard(),
-          const SizedBox(height: 28),
-          Text(S.popularRoutes, style: text.titleMedium),
-          const SizedBox(height: 12),
-          const _PopularRoutes(),
+          // Header band: continues the navy top bar; the search card overlaps its lower edge.
+          Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(height: firstName.isNotEmpty ? 132 : 112, color: AppColors.navy),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (firstName.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(S.hello(firstName),
+                            style: text.bodyLarge?.copyWith(color: const Color(0xFFC9D1E0))),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(S.whereTo, style: text.displaySmall?.copyWith(color: Colors.white)),
+                    ),
+                    const SizedBox(height: 12),
+                    const _SearchCard(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _LiveNotices(),
+                const BackgroundDeliveryCardView(),
+                const RatingCards(driverSide: false),
+                const _NextTrip(),
+                Text(S.popularRoutes, style: text.titleMedium),
+                const SizedBox(height: 12),
+                const _PopularRoutes(),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -98,7 +132,8 @@ class HomeScreen extends ConsumerWidget {
 class _SearchCard extends ConsumerWidget {
   const _SearchCard();
 
-  static const _rowHeight = 60.0;
+  static const _boxHeight = 58.0;
+  static const _gap = 8.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -119,8 +154,14 @@ class _SearchCard extends ConsumerWidget {
       }
     }
 
-    return Panel(
+    return Container(
       padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.line),
+        boxShadow: const [BoxShadow(color: Color(0x1A0B1220), blurRadius: 18, offset: Offset(0, 6))],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -128,29 +169,30 @@ class _SearchCard extends ConsumerWidget {
             kind: query.kind,
             onChanged: (kind) => notifier.state = query.copyWith(kind: kind),
           ),
-          const SizedBox(height: 14),
-          // From / To with the route marker on the leading side and swap on the trailing side.
+          const SizedBox(height: 12),
+          // From / To: the route marker (ring → amber dashes → dot) on the leading side,
+          // swap on the trailing side.
           Row(
             children: [
-              const RouteMarker(height: _rowHeight * 2 + 10),
-              const SizedBox(width: 10),
+              const RouteMarker(height: _boxHeight * 2 + _gap),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   children: [
-                    _CityRow(
+                    _CityBox(
                       label: S.from,
                       city: query.from,
-                      height: _rowHeight,
+                      height: _boxHeight,
                       onTap: () async {
                         final city = await pickCity(context, title: S.from, selected: query.from);
                         if (city != null) notifier.state = ref.read(searchQueryProvider).copyWith(from: city);
                       },
                     ),
-                    const Divider(height: 10),
-                    _CityRow(
+                    const SizedBox(height: _gap),
+                    _CityBox(
                       label: S.to,
                       city: query.to,
-                      height: _rowHeight,
+                      height: _boxHeight,
                       onTap: () async {
                         final city = await pickCity(context, title: S.to, selected: query.to, exclude: query.from);
                         if (city != null) notifier.state = ref.read(searchQueryProvider).copyWith(to: city);
@@ -159,6 +201,7 @@ class _SearchCard extends ConsumerWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 6),
               IconButton(
                 tooltip: S.swapCities,
                 onPressed: () => notifier.state = query.swapped(),
@@ -171,19 +214,27 @@ class _SearchCard extends ConsumerWidget {
               ),
             ],
           ),
-          const Divider(height: 24),
-          _DateRow(
-            date: query.date,
-            onChanged: (date) => notifier.state = query.copyWith(date: date),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _DateBox(
+                  date: query.date,
+                  onChanged: (date) => notifier.state = ref.read(searchQueryProvider).copyWith(date: date),
+                ),
+              ),
+              if (isTrip) ...[
+                const SizedBox(width: _gap),
+                Expanded(
+                  child: _SeatsBox(
+                    seats: query.seats,
+                    onChanged: (seats) => notifier.state = ref.read(searchQueryProvider).copyWith(seats: seats),
+                  ),
+                ),
+              ],
+            ],
           ),
-          if (isTrip) ...[
-            const Divider(height: 24),
-            _SeatsRow(
-              seats: query.seats,
-              onChanged: (seats) => notifier.state = query.copyWith(seats: seats),
-            ),
-          ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           PrimaryButton(
             label: isTrip ? S.searchTrips : S.searchParcelTrips,
             icon: Icons.search_rounded,
@@ -251,8 +302,43 @@ class _KindToggle extends StatelessWidget {
   }
 }
 
-class _CityRow extends StatelessWidget {
-  const _CityRow({required this.label, required this.city, required this.height, required this.onTap});
+/// A grey field box (paper background): small label on top, value below.
+class _FieldBox extends StatelessWidget {
+  const _FieldBox({required this.label, required this.child, this.onTap, this.height = 58});
+
+  final String label;
+  final Widget child;
+  final VoidCallback? onTap;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.background,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: height,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: AlignmentDirectional.centerStart,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.inkMuted, height: 1.3)),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CityBox extends StatelessWidget {
+  const _CityBox({required this.label, required this.city, required this.height, required this.onTap});
 
   final String label;
   final City? city;
@@ -261,108 +347,110 @@ class _CityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-
-    return InkWell(
+    return _FieldBox(
+      label: label,
+      height: height,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        height: height,
-        width: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: text.labelMedium),
-            Text(
-              city?.name ?? S.chooseCity,
-              style: text.titleLarge?.copyWith(
-                color: city == null ? AppColors.inkMuted : AppColors.ink,
-                fontWeight: city == null ? FontWeight.w500 : FontWeight.w700,
-              ),
-            ),
-          ],
+      child: Text(
+        city?.name ?? S.chooseCity,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 17,
+          height: 1.35,
+          color: city == null ? AppColors.inkMuted : AppColors.ink,
+          fontWeight: city == null ? FontWeight.w500 : FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _DateRow extends StatelessWidget {
-  const _DateRow({required this.date, required this.onChanged});
+/// Travel date: "اليوم", "بكرة" or the date. A tap offers today / tomorrow / another day.
+class _DateBox extends StatelessWidget {
+  const _DateBox({required this.date, required this.onChanged});
 
   final DateTime date;
   final ValueChanged<DateTime> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
-    final isToday = Fmt.isSameDay(date, today);
-    final isTomorrow = Fmt.isSameDay(date, tomorrow);
+    final label = Fmt.isSameDay(date, today)
+        ? S.today
+        : Fmt.isSameDay(date, tomorrow)
+            ? S.tomorrow
+            : Fmt.dayMonth(date);
 
-    Widget quick(String label, bool selected, VoidCallback onTap) => Padding(
-          padding: const EdgeInsetsDirectional.only(start: 8),
-          child: ChoiceChip(
-            label: Text(label),
-            selected: selected,
-            onSelected: (_) => onTap(),
-            showCheckmark: false,
-            selectedColor: AppColors.navyTint,
-            backgroundColor: AppColors.surface,
-            side: BorderSide(color: selected ? AppColors.navy : AppColors.line),
-            labelStyle: TextStyle(
-              fontFamily: AppFonts.body,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: selected ? AppColors.navy : AppColors.inkMuted,
-            ),
-          ),
-        );
+    Future<void> pickOther() async {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: date.isBefore(today) ? today : date,
+        firstDate: today,
+        // The backend accepts trips up to 60 days ahead (setting trips.max_days_ahead).
+        lastDate: today.add(const Duration(days: 60)),
+      );
+      if (picked != null) onChanged(picked);
+    }
 
-    return Row(
-      children: [
-        Expanded(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: date.isBefore(today) ? today : date,
-                firstDate: today,
-                // The backend accepts trips up to 60 days ahead (setting trips.max_days_ahead).
-                lastDate: today.add(const Duration(days: 60)),
-              );
-              if (picked != null) onChanged(picked);
-            },
+    return _FieldBox(
+      label: S.travelDate,
+      onTap: () async {
+        final choice = await showModalBottomSheet<int>(
+          context: context,
+          showDragHandle: true,
+          builder: (context) => SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(S.travelDate, style: text.labelMedium),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today_outlined, size: 17, color: AppColors.navy),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(Fmt.dayMonth(date), style: text.titleMedium, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
+                ListTile(
+                  leading: const Icon(Icons.today_rounded, color: AppColors.navy),
+                  title: const Text(S.today),
+                  trailing: Fmt.isSameDay(date, today) ? const Icon(Icons.check_rounded, color: AppColors.navy) : null,
+                  onTap: () => Navigator.pop(context, 0),
                 ),
+                ListTile(
+                  leading: const Icon(Icons.event_rounded, color: AppColors.navy),
+                  title: const Text(S.tomorrow),
+                  trailing:
+                      Fmt.isSameDay(date, tomorrow) ? const Icon(Icons.check_rounded, color: AppColors.navy) : null,
+                  onTap: () => Navigator.pop(context, 1),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.calendar_month_rounded, color: AppColors.navy),
+                  title: const Text(S.otherDate),
+                  onTap: () => Navigator.pop(context, 2),
+                ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
-        ),
-        quick(S.today, isToday, () => onChanged(today)),
-        quick(S.tomorrow, isTomorrow, () => onChanged(tomorrow)),
-      ],
+        );
+        if (choice == 0) onChanged(today);
+        if (choice == 1) onChanged(tomorrow);
+        if (choice == 2) await pickOther();
+      },
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.navy),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.ink, height: 1.35)),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _SeatsRow extends StatelessWidget {
-  const _SeatsRow({required this.seats, required this.onChanged});
+/// Seats with small − / + buttons inside the box.
+class _SeatsBox extends StatelessWidget {
+  const _SeatsBox({required this.seats, required this.onChanged});
 
   static const _max = 8;
 
@@ -371,28 +459,37 @@ class _SeatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-
-    Widget step(IconData icon, VoidCallback? onTap) => IconButton(
-          onPressed: onTap,
-          style: IconButton.styleFrom(
-            fixedSize: const Size(44, 44),
-            side: BorderSide(color: onTap == null ? AppColors.line : AppColors.navy),
-            foregroundColor: AppColors.navy,
+    Widget step(IconData icon, String tooltip, VoidCallback? onTap) => SizedBox(
+          width: 30,
+          height: 30,
+          child: IconButton(
+            tooltip: tooltip,
+            onPressed: onTap,
+            padding: EdgeInsets.zero,
+            style: IconButton.styleFrom(
+              backgroundColor: onTap == null ? Colors.transparent : AppColors.surface,
+              foregroundColor: AppColors.navy,
+              side: const BorderSide(color: AppColors.line),
+            ),
+            icon: Icon(icon, size: 16),
           ),
-          icon: Icon(icon, size: 20),
         );
 
-    return Row(
-      children: [
-        Expanded(child: Text(S.seats, style: text.titleMedium)),
-        step(Icons.remove_rounded, seats > 1 ? () => onChanged(seats - 1) : null),
-        SizedBox(
-          width: 44,
-          child: Text('$seats', style: text.titleLarge, textAlign: TextAlign.center),
-        ),
-        step(Icons.add_rounded, seats < _max ? () => onChanged(seats + 1) : null),
-      ],
+    return _FieldBox(
+      label: S.seats,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(S.seatsCount(seats),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.ink, height: 1.35)),
+          ),
+          step(Icons.remove_rounded, S.fewerSeats, seats > 1 ? () => onChanged(seats - 1) : null),
+          const SizedBox(width: 4),
+          step(Icons.add_rounded, S.moreSeats, seats < _max ? () => onChanged(seats + 1) : null),
+        ],
+      ),
     );
   }
 }
@@ -441,29 +538,22 @@ class _PopularRoutes extends ConsumerWidget {
                   ref.read(searchQueryProvider.notifier).state =
                       current.copyWith(from: route.origin, to: route.destination);
                 },
-                // Light chip (user feedback 2026-11-11: the solid signs were too heavy).
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.line),
-                  ),
+                // Compact road sign (brand identity v1): navy panel, white inset border.
+                child: RoadSign(
+                  compact: true,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(route.origin.name,
-                          style: text.bodyMedium?.copyWith(color: AppColors.navyDark, fontWeight: FontWeight.w500)),
+                      Text(route.origin.name),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
                         // Mirrors in RTL, so it points from the origin (right) to the destination (left).
-                        child: Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.amber),
+                        child: Icon(Icons.arrow_forward_rounded, size: 15, color: AppColors.amber),
                       ),
-                      Text(route.destination.name,
-                          style: text.bodyMedium?.copyWith(color: AppColors.navyDark, fontWeight: FontWeight.w500)),
+                      Text(route.destination.name),
                       if (!route.open) ...[
                         const SizedBox(width: 6),
-                        const Icon(Icons.lock_outline_rounded, size: 15, color: AppColors.inkMuted),
+                        const Icon(Icons.lock_outline_rounded, size: 14, color: Colors.white),
                       ],
                     ],
                   ),
