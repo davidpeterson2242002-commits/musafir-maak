@@ -37,22 +37,22 @@ import 'parcel_repository.dart';
           title: S.parcelAccepted,
           body: S.parcelAcceptedBody,
           icon: Icons.check_circle_rounded,
-          color: AppColors.green,
-          tint: AppColors.greenTint,
+          color: AppColors.navy,
+          tint: AppColors.navyTint,
         ),
       ParcelStatus.pickedUp => (
           title: S.parcelPickedUp,
           body: S.parcelPickedUpBody,
           icon: Icons.local_shipping_rounded,
-          color: AppColors.green,
-          tint: AppColors.greenTint,
+          color: AppColors.navy,
+          tint: AppColors.navyTint,
         ),
       ParcelStatus.delivered => (
           title: S.parcelDelivered,
           body: null,
           icon: Icons.task_alt_rounded,
-          color: AppColors.green,
-          tint: AppColors.greenTint,
+          color: AppColors.navy,
+          tint: AppColors.navyTint,
         ),
       ParcelStatus.rejected => (
           title: S.parcelRejected,
@@ -241,7 +241,7 @@ class _ParcelStatusScreenState extends ConsumerState<ParcelStatusScreen> {
               const OfflineBanner(),
               Expanded(
                 child: RefreshIndicator(
-                  color: AppColors.green,
+                  color: AppColors.navy,
                   onRefresh: () async => _reload(),
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -332,7 +332,7 @@ class _ParcelStatusScreenState extends ConsumerState<ParcelStatusScreen> {
                                 : IconButton(
                                     tooltip: S.chat,
                                     onPressed: () => context.push('/chats/${parcel.conversationId}'),
-                                    icon: const Icon(Icons.forum_outlined, color: AppColors.green),
+                                    icon: const Icon(Icons.forum_outlined, color: AppColors.navy),
                                   ),
                           ),
                         ),
@@ -448,15 +448,15 @@ class _CodePanel extends StatelessWidget {
           Text(S.deliveryCode, style: text.labelMedium),
           Ltr(
             parcel.deliveryCode!.split('').join(' '),
-            style: const TextStyle(fontFamily: AppFonts.display, fontSize: 44, height: 1.3, color: AppColors.green),
+            style: const TextStyle(fontFamily: AppFonts.display, fontSize: 44, height: 1.3, color: AppColors.navy),
           ),
           Text(S.deliveryCodeHelp, style: text.bodySmall, textAlign: TextAlign.center),
           const SizedBox(height: 10),
           Tag(
             parcel.receiverNotified ? S.receiverNotified : S.receiverNotNotified,
             icon: parcel.receiverNotified ? Icons.check_rounded : Icons.warning_amber_rounded,
-            color: parcel.receiverNotified ? AppColors.green : AppColors.ink,
-            background: parcel.receiverNotified ? AppColors.greenTint : AppColors.amberTint,
+            color: parcel.receiverNotified ? AppColors.navy : AppColors.ink,
+            background: parcel.receiverNotified ? AppColors.navyTint : AppColors.amberTint,
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
@@ -507,7 +507,7 @@ class _ParcelFacts extends StatelessWidget {
           S.parcelPrice,
           Text(
             '${Fmt.money(parcel.price)} — ${parcel.senderPays ? S.iPay : S.receiverPays}',
-            style: text.titleSmall?.copyWith(color: AppColors.green),
+            style: text.titleSmall?.copyWith(color: AppColors.navy),
           ),
         ),
       ],

@@ -72,7 +72,7 @@ class SearchResultsScreen extends ConsumerWidget {
                 }
 
                 return RefreshIndicator(
-                  color: AppColors.green,
+                  color: AppColors.navy,
                   onRefresh: () async => ref.invalidate(searchResultsProvider),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -138,14 +138,14 @@ class _Toolbar extends ConsumerWidget {
                         selected: filters.sort == entry.key,
                         onSelected: (_) => notifier.state = filters.withSort(entry.key),
                         showCheckmark: false,
-                        selectedColor: AppColors.greenTint,
+                        selectedColor: AppColors.navyTint,
                         backgroundColor: AppColors.surface,
-                        side: BorderSide(color: filters.sort == entry.key ? AppColors.green : AppColors.line),
+                        side: BorderSide(color: filters.sort == entry.key ? AppColors.navy : AppColors.line),
                         labelStyle: TextStyle(
                           fontFamily: AppFonts.body,
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: filters.sort == entry.key ? AppColors.green : AppColors.inkMuted,
+                          color: filters.sort == entry.key ? AppColors.navy : AppColors.inkMuted,
                         ),
                       ),
                     ),
@@ -282,8 +282,8 @@ class _NoTripsState extends ConsumerState<_NoTrips> {
           child: Container(
             width: 84,
             height: 84,
-            decoration: const BoxDecoration(color: AppColors.greenTint, shape: BoxShape.circle),
-            child: const Icon(Icons.event_busy_rounded, size: 38, color: AppColors.green),
+            decoration: const BoxDecoration(color: AppColors.navyTint, shape: BoxShape.circle),
+            child: const Icon(Icons.event_busy_rounded, size: 38, color: AppColors.navy),
           ),
         ),
         const SizedBox(height: 20),
@@ -305,14 +305,14 @@ class _NoTripsState extends ConsumerState<_NoTrips> {
               for (final day in nearby)
                 ActionChip(
                   backgroundColor: AppColors.surface,
-                  side: const BorderSide(color: AppColors.green),
+                  side: const BorderSide(color: AppColors.navy),
                   label: Text(
                     '${Fmt.dayMonth(day.date)} — ${S.tripsFound(day.trips)}',
                     style: const TextStyle(
                       fontFamily: AppFonts.body,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.green,
+                      color: AppColors.navy,
                     ),
                   ),
                   onPressed: () {

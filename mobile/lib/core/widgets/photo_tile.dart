@@ -33,13 +33,13 @@ class PhotoUploadTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: uploaded ? AppColors.greenTint : AppColors.surface,
+        color: uploaded ? AppColors.navyTint : AppColors.surface,
         borderRadius: BorderRadius.circular(AppTheme.radius + 4),
-        border: Border.all(color: uploaded ? AppColors.green : AppColors.line),
+        border: Border.all(color: uploaded ? AppColors.navy : AppColors.line),
       ),
       child: Row(
         children: [
-          Icon(uploaded ? Icons.check_circle_rounded : icon, color: AppColors.green, size: 28),
+          Icon(uploaded ? Icons.check_circle_rounded : icon, color: AppColors.navy, size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -52,7 +52,7 @@ class PhotoUploadTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (uploading)
-            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.green))
+            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.navy))
           else
             TextButton.icon(
               onPressed: enabled ? onTap : null,

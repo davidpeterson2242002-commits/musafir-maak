@@ -179,13 +179,13 @@ class TopBar extends ConsumerWidget {
           Container(
             width: 30,
             height: 30,
-            decoration: BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(8)),
             child: const Icon(Icons.alt_route_rounded, size: 19, color: AppColors.amber),
           ),
           const SizedBox(width: 8),
           const Text(
             S.appName,
-            style: TextStyle(fontFamily: AppFonts.display, fontSize: 21, height: 1.2, color: AppColors.greenDark),
+            style: TextStyle(fontFamily: AppFonts.display, fontSize: 21, height: 1.2, color: AppColors.navyDark),
           ),
           const Spacer(),
           if (isDriver) ...[
@@ -219,7 +219,7 @@ class _Bell extends ConsumerWidget {
         label: Text(unread > 99 ? '99+' : '$unread'),
         backgroundColor: AppColors.danger,
         child: Icon(unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
-            color: AppColors.greenDark, size: 26),
+            color: AppColors.navyDark, size: 26),
       ),
     );
   }
@@ -249,7 +249,7 @@ class _ModePill extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: driverMode ? AppColors.amberTint : AppColors.greenTint,
+          color: driverMode ? AppColors.amberTint : AppColors.navyTint,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: AppColors.line),
         ),

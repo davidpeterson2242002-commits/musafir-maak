@@ -17,12 +17,12 @@ Future<String?> pickProfilePhoto(BuildContext context, {bool preferFrontCamera =
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: const Icon(Icons.photo_camera_outlined, color: AppColors.green),
+            leading: const Icon(Icons.photo_camera_outlined, color: AppColors.navy),
             title: const Text(S.photoFromCamera),
             onTap: () => Navigator.of(context).pop(ImageSource.camera),
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_outlined, color: AppColors.green),
+            leading: const Icon(Icons.photo_library_outlined, color: AppColors.navy),
             title: const Text(S.photoFromGallery),
             onTap: () => Navigator.of(context).pop(ImageSource.gallery),
           ),

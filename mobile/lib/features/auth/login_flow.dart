@@ -468,13 +468,13 @@ class _CodeBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = hasError ? AppColors.danger : (active ? AppColors.green : AppColors.line);
+    final borderColor = hasError ? AppColors.danger : (active ? AppColors.navy : AppColors.line);
 
     return Container(
       height: 60,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: digit.isEmpty ? AppColors.surface : AppColors.greenTint,
+        color: digit.isEmpty ? AppColors.surface : AppColors.navyTint,
         borderRadius: BorderRadius.circular(AppTheme.radius),
         border: Border.all(color: borderColor, width: active || hasError ? 2 : 1),
       ),

@@ -55,14 +55,14 @@ class _FiltersSheetState extends ConsumerState<_FiltersSheet> {
           selected: selected,
           onSelected: (_) => onTap(),
           showCheckmark: false,
-          selectedColor: AppColors.greenTint,
+          selectedColor: AppColors.navyTint,
           backgroundColor: AppColors.surface,
-          side: BorderSide(color: selected ? AppColors.green : AppColors.line),
+          side: BorderSide(color: selected ? AppColors.navy : AppColors.line),
           labelStyle: TextStyle(
             fontFamily: AppFonts.body,
             fontSize: 14.5,
             fontWeight: FontWeight.w700,
-            color: selected ? AppColors.green : AppColors.inkMuted,
+            color: selected ? AppColors.navy : AppColors.inkMuted,
           ),
         );
 

@@ -46,7 +46,7 @@ class ConversationsScreen extends ConsumerWidget {
               }
 
               return RefreshIndicator(
-                color: AppColors.green,
+                color: AppColors.navy,
                 onRefresh: () async {
                   ref.invalidate(conversationsProvider);
                   ref.invalidate(unreadCountProvider);
@@ -124,7 +124,7 @@ class _ConversationTile extends StatelessWidget {
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: AppColors.navy, borderRadius: BorderRadius.circular(12)),
                 child: Text(
                   '${conversation.unread}',
                   style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700),
@@ -442,7 +442,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     IconButton(
                       onPressed: _send,
                       style: IconButton.styleFrom(
-                        backgroundColor: AppColors.green,
+                        backgroundColor: AppColors.navy,
                         foregroundColor: Colors.white,
                         disabledBackgroundColor: AppColors.line,
                         fixedSize: const Size(50, 50),
@@ -481,7 +481,7 @@ class _Bubble extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 9, 14, 7),
         constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
         decoration: BoxDecoration(
-          color: mine ? AppColors.green : AppColors.surface,
+          color: mine ? AppColors.navy : AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: mine ? null : Border.all(color: AppColors.line),
         ),
@@ -558,7 +558,7 @@ class _PendingBubble extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(14, 9, 14, 7),
           constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
           decoration: BoxDecoration(
-            color: AppColors.green.withValues(alpha: item.failed ? 0.55 : 0.85),
+            color: AppColors.navy.withValues(alpha: item.failed ? 0.55 : 0.85),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(

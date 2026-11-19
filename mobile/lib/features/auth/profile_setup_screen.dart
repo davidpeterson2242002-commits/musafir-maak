@@ -209,7 +209,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     children: [
                       Checkbox(
                         value: _accepted,
-                        activeColor: AppColors.green,
+                        activeColor: AppColors.navy,
                         onChanged: (value) => setState(() => _accepted = value ?? false),
                       ),
                       Expanded(
@@ -249,10 +249,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   static const _linkStyle = TextStyle(
-    color: AppColors.green,
+    color: AppColors.navy,
     fontWeight: FontWeight.w700,
     decoration: TextDecoration.underline,
-    decorationColor: AppColors.green,
+    decorationColor: AppColors.navy,
   );
 }
 
@@ -273,18 +273,18 @@ class _PhotoButton extends StatelessWidget {
             height: 96,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: AppColors.greenTint,
+              color: AppColors.navyTint,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.green, width: 1.5),
+              border: Border.all(color: AppColors.navy, width: 1.5),
             ),
             child: path == null
-                ? const Icon(Icons.add_a_photo_outlined, size: 32, color: AppColors.green)
+                ? const Icon(Icons.add_a_photo_outlined, size: 32, color: AppColors.navy)
                 : Image.file(File(path!), fit: BoxFit.cover, cacheWidth: 300),
           ),
           const SizedBox(height: 8),
           Text(
             path == null ? S.addPhoto : S.changePhoto,
-            style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: AppColors.green),
+            style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: AppColors.navy),
           ),
         ],
       ),
@@ -310,15 +310,15 @@ class _ChoiceTile extends StatelessWidget {
         height: 54,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.greenTint : AppColors.surface,
+          color: selected ? AppColors.navyTint : AppColors.surface,
           borderRadius: BorderRadius.circular(AppTheme.radius),
-          border: Border.all(color: selected ? AppColors.green : AppColors.line, width: selected ? 2 : 1),
+          border: Border.all(color: selected ? AppColors.navy : AppColors.line, width: selected ? 2 : 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (selected) ...[
-              const Icon(Icons.check_rounded, size: 20, color: AppColors.green),
+              const Icon(Icons.check_rounded, size: 20, color: AppColors.navy),
               const SizedBox(width: 6),
             ],
             Text(
@@ -326,7 +326,7 @@ class _ChoiceTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16.5,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? AppColors.green : AppColors.ink,
+                color: selected ? AppColors.navy : AppColors.ink,
               ),
             ),
           ],

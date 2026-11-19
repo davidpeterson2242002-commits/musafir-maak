@@ -131,7 +131,7 @@ class _RatingCardsState extends ConsumerState<RatingCards> {
                                   child: Icon(Icons.star_outline_rounded, size: 24, color: AppColors.amber),
                                 ),
                               const Spacer(),
-                              Text(S.tapToRate, style: text.labelMedium?.copyWith(color: AppColors.greenDark)),
+                              Text(S.tapToRate, style: text.labelMedium?.copyWith(color: AppColors.navyDark)),
                             ],
                           ),
                         ],

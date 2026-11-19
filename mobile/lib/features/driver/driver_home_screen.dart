@@ -32,7 +32,7 @@ class DriverHomeScreen extends ConsumerWidget {
     final canPost = account?.canOperate ?? false;
 
     return RefreshIndicator(
-      color: AppColors.green,
+      color: AppColors.navy,
       onRefresh: () async {
         ref.invalidate(driverAccountProvider);
         ref.invalidate(driverRequestsProvider);
@@ -147,7 +147,7 @@ class _BalanceCard extends StatelessWidget {
                 Text(S.balanceOwed, style: text.labelMedium),
                 Text(
                   Fmt.money(account.balanceOwed),
-                  style: text.headlineSmall?.copyWith(color: owes ? AppColors.ink : AppColors.green),
+                  style: text.headlineSmall?.copyWith(color: owes ? AppColors.ink : AppColors.navy),
                 ),
                 if (owes && account.settlementDueAt != null)
                   Text(S.dueOn(Fmt.dayMonth(account.settlementDueAt!)), style: text.bodySmall)

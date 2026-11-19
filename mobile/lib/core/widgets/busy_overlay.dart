@@ -88,7 +88,7 @@ class _BusyOverlayState extends State<BusyOverlay> {
                           const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2.6, color: AppColors.green),
+                            child: CircularProgressIndicator(strokeWidth: 2.6, color: AppColors.navy),
                           ),
                           const SizedBox(width: 14),
                           Text(

@@ -78,7 +78,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       Expanded(
                         flex: 5,
                         child: Container(
-                          color: AppColors.greenTint,
+                          color: AppColors.navyTint,
                           width: double.infinity,
                           child: RoadScene(sign: RoadSign(child: Text(page.title))),
                         ),

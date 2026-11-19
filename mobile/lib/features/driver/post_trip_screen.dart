@@ -350,14 +350,14 @@ class _PostTripScreenState extends ConsumerState<PostTripScreen> {
                                   _seats = null;
                                 }),
                                 showCheckmark: false,
-                                selectedColor: AppColors.greenTint,
+                                selectedColor: AppColors.navyTint,
                                 backgroundColor: AppColors.surface,
-                                side: BorderSide(color: v.id == vehicle.id ? AppColors.green : AppColors.line),
+                                side: BorderSide(color: v.id == vehicle.id ? AppColors.navy : AppColors.line),
                                 labelStyle: TextStyle(
                                   fontFamily: AppFonts.body,
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w700,
-                                  color: v.id == vehicle.id ? AppColors.green : AppColors.inkMuted,
+                                  color: v.id == vehicle.id ? AppColors.navy : AppColors.inkMuted,
                                 ),
                               ),
                           ],
@@ -470,7 +470,7 @@ class _PickerField extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppTheme.radius),
       child: InputDecorator(
         isEmpty: value == null,
-        decoration: AppTheme.input(label: label, suffixIcon: Icon(icon, size: 20, color: AppColors.green)),
+        decoration: AppTheme.input(label: label, suffixIcon: Icon(icon, size: 20, color: AppColors.navy)),
         child: value == null
             ? null
             : Text(
@@ -500,8 +500,8 @@ class _Counter extends StatelessWidget {
           onPressed: onTap,
           style: IconButton.styleFrom(
             fixedSize: const Size(44, 44),
-            side: BorderSide(color: onTap == null ? AppColors.line : AppColors.green),
-            foregroundColor: AppColors.green,
+            side: BorderSide(color: onTap == null ? AppColors.line : AppColors.navy),
+            foregroundColor: AppColors.navy,
           ),
           icon: Icon(icon, size: 20),
         );

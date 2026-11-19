@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/logo_mark.dart';
 import '../../core/widgets/road.dart';
 import 'session_controller.dart';
 
@@ -26,14 +27,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: AppColors.green,
+      backgroundColor: AppColors.navy,
       body: Column(
         children: [
           Expanded(
             child: Center(
-              child: Text(
-                S.appName,
-                style: TextStyle(fontFamily: AppFonts.display, fontSize: 52, height: 1.2, color: Colors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LogoMark(size: 112),
+                  SizedBox(height: 18),
+                  Text(
+                    S.appName,
+                    style: TextStyle(fontFamily: AppFonts.display, fontSize: 52, height: 1.2, color: Colors.white),
+                  ),
+                ],
               ),
             ),
           ),

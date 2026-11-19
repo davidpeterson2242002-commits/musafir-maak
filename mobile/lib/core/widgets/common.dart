@@ -62,7 +62,7 @@ class Panel extends StatelessWidget {
   }
 }
 
-/// Profile photo, or the first letter of the name on a green tint.
+/// Profile photo, or the first letter of the name on a navy tint.
 class AppAvatar extends StatelessWidget {
   const AppAvatar({super.key, this.photoUrl, this.name, this.size = 56});
 
@@ -76,14 +76,14 @@ class AppAvatar extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(color: AppColors.greenTint, shape: BoxShape.circle),
+      decoration: const BoxDecoration(color: AppColors.navyTint, shape: BoxShape.circle),
       child: Text(
         Fmt.initial(name),
         style: TextStyle(
           fontFamily: AppFonts.display,
           fontSize: size * 0.46,
           height: 1.2,
-          color: AppColors.green,
+          color: AppColors.navy,
         ),
       ),
     );
@@ -108,12 +108,12 @@ class VerifiedBadge extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.verified_rounded, size: 18, color: AppColors.green),
+        const Icon(Icons.verified_rounded, size: 18, color: AppColors.navy),
         if (withLabel) ...[
           const SizedBox(width: 4),
           const Text(
             S.idVerified,
-            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.green),
+            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.navy),
           ),
         ],
       ],
@@ -151,8 +151,8 @@ class EmptyState extends StatelessWidget {
             Container(
               width: 84,
               height: 84,
-              decoration: const BoxDecoration(color: AppColors.greenTint, shape: BoxShape.circle),
-              child: Icon(icon, size: 38, color: AppColors.green),
+              decoration: const BoxDecoration(color: AppColors.navyTint, shape: BoxShape.circle),
+              child: Icon(icon, size: 38, color: AppColors.navy),
             ),
             const SizedBox(height: 20),
             Text(title, style: text.titleLarge, textAlign: TextAlign.center),

@@ -99,7 +99,7 @@ class _DriverParcelCardState extends ConsumerState<DriverParcelCard> {
               IconButton(
                 tooltip: S.callDriver,
                 onPressed: () => _open('tel:$phone'),
-                icon: const Icon(Icons.call_rounded, color: AppColors.green),
+                icon: const Icon(Icons.call_rounded, color: AppColors.navy),
               ),
             ],
           ],

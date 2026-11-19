@@ -65,7 +65,7 @@ class HomeScreen extends ConsumerWidget {
     final firstName = (user?.name ?? '').trim().split(' ').first;
 
     return RefreshIndicator(
-      color: AppColors.green,
+      color: AppColors.navy,
       onRefresh: () async {
         ref.invalidate(popularRoutesProvider);
         ref.invalidate(bookingsProvider('upcoming'));
@@ -163,8 +163,8 @@ class _SearchCard extends ConsumerWidget {
                 tooltip: S.swapCities,
                 onPressed: () => notifier.state = query.swapped(),
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.greenTint,
-                  foregroundColor: AppColors.green,
+                  backgroundColor: AppColors.navyTint,
+                  foregroundColor: AppColors.navy,
                   fixedSize: const Size(44, 44),
                 ),
                 icon: const Icon(Icons.swap_vert_rounded),
@@ -215,7 +215,7 @@ class _KindToggle extends StatelessWidget {
             height: 44,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? AppColors.green : Colors.transparent,
+              color: selected ? AppColors.navy : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -310,14 +310,14 @@ class _DateRow extends StatelessWidget {
             selected: selected,
             onSelected: (_) => onTap(),
             showCheckmark: false,
-            selectedColor: AppColors.greenTint,
+            selectedColor: AppColors.navyTint,
             backgroundColor: AppColors.surface,
-            side: BorderSide(color: selected ? AppColors.green : AppColors.line),
+            side: BorderSide(color: selected ? AppColors.navy : AppColors.line),
             labelStyle: TextStyle(
               fontFamily: AppFonts.body,
               fontSize: 14.5,
               fontWeight: FontWeight.w700,
-              color: selected ? AppColors.green : AppColors.inkMuted,
+              color: selected ? AppColors.navy : AppColors.inkMuted,
             ),
           ),
         );
@@ -343,7 +343,7 @@ class _DateRow extends StatelessWidget {
                 Text(S.travelDate, style: text.labelMedium),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 17, color: AppColors.green),
+                    const Icon(Icons.calendar_today_outlined, size: 17, color: AppColors.navy),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(Fmt.dayMonth(date), style: text.titleMedium, overflow: TextOverflow.ellipsis),
@@ -377,8 +377,8 @@ class _SeatsRow extends StatelessWidget {
           onPressed: onTap,
           style: IconButton.styleFrom(
             fixedSize: const Size(44, 44),
-            side: BorderSide(color: onTap == null ? AppColors.line : AppColors.green),
-            foregroundColor: AppColors.green,
+            side: BorderSide(color: onTap == null ? AppColors.line : AppColors.navy),
+            foregroundColor: AppColors.navy,
           ),
           icon: Icon(icon, size: 20),
         );
@@ -441,7 +441,7 @@ class _PopularRoutes extends ConsumerWidget {
                   ref.read(searchQueryProvider.notifier).state =
                       current.copyWith(from: route.origin, to: route.destination);
                 },
-                // Light chip (user feedback 2026-11-11: the solid green signs were too heavy).
+                // Light chip (user feedback 2026-11-11: the solid signs were too heavy).
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                   decoration: BoxDecoration(
@@ -453,14 +453,14 @@ class _PopularRoutes extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(route.origin.name,
-                          style: text.bodyMedium?.copyWith(color: AppColors.greenDark, fontWeight: FontWeight.w500)),
+                          style: text.bodyMedium?.copyWith(color: AppColors.navyDark, fontWeight: FontWeight.w500)),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
                         // Mirrors in RTL, so it points from the origin (right) to the destination (left).
                         child: Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.amber),
                       ),
                       Text(route.destination.name,
-                          style: text.bodyMedium?.copyWith(color: AppColors.greenDark, fontWeight: FontWeight.w500)),
+                          style: text.bodyMedium?.copyWith(color: AppColors.navyDark, fontWeight: FontWeight.w500)),
                       if (!route.open) ...[
                         const SizedBox(width: 6),
                         const Icon(Icons.lock_outline_rounded, size: 15, color: AppColors.inkMuted),
@@ -528,7 +528,7 @@ class _LiveNotices extends ConsumerWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Material(
               color: n.status == 'accepted' || n.status == 'delivered' || n.status == 'picked_up'
-                  ? AppColors.greenTint
+                  ? AppColors.navyTint
                   : AppColors.dangerTint,
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
@@ -546,7 +546,7 @@ class _LiveNotices extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(_title(n), style: text.titleMedium),
-                            Text(S.noticeOpen, style: text.bodySmall?.copyWith(color: AppColors.greenDark)),
+                            Text(S.noticeOpen, style: text.bodySmall?.copyWith(color: AppColors.navyDark)),
                           ],
                         ),
                       ),

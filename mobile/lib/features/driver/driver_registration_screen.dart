@@ -185,7 +185,7 @@ class _DriverRegistrationScreenState extends ConsumerState<DriverRegistrationScr
                 children: [
                   Checkbox(
                     value: _acceptedTerms,
-                    activeColor: AppColors.green,
+                    activeColor: AppColors.navy,
                     onChanged: (value) => setState(() => _acceptedTerms = value ?? false),
                   ),
                   Expanded(
@@ -204,7 +204,7 @@ class _DriverRegistrationScreenState extends ConsumerState<DriverRegistrationScr
                                 child: Text(
                                   S.driverTerms,
                                   style: text.bodyMedium?.copyWith(
-                                    color: AppColors.green,
+                                    color: AppColors.navy,
                                     fontWeight: FontWeight.w700,
                                     decoration: TextDecoration.underline,
                                   ),
@@ -255,7 +255,7 @@ class _Intro extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 5),
           child: Row(
             children: [
-              Icon(icon, size: 22, color: AppColors.green),
+              Icon(icon, size: 22, color: AppColors.navy),
               const SizedBox(width: 10),
               Expanded(child: Text(label, style: text.bodyLarge?.copyWith(height: 1.4))),
             ],
@@ -323,13 +323,13 @@ class _StepCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: done ? AppColors.greenTint : AppColors.surface,
+          color: done ? AppColors.navyTint : AppColors.surface,
           borderRadius: BorderRadius.circular(AppTheme.radius + 4),
-          border: Border.all(color: done ? AppColors.green : AppColors.line),
+          border: Border.all(color: done ? AppColors.navy : AppColors.line),
         ),
         child: Row(
           children: [
-            Icon(done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: AppColors.green, size: 28),
+            Icon(done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: AppColors.navy, size: 28),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -364,13 +364,13 @@ class _Approved extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
         Panel(
-          color: suspended ? AppColors.dangerTint : AppColors.greenTint,
+          color: suspended ? AppColors.dangerTint : AppColors.navyTint,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 suspended ? Icons.pause_circle_outline_rounded : Icons.verified_rounded,
-                color: suspended ? AppColors.danger : AppColors.green,
+                color: suspended ? AppColors.danger : AppColors.navy,
                 size: 28,
               ),
               const SizedBox(width: 12),
@@ -410,7 +410,7 @@ class _Approved extends StatelessWidget {
               child: Panel(
                 child: Row(
                   children: [
-                    const Icon(Icons.directions_car_filled_outlined, color: AppColors.green),
+                    const Icon(Icons.directions_car_filled_outlined, color: AppColors.navy),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -423,8 +423,8 @@ class _Approved extends StatelessWidget {
                     ),
                     Tag(
                       vehicle.statusLabel,
-                      color: vehicle.isApproved ? AppColors.green : AppColors.ink,
-                      background: vehicle.isApproved ? AppColors.greenTint : AppColors.amberTint,
+                      color: vehicle.isApproved ? AppColors.navy : AppColors.ink,
+                      background: vehicle.isApproved ? AppColors.navyTint : AppColors.amberTint,
                     ),
                   ],
                 ),

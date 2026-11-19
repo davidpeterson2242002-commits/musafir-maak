@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// A green highway signboard, as seen on Sudanese intercity roads: white
+/// A navy highway signboard, as seen on Sudanese intercity roads: white
 /// inset border, white lettering. The app's one signature element — used for
 /// onboarding headings and route chips, nowhere else.
 class RoadSign extends StatelessWidget {
@@ -24,7 +24,7 @@ class RoadSign extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(compact ? 2.5 : 5),
       decoration: BoxDecoration(
-        color: AppColors.green,
+        color: AppColors.navy,
         borderRadius: BorderRadius.circular(outer),
       ),
       child: Container(
@@ -147,11 +147,11 @@ class _RouteMarkerPainter extends CustomPainter {
       top,
       r - 1.25,
       Paint()
-        ..color = AppColors.green
+        ..color = AppColors.navy
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5,
     );
-    canvas.drawCircle(bottom, r, Paint()..color = AppColors.green);
+    canvas.drawCircle(bottom, r, Paint()..color = AppColors.navy);
   }
 
   @override

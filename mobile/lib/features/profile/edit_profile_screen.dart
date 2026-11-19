@@ -131,7 +131,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       alignment: Alignment.center,
                       children: [
                         AppAvatar(photoUrl: user?.photoUrl, name: user?.name, size: 96),
-                        if (_uploading) const CircularProgressIndicator(color: AppColors.green),
+                        if (_uploading) const CircularProgressIndicator(color: AppColors.navy),
                       ],
                     ),
                   ),

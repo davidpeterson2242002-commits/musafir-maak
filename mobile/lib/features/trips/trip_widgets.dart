@@ -37,7 +37,7 @@ class RouteTitle extends StatelessWidget {
 
 /// Small rounded label: women-only, accepts parcels, statuses.
 class Tag extends StatelessWidget {
-  const Tag(this.label, {super.key, this.icon, this.color = AppColors.green, this.background = AppColors.greenTint});
+  const Tag(this.label, {super.key, this.icon, this.color = AppColors.navy, this.background = AppColors.navyTint});
 
   final String label;
   final IconData? icon;
@@ -123,7 +123,7 @@ class DriverLine extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
                     S.viewProfileAndReviews,
-                    style: text.bodySmall?.copyWith(color: AppColors.green, fontWeight: FontWeight.w700),
+                    style: text.bodySmall?.copyWith(color: AppColors.navy, fontWeight: FontWeight.w700),
                   ),
                 ),
             ],
@@ -197,7 +197,7 @@ class TripCard extends StatelessWidget {
                     children: [
                       Text(
                         Fmt.money(parcelMode ? (parcelFrom ?? 0) : trip.pricePerSeat),
-                        style: text.titleLarge?.copyWith(color: AppColors.green),
+                        style: text.titleLarge?.copyWith(color: AppColors.navy),
                       ),
                       Text(parcelMode ? (sizePrice != null ? S.parcelPrice : S.parcelFrom) : S.perSeat, style: text.bodySmall),
                     ],

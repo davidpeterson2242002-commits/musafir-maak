@@ -90,8 +90,8 @@ class _BottomBar extends ConsumerWidget {
                 onPressed: () => context.push('/trips/${trip.id}/parcel'),
                 style: IconButton.styleFrom(
                   fixedSize: const Size(54, 54),
-                  side: const BorderSide(color: AppColors.green, width: 1.5),
-                  foregroundColor: AppColors.green,
+                  side: const BorderSide(color: AppColors.navy, width: 1.5),
+                  foregroundColor: AppColors.navy,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: const Icon(Icons.inventory_2_outlined),
@@ -102,7 +102,7 @@ class _BottomBar extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(Fmt.money(trip.pricePerSeat), style: text.titleLarge?.copyWith(color: AppColors.green)),
+                Text(Fmt.money(trip.pricePerSeat), style: text.titleLarge?.copyWith(color: AppColors.navy)),
                 Text(S.perSeat, style: text.bodySmall),
               ],
             ),
@@ -142,16 +142,16 @@ class TripBody extends StatelessWidget {
         if (trip.womenOnly) ...[
           const SizedBox(height: 12),
           const Panel(
-            color: AppColors.greenTint,
+            color: AppColors.navyTint,
             padding: EdgeInsets.all(12),
             child: Row(
               children: [
-                Icon(Icons.family_restroom_rounded, color: AppColors.green),
+                Icon(Icons.family_restroom_rounded, color: AppColors.navy),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     S.womenOnlyNotice,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.green),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.navy),
                   ),
                 ),
               ],
@@ -292,7 +292,7 @@ class TripSummaryPanel extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.green),
+              const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.navy),
               const SizedBox(width: 6),
               Text(Fmt.dayTime(trip.departsAt), style: text.titleSmall),
             ],
@@ -354,7 +354,7 @@ class _PointList extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Icon(icon, size: 16, color: AppColors.green),
+                  child: Icon(icon, size: 16, color: AppColors.navy),
                 ),
                 const SizedBox(width: 8),
                 Expanded(child: Text(point.label, style: text.bodyLarge?.copyWith(height: 1.4))),

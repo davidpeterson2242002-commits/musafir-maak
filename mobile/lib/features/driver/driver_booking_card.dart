@@ -110,8 +110,8 @@ class _DriverBookingCardState extends ConsumerState<DriverBookingCard> {
                 if (!pending)
                   Tag(
                     booking.statusLabel,
-                    color: accepted ? AppColors.green : AppColors.inkMuted,
-                    background: accepted ? AppColors.greenTint : AppColors.background,
+                    color: accepted ? AppColors.navy : AppColors.inkMuted,
+                    background: accepted ? AppColors.navyTint : AppColors.background,
                   ),
               ],
             ),
@@ -133,7 +133,7 @@ class _DriverBookingCardState extends ConsumerState<DriverBookingCard> {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.trip_origin_rounded, size: 15, color: AppColors.green),
+                const Icon(Icons.trip_origin_rounded, size: 15, color: AppColors.navy),
                 const SizedBox(width: 6),
                 Expanded(child: Text(booking.pickupLabel!, style: text.bodyMedium)),
               ],
@@ -190,7 +190,7 @@ class _DriverBookingCardState extends ConsumerState<DriverBookingCard> {
                   IconButton(
                     tooltip: S.chat,
                     onPressed: () => context.push('/chats/${booking.conversationId}'),
-                    icon: const Icon(Icons.forum_outlined, color: AppColors.green),
+                    icon: const Icon(Icons.forum_outlined, color: AppColors.navy),
                   ),
                 ],
               ],
@@ -205,12 +205,12 @@ class _DriverBookingCardState extends ConsumerState<DriverBookingCard> {
                   IconButton(
                     tooltip: S.callDriver,
                     onPressed: () => _open('tel:${booking.phone}'),
-                    icon: const Icon(Icons.call_rounded, color: AppColors.green),
+                    icon: const Icon(Icons.call_rounded, color: AppColors.navy),
                   ),
                   IconButton(
                     tooltip: S.whatsappDriver,
                     onPressed: () => _open('https://wa.me/${(booking.whatsapp ?? booking.phone!).replaceAll('+', '')}'),
-                    icon: const Icon(Icons.chat_rounded, color: AppColors.green),
+                    icon: const Icon(Icons.chat_rounded, color: AppColors.navy),
                   ),
                 ] else
                   const Spacer(),
@@ -218,7 +218,7 @@ class _DriverBookingCardState extends ConsumerState<DriverBookingCard> {
                   IconButton(
                     tooltip: S.chat,
                     onPressed: () => context.push('/chats/${booking.conversationId}'),
-                    icon: const Icon(Icons.forum_outlined, color: AppColors.green),
+                    icon: const Icon(Icons.forum_outlined, color: AppColors.navy),
                   ),
               ],
             ),
@@ -280,7 +280,7 @@ class DriverTripCard extends StatelessWidget {
                       child: RouteTitle(from: trip.originName, to: trip.destinationName, style: text.titleLarge),
                     ),
                   ),
-                  Text(Fmt.money(trip.pricePerSeat), style: text.titleSmall?.copyWith(color: AppColors.green)),
+                  Text(Fmt.money(trip.pricePerSeat), style: text.titleSmall?.copyWith(color: AppColors.navy)),
                 ],
               ),
               const SizedBox(height: 4),
@@ -293,7 +293,7 @@ class DriverTripCard extends StatelessWidget {
                   value: trip.seatsTotal == 0 ? 0 : trip.seatsBooked / trip.seatsTotal,
                   minHeight: 7,
                   backgroundColor: AppColors.background,
-                  color: AppColors.green,
+                  color: AppColors.navy,
                 ),
               ),
               const SizedBox(height: 8),

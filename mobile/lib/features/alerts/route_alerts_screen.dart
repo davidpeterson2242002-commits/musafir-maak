@@ -50,7 +50,7 @@ class RouteAlertsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _add(context, ref),
-        backgroundColor: AppColors.green,
+        backgroundColor: AppColors.navy,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text(S.addAlert),
@@ -191,7 +191,7 @@ class _AddAlertSheetState extends ConsumerState<_AddAlertSheet> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => setState(() => _date = null),
-                  style: _date == null ? OutlinedButton.styleFrom(backgroundColor: AppColors.greenTint) : null,
+                  style: _date == null ? OutlinedButton.styleFrom(backgroundColor: AppColors.navyTint) : null,
                   child: const Text(S.anyDate),
                 ),
               ),
@@ -199,7 +199,7 @@ class _AddAlertSheetState extends ConsumerState<_AddAlertSheet> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _pickDate,
-                  style: _date != null ? OutlinedButton.styleFrom(backgroundColor: AppColors.greenTint) : null,
+                  style: _date != null ? OutlinedButton.styleFrom(backgroundColor: AppColors.navyTint) : null,
                   child: Text(_date == null ? S.specificDate : Fmt.dayMonth(_date!), overflow: TextOverflow.ellipsis),
                 ),
               ),

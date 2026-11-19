@@ -237,16 +237,16 @@ class _TypeTile extends StatelessWidget {
         height: 52,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.greenTint : AppColors.surface,
+          color: selected ? AppColors.navyTint : AppColors.surface,
           borderRadius: BorderRadius.circular(AppTheme.radius),
-          border: Border.all(color: selected ? AppColors.green : AppColors.line, width: selected ? 2 : 1),
+          border: Border.all(color: selected ? AppColors.navy : AppColors.line, width: selected ? 2 : 1),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 16,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: selected ? AppColors.green : AppColors.ink,
+            color: selected ? AppColors.navy : AppColors.ink,
           ),
         ),
       ),
@@ -281,13 +281,13 @@ class _PhotoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: uploaded ? AppColors.greenTint : AppColors.surface,
+        color: uploaded ? AppColors.navyTint : AppColors.surface,
         borderRadius: BorderRadius.circular(AppTheme.radius + 4),
-        border: Border.all(color: uploaded ? AppColors.green : AppColors.line),
+        border: Border.all(color: uploaded ? AppColors.navy : AppColors.line),
       ),
       child: Row(
         children: [
-          Icon(uploaded ? Icons.check_circle_rounded : icon, color: AppColors.green, size: 30),
+          Icon(uploaded ? Icons.check_circle_rounded : icon, color: AppColors.navy, size: 30),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -300,7 +300,7 @@ class _PhotoTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (uploading)
-            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.green))
+            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.navy))
           else
             TextButton.icon(
               onPressed: enabled ? onTap : null,

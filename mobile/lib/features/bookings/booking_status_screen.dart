@@ -200,7 +200,7 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
               ),
             Expanded(
               child: RefreshIndicator(
-                color: AppColors.green,
+                color: AppColors.navy,
                 onRefresh: () async => _reload(),
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -235,7 +235,7 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen> {
                               : IconButton(
                                   tooltip: S.chat,
                                   onPressed: () => context.push('/chats/${booking.conversationId}'),
-                                  icon: const Icon(Icons.forum_outlined, color: AppColors.green),
+                                  icon: const Icon(Icons.forum_outlined, color: AppColors.navy),
                                 ),
                         ),
                       ),
@@ -516,7 +516,7 @@ class _BookingFacts extends StatelessWidget {
               Expanded(
                 child: Text(
                   value,
-                  style: strong ? text.titleMedium?.copyWith(color: AppColors.green) : text.titleSmall,
+                  style: strong ? text.titleMedium?.copyWith(color: AppColors.navy) : text.titleSmall,
                 ),
               ),
             ],

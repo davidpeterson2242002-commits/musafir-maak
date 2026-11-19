@@ -335,7 +335,7 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
                         children: [
                           Checkbox(
                             value: _confirmed,
-                            activeColor: AppColors.green,
+                            activeColor: AppColors.navy,
                             onChanged: (value) => setState(() => _confirmed = value ?? false),
                           ),
                           Expanded(
@@ -367,7 +367,7 @@ class _ParcelRequestScreenState extends ConsumerState<ParcelRequestScreen> {
                         Row(
                           children: [
                             Expanded(child: Text(S.parcelPrice, style: text.titleMedium)),
-                            Text(Fmt.money(price), style: text.titleLarge?.copyWith(color: AppColors.green)),
+                            Text(Fmt.money(price), style: text.titleLarge?.copyWith(color: AppColors.navy)),
                           ],
                         ),
                         Text(
@@ -420,9 +420,9 @@ class _SizeTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? AppColors.greenTint : AppColors.surface,
+          color: selected ? AppColors.navyTint : AppColors.surface,
           borderRadius: BorderRadius.circular(AppTheme.radius),
-          border: Border.all(color: selected ? AppColors.green : AppColors.line, width: selected ? 2 : 1),
+          border: Border.all(color: selected ? AppColors.navy : AppColors.line, width: selected ? 2 : 1),
         ),
         child: Row(
           children: [
@@ -435,7 +435,7 @@ class _SizeTile extends StatelessWidget {
                 ],
               ),
             ),
-            Text(price, style: text.titleSmall?.copyWith(color: AppColors.green)),
+            Text(price, style: text.titleSmall?.copyWith(color: AppColors.navy)),
           ],
         ),
       ),
@@ -459,16 +459,16 @@ class _PayerTile extends StatelessWidget {
         height: 52,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.greenTint : AppColors.surface,
+          color: selected ? AppColors.navyTint : AppColors.surface,
           borderRadius: BorderRadius.circular(AppTheme.radius),
-          border: Border.all(color: selected ? AppColors.green : AppColors.line, width: selected ? 2 : 1),
+          border: Border.all(color: selected ? AppColors.navy : AppColors.line, width: selected ? 2 : 1),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 16,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: selected ? AppColors.green : AppColors.ink,
+            color: selected ? AppColors.navy : AppColors.ink,
           ),
         ),
       ),
@@ -502,9 +502,9 @@ class _PhotoRow extends StatelessWidget {
               width: 64,
               height: 64,
               clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(color: AppColors.greenTint, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: AppColors.navyTint, borderRadius: BorderRadius.circular(10)),
               child: path == null
-                  ? const Icon(Icons.add_a_photo_outlined, color: AppColors.green)
+                  ? const Icon(Icons.add_a_photo_outlined, color: AppColors.navy)
                   : Image.file(File(path!), fit: BoxFit.cover, cacheWidth: 200),
             ),
             const SizedBox(width: 12),

@@ -121,7 +121,7 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
                               _reason == entry.key
                                   ? Icons.radio_button_checked_rounded
                                   : Icons.radio_button_unchecked_rounded,
-                              color: _reason == entry.key ? AppColors.green : AppColors.inkMuted,
+                              color: _reason == entry.key ? AppColors.navy : AppColors.inkMuted,
                             ),
                             const SizedBox(width: 10),
                             Expanded(child: Text(entry.value, style: text.bodyLarge?.copyWith(height: 1.4))),

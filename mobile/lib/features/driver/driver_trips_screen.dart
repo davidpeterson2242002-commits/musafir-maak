@@ -31,9 +31,9 @@ class DriverTripsScreen extends ConsumerWidget {
           TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            labelColor: AppColors.green,
+            labelColor: AppColors.navy,
             unselectedLabelColor: AppColors.inkMuted,
-            indicatorColor: AppColors.green,
+            indicatorColor: AppColors.navy,
             dividerColor: AppColors.line,
             labelStyle: const TextStyle(fontFamily: AppFonts.body, fontSize: 15.5, fontWeight: FontWeight.w700),
             unselectedLabelStyle: const TextStyle(fontFamily: AppFonts.body, fontSize: 15.5, fontWeight: FontWeight.w500),
@@ -73,7 +73,7 @@ class _TripList extends ConsumerWidget {
         }
 
         return RefreshIndicator(
-          color: AppColors.green,
+          color: AppColors.navy,
           onRefresh: () async => ref.invalidate(driverTripsProvider(tab)),
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),

@@ -20,7 +20,7 @@ class BookingLook {
         BookingStatus.pending =>
           const BookingLook(S.waitingDriver, Icons.hourglass_top_rounded, AppColors.ink, AppColors.amberTint),
         BookingStatus.accepted =>
-          const BookingLook(S.accepted, Icons.check_circle_rounded, AppColors.green, AppColors.greenTint),
+          const BookingLook(S.accepted, Icons.check_circle_rounded, AppColors.navy, AppColors.navyTint),
         BookingStatus.rejected =>
           const BookingLook(S.rejected, Icons.cancel_outlined, AppColors.danger, AppColors.dangerTint),
         BookingStatus.expired =>
@@ -30,7 +30,7 @@ class BookingLook {
         BookingStatus.cancelledByDriver =>
           const BookingLook(S.cancelledByDriver, Icons.cancel_outlined, AppColors.danger, AppColors.dangerTint),
         BookingStatus.completed =>
-          const BookingLook(S.completed, Icons.flag_rounded, AppColors.green, AppColors.greenTint),
+          const BookingLook(S.completed, Icons.flag_rounded, AppColors.navy, AppColors.navyTint),
         BookingStatus.noShow =>
           const BookingLook(S.noShow, Icons.person_off_outlined, AppColors.danger, AppColors.dangerTint),
         BookingStatus.unknown =>
@@ -97,7 +97,7 @@ class BookingCard extends StatelessWidget {
                   AppAvatar(photoUrl: trip.driver.photoUrl, name: trip.driver.name, size: 30),
                   const SizedBox(width: 8),
                   Expanded(child: Text(trip.driver.name, style: text.titleSmall, overflow: TextOverflow.ellipsis)),
-                  Text(Fmt.money(booking.priceTotal), style: text.titleSmall?.copyWith(color: AppColors.green)),
+                  Text(Fmt.money(booking.priceTotal), style: text.titleSmall?.copyWith(color: AppColors.navy)),
                 ],
               ),
             ],

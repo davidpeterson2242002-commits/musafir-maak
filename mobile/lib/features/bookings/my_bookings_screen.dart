@@ -36,9 +36,9 @@ class MyBookingsScreen extends ConsumerWidget {
           TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            labelColor: AppColors.green,
+            labelColor: AppColors.navy,
             unselectedLabelColor: AppColors.inkMuted,
-            indicatorColor: AppColors.green,
+            indicatorColor: AppColors.navy,
             dividerColor: AppColors.line,
             labelStyle: const TextStyle(fontFamily: AppFonts.body, fontSize: 15.5, fontWeight: FontWeight.w700),
             unselectedLabelStyle: const TextStyle(fontFamily: AppFonts.body, fontSize: 15.5, fontWeight: FontWeight.w500),
@@ -87,7 +87,7 @@ class _BookingList extends ConsumerWidget {
         }
 
         return RefreshIndicator(
-          color: AppColors.green,
+          color: AppColors.navy,
           onRefresh: () async => ref.invalidate(bookingsProvider(tab)),
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -124,7 +124,7 @@ class _ParcelList extends ConsumerWidget {
         }
 
         return RefreshIndicator(
-          color: AppColors.green,
+          color: AppColors.navy,
           onRefresh: () async => ref.invalidate(parcelsProvider),
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),

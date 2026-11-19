@@ -1,29 +1,31 @@
 import 'package:flutter/material.dart';
 
-/// The palette. Green is the colour of Sudanese highway signboards; amber is
-/// the road's centre line. Everything else stays quiet.
+/// The "Night Road" palette (brand identity v1, Nov 2026): navy like the road
+/// at night, amber like its lights. Everything else stays quiet.
 class AppColors {
   const AppColors._();
 
-  /// Signboard green — primary actions, signs, selected states.
-  static const Color green = Color(0xFF0B6E5B);
-  static const Color greenDark = Color(0xFF084C40);
-  static const Color greenTint = Color(0xFFE3F1EC);
+  /// Night navy — app bar, road signs, headings, selected states, outlines.
+  static const Color navy = Color(0xFF15233F);
+  static const Color navyDark = Color(0xFF0E1830);
+  static const Color navyTint = Color(0xFFE2E7F0);
 
-  /// Road-marking amber — the route line and small highlights. Never for text on white.
+  /// Road amber — the ONE main button per screen, the route line, the
+  /// companion line in the logo, small highlights. Never for text on light
+  /// backgrounds (1.7:1); navy text on amber is fine (8.2:1).
   static const Color amber = Color(0xFFF2B01E);
-  static const Color amberTint = Color(0xFFFDF3D7);
+  static const Color amberTint = Color(0xFFFCEFCB);
 
   /// Asphalt — the road in illustrations.
-  static const Color asphalt = Color(0xFF2C3A38);
+  static const Color asphalt = Color(0xFF263148);
 
-  static const Color ink = Color(0xFF16302B);
-  static const Color inkMuted = Color(0xFF5C6F6A);
-  static const Color line = Color(0xFFD8E2DE);
-  static const Color background = Color(0xFFF3F6F4);
+  static const Color ink = Color(0xFF0B1220);
+  static const Color inkMuted = Color(0xFF5A6072);
+  static const Color line = Color(0xFFDEDAD2);
+  static const Color background = Color(0xFFF4F2EE);
   static const Color surface = Color(0xFFFFFFFF);
 
-  static const Color danger = Color(0xFFC2412D);
-  static const Color dangerTint = Color(0xFFFBE9E5);
-  static const Color success = Color(0xFF1E8E5A);
+  static const Color danger = Color(0xFFB9382C);
+  static const Color dangerTint = Color(0xFFF8E5E2);
+  static const Color success = Color(0xFF1E7F55);
 }

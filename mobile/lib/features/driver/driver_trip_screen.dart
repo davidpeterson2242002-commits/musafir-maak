@@ -139,7 +139,7 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
             const OfflineBanner(),
             Expanded(
               child: RefreshIndicator(
-                color: AppColors.green,
+                color: AppColors.navy,
                 onRefresh: () async => ref.invalidate(driverTripProvider(widget.tripId)),
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -174,7 +174,7 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                               value: trip.seatsTotal == 0 ? 0 : trip.seatsBooked / trip.seatsTotal,
                               minHeight: 8,
                               backgroundColor: AppColors.background,
-                              color: AppColors.green,
+                              color: AppColors.navy,
                             ),
                           ),
                           const SizedBox(height: 6),

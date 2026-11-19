@@ -27,7 +27,7 @@ class ProfileScreen extends ConsumerWidget {
     final supportNumber = ref.watch(appConfigProvider).valueOrNull?.supportWhatsapp ?? '';
 
     return RefreshIndicator(
-      color: AppColors.green,
+      color: AppColors.navy,
       onRefresh: () => ref.read(sessionProvider.notifier).refresh(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -221,10 +221,10 @@ class _IdentityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, color, tint, title, body) = switch (status) {
-      IdStatus.verified => (Icons.verified_rounded, AppColors.green, AppColors.greenTint, S.idVerified, null),
+      IdStatus.verified => (Icons.verified_rounded, AppColors.navy, AppColors.navyTint, S.idVerified, null),
       IdStatus.pending => (Icons.hourglass_top_rounded, AppColors.ink, AppColors.amberTint, S.idPending, S.idPendingBody),
       IdStatus.rejected => (Icons.error_outline_rounded, AppColors.danger, AppColors.dangerTint, S.idRejected, S.idRejectedBody),
-      IdStatus.none => (Icons.badge_outlined, AppColors.green, AppColors.greenTint, S.verifyId, S.verifyIdBody),
+      IdStatus.none => (Icons.badge_outlined, AppColors.navy, AppColors.navyTint, S.verifyId, S.verifyIdBody),
     };
 
     return GestureDetector(
@@ -358,7 +358,7 @@ class _MenuItem extends StatelessWidget {
         ListTile(
           onTap: soon ? null : onTap,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          leading: Icon(icon, color: soon ? AppColors.inkMuted : AppColors.green),
+          leading: Icon(icon, color: soon ? AppColors.inkMuted : AppColors.navy),
           title: Text(label, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w500, color: soon ? AppColors.inkMuted : AppColors.ink)),
           trailing: soon
               ? const _SoonTag()

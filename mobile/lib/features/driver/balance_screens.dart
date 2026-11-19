@@ -51,7 +51,7 @@ class BalanceScreen extends ConsumerWidget {
           final owes = balance.balanceOwed > 0;
 
           return RefreshIndicator(
-            color: AppColors.green,
+            color: AppColors.navy,
             onRefresh: () async => reload(),
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -65,7 +65,7 @@ class BalanceScreen extends ConsumerWidget {
                       Text(S.balanceOwed, style: text.labelMedium),
                       Text(
                         owes ? Fmt.money(balance.balanceOwed) : S.nothingOwed,
-                        style: text.displaySmall?.copyWith(color: owes ? AppColors.ink : AppColors.green),
+                        style: text.displaySmall?.copyWith(color: owes ? AppColors.ink : AppColors.navy),
                       ),
                       if (owes && balance.settlementDueAt != null)
                         Text(
@@ -135,12 +135,12 @@ class BalanceScreen extends ConsumerWidget {
                                 Tag(
                                   payment.statusLabel,
                                   color: switch (payment.status) {
-                                    'confirmed' => AppColors.green,
+                                    'confirmed' => AppColors.navy,
                                     'rejected' => AppColors.danger,
                                     _ => AppColors.ink,
                                   },
                                   background: switch (payment.status) {
-                                    'confirmed' => AppColors.greenTint,
+                                    'confirmed' => AppColors.navyTint,
                                     'rejected' => AppColors.dangerTint,
                                     _ => AppColors.amberTint,
                                   },
@@ -212,7 +212,7 @@ class _LedgerRow extends StatelessWidget {
           ),
           Ltr(
             '${charge ? '+' : '−'}${Fmt.number(entry.amount.abs())}',
-            style: text.titleSmall?.copyWith(color: charge ? AppColors.ink : AppColors.green),
+            style: text.titleSmall?.copyWith(color: charge ? AppColors.ink : AppColors.navy),
           ),
         ],
       ),
@@ -388,9 +388,9 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                                 width: 64,
                                 height: 64,
                                 clipBehavior: Clip.antiAlias,
-                                decoration: BoxDecoration(color: AppColors.greenTint, borderRadius: BorderRadius.circular(10)),
+                                decoration: BoxDecoration(color: AppColors.navyTint, borderRadius: BorderRadius.circular(10)),
                                 child: _receiptPath == null
-                                    ? const Icon(Icons.receipt_long_outlined, color: AppColors.green)
+                                    ? const Icon(Icons.receipt_long_outlined, color: AppColors.navy)
                                     : Image.file(File(_receiptPath!), fit: BoxFit.cover, cacheWidth: 200),
                               ),
                               const SizedBox(width: 12),

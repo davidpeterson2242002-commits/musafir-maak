@@ -109,7 +109,7 @@ class _CityPickerSheetState extends ConsumerState<_CityPickerSheet> {
                         ),
                         subtitle: showState ? Text('ولاية ${city.stateName}', style: text.bodySmall) : null,
                         trailing: isSelected
-                            ? const Icon(Icons.check_rounded, color: AppColors.green)
+                            ? const Icon(Icons.check_rounded, color: AppColors.navy)
                             : city.available
                                 ? null
                                 : const Tag(S.closedNow, icon: Icons.lock_outline_rounded, color: AppColors.inkMuted, background: AppColors.background),

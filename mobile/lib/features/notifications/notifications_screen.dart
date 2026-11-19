@@ -90,7 +90,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           }
 
           return RefreshIndicator(
-            color: AppColors.green,
+            color: AppColors.navy,
             onRefresh: () async {
               _older.clear();
               ref.invalidate(notificationsProvider);
@@ -149,7 +149,7 @@ class _NotificationTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        color: unread ? AppColors.greenTint.withValues(alpha: 0.55) : null,
+        color: unread ? AppColors.navyTint.withValues(alpha: 0.55) : null,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,7 +158,7 @@ class _NotificationTile extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: unread ? AppColors.green : AppColors.background,
+                color: unread ? AppColors.navy : AppColors.background,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(iconFor(item.event), size: 21, color: unread ? AppColors.surface : AppColors.inkMuted),

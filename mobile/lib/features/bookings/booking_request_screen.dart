@@ -183,7 +183,7 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                                     point.id == pickupId
                                         ? Icons.radio_button_checked_rounded
                                         : Icons.radio_button_unchecked_rounded,
-                                    color: point.id == pickupId ? AppColors.green : AppColors.inkMuted,
+                                    color: point.id == pickupId ? AppColors.navy : AppColors.inkMuted,
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(child: Text(point.label, style: text.bodyLarge?.copyWith(height: 1.4))),
@@ -233,7 +233,7 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                       Row(
                         children: [
                           Expanded(child: Text(S.total, style: text.titleMedium)),
-                          Text(Fmt.money(total), style: text.titleLarge?.copyWith(color: AppColors.green)),
+                          Text(Fmt.money(total), style: text.titleLarge?.copyWith(color: AppColors.navy)),
                         ],
                       ),
                       Text(S.payDriverDirectly, style: text.bodySmall),
@@ -284,8 +284,8 @@ class _Stepper extends StatelessWidget {
           onPressed: onTap,
           style: IconButton.styleFrom(
             fixedSize: const Size(44, 44),
-            side: BorderSide(color: onTap == null ? AppColors.line : AppColors.green),
-            foregroundColor: AppColors.green,
+            side: BorderSide(color: onTap == null ? AppColors.line : AppColors.navy),
+            foregroundColor: AppColors.navy,
           ),
           icon: Icon(icon, size: 20),
         );

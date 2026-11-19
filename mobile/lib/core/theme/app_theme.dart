@@ -19,10 +19,10 @@ class AppTheme {
 
   static ThemeData light() {
     final scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.green,
+      seedColor: AppColors.navy,
       brightness: Brightness.light,
     ).copyWith(
-      primary: AppColors.green,
+      primary: AppColors.navy,
       onPrimary: Colors.white,
       secondary: AppColors.amber,
       onSecondary: AppColors.ink,
@@ -44,9 +44,10 @@ class AppTheme {
       textTheme: _textTheme(),
       splashFactory: InkRipple.splashFactory,
       filledButtonTheme: FilledButtonThemeData(
+        // The main action on a screen: amber with navy text (brand rule: one amber button per screen).
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.green,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.amber,
+          foregroundColor: AppColors.navy,
           disabledBackgroundColor: AppColors.line,
           disabledForegroundColor: AppColors.inkMuted,
           minimumSize: const Size.fromHeight(buttonHeight),
@@ -56,22 +57,22 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.green,
+          foregroundColor: AppColors.navy,
           minimumSize: const Size.fromHeight(buttonHeight),
-          side: const BorderSide(color: AppColors.green, width: 1.5),
+          side: const BorderSide(color: AppColors.navy, width: 1.5),
           shape: buttonShape,
           textStyle: buttonText,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.green,
+          foregroundColor: AppColors.navy,
           textStyle: buttonText.copyWith(fontSize: 15),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.greenTint,
+        indicatorColor: AppColors.navyTint,
         elevation: 0,
         height: 68,
         labelTextStyle: WidgetStateProperty.resolveWith(
@@ -79,12 +80,12 @@ class AppTheme {
             fontFamily: AppFonts.body,
             fontSize: 12.5,
             fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
-            color: states.contains(WidgetState.selected) ? AppColors.green : AppColors.inkMuted,
+            color: states.contains(WidgetState.selected) ? AppColors.navy : AppColors.inkMuted,
           ),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
-            color: states.contains(WidgetState.selected) ? AppColors.green : AppColors.inkMuted,
+            color: states.contains(WidgetState.selected) ? AppColors.navy : AppColors.inkMuted,
           ),
         ),
       ),
@@ -148,7 +149,7 @@ class AppTheme {
       hintStyle: const TextStyle(color: AppColors.inkMuted, fontSize: 15.5),
       border: border(AppColors.line),
       enabledBorder: border(AppColors.line),
-      focusedBorder: border(AppColors.green, 2),
+      focusedBorder: border(AppColors.navy, 2),
       errorBorder: border(AppColors.danger),
       focusedErrorBorder: border(AppColors.danger, 2),
     );
